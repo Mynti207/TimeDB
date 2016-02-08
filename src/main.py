@@ -48,8 +48,14 @@ def testStringRepresentation():
     if string_ts_large != 'Length: {} \n[0, ..., 9]'.format(len(ts_large)):
         return False
 
-    print('Print statement on short list: \n{}'.format(string_ts_short))
-    print('Print statement on large list: \n{}'.format(string_ts_large))
+    print('Print statement on short list')
+    print(string_ts_short)
+    print('Print statement on large list')
+    print(string_ts_large)
+
+    print('Requested print for the form')
+    print(TimeSeries(range(0, 1000000)))
+
     return True
 
 
