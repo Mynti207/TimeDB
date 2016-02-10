@@ -1,5 +1,6 @@
 # stores TimeSeries class
 
+import numpy as np
 
 class TimeSeries:
     """ Data and methods for an object representing a general time series.
@@ -14,6 +15,37 @@ class TimeSeries:
                  of the sequence
         str: returns printable representation of sequence
         resp: returns representation of sequence
+
+    ---
+    
+    >>> seq = np.arange(0, 10)
+    >>> ts = TimeSeries(seq)
+    >>> ts[1]==1
+    True
+    >>> ts[1]=0
+    >>> ts[1]!=0
+    False
+    >>> len(ts)
+    10
+    >>> seq_short = np.arange(0, 5)
+    >>> ts_short = TimeSeries(seq_short)
+    >>> seq_large = np.arange(0, 10)
+    >>> ts_large = TimeSeries(seq_large)
+    >>> string_ts_short = str(ts_short)
+    >>> string_ts_large = str(ts_large)
+    >>> string_ts_short == '[0 1 2 3 4]'
+    True
+    >>> string_ts_large != 'Length: {} \\n[0, ..., 9]'.format(len(ts_large))
+    False
+    >>> print(string_ts_short)
+    [0 1 2 3 4]
+    >>> print(string_ts_large) #doctest: +NORMALIZE_WHITESPACE
+    Length: 10
+    [0, ..., 9]
+    >>> print(TimeSeries(range(0, 1000000))) #doctest: +NORMALIZE_WHITESPACE
+    Length: 1000000
+    [0, ..., 999999]
+
     """
 
     # initialize TimeSeries with a sequence object
