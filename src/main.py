@@ -5,6 +5,7 @@ import numpy as np
 
 # project specific modules
 from TimeSeries import *
+from ArrayTimeSeries import *
 
 
 # test cases
@@ -31,30 +32,22 @@ def testBasicFunctionality():
 
 
 # routine to perform testcases
-def testStringRepresentation():
+def testStringRepresentation(myclass):
     # create simple numpy sequence
     seq_short = np.arange(0, 5)
-    ts_short = TimeSeries(seq_short)
+    ts_short = myclass(seq_short)
 
     seq_large = np.arange(0, 10)
-    ts_large = TimeSeries(seq_large)
+    ts_large = myclass(seq_large)
 
     string_ts_short = str(ts_short)
     string_ts_large = str(ts_large)
 
-    if string_ts_short != '[0 1 2 3 4]':
+    if string_ts_short != '[0, 1, 2, 3, 4]':
         return False
 
     if string_ts_large != 'Length: {} \n[0, ..., 9]'.format(len(ts_large)):
         return False
-
-    print('Print statement on short list')
-    print(string_ts_short)
-    print('Print statement on large list')
-    print(string_ts_large)
-
-    print('Requested print for the form')
-    print(TimeSeries(range(0, 1000000)))
 
     return True
 
@@ -65,10 +58,15 @@ def runTestCases():
         print('test case basic functionality failed!')
     else:
         print('basic functionality, pass')
-    if not testStringRepresentation():
-        print('test case string representation failed!')
+    if not testStringRepresentation(TimeSeries):
+        print('test case string representation failed for TimeSeries!')
     else:
-        print('string representation, pass')
+        print('string representation for TimeSeries, pass')
+    if not testStringRepresentation(ArrayTimeSeries):
+        print('test case string representation failed for ArrayTimeSeries!')
+    else:
+        print('string representation for ArrayTimeSeries, pass')
+
 
 def main():
     runTestCases()

@@ -1,14 +1,12 @@
 # stores TimeSeries class
-
-import numpy as np
-
 class TimeSeries:
+
     """ Data and methods for an object representing a general time series.
-    
+
     Attributes:
         series: sequence representing time series data
 
-    Methods: 
+    Methods:
         len: returns the length of the sequence
         getitem: given an index (key), return the item of the sequence
         setitem: given an index (key), assign item to corresponding element 
@@ -17,7 +15,8 @@ class TimeSeries:
         resp: returns representation of sequence
 
     ---
-    
+
+    >>> import numpy as np
     >>> seq = np.arange(0, 10)
     >>> ts = TimeSeries(seq)
     >>> ts[1]==1
@@ -56,7 +55,7 @@ class TimeSeries:
         to fill the time series instance with. This argument can be any 
         object that can be treated like a sequence.
         """
-        self.__series = seq
+        self.__series = list(seq)
 
     @property
     def series(self):
@@ -86,7 +85,8 @@ class TimeSeries:
         if n > 5:
             return('Length: {} \n[{}, ..., {}]'.format(n, self[0], self[-1]))
         else:
-            return(str(self.__series))
+            list_str = ', '.join([str(v) for v in self])
+            return('[{}]'.format(list_str))
 
     def __repr__(self):
         """ Identifies object as a TimeSeries and returns representation 
@@ -99,6 +99,6 @@ class TimeSeries:
         if n > 5:
             res = '[{}, ..., {}]'.format(self[0], self[-1])
         else:
-            res = str(self.__series)
+            list_str = ', '.join([str(v) for v in self])
+            res = '[{}]'.format(list_str)
         return 'TimeSeries({})'.format(res)
-
