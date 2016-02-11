@@ -54,6 +54,7 @@ def testStringRepresentation(myclass):
 
 def runTestCases():
     print('running test cases...')
+
     if not testBasicFunctionality():
         print('test case basic functionality failed!')
     else:
