@@ -70,7 +70,6 @@ def runTestCases():
     else:
         print('string representation, pass')
 
-
 def main():
     runTestCases()
 
