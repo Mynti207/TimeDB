@@ -1,6 +1,7 @@
 # TimeSeries2.py
 
 import numpy as np
+from lazy import *
 
 
 class TimeSeries:
@@ -82,6 +83,11 @@ class TimeSeries:
     True
     >>> a.interpolate([-100, 100]) == TimeSeries([-100, 100], [1, 3])
     True
+    >>> x = TimeSeries([1, 2, 3, 4], [1, 4, 9, 16])
+    >>> print (x)
+    [1, 4, 9, 16]
+    >>> print (x.lazy.eval())
+    [1, 4, 9, 16]
 
     """
 
@@ -113,6 +119,13 @@ class TimeSeries:
     def times_to_index(self):
         """ Dictionary mapping times index with integer index of the array. """
         return self.__times_to_index
+
+    @property
+    def lazy(self):
+        """ Placeholder: Sequence representing Lazy object. """
+        def f(*args, **kwargs):
+            return self
+        return LazyOperation(f, self)
 
     def __len__(self):
         """ Returns the length of the sequence. """
@@ -173,20 +186,10 @@ class TimeSeries:
 
     def __eq__(self, other):
         """ Determines if two TimeSeries have the same values in
-        the same sequence.
+        the same sequence. """
 
-        For the test sets, we need to give meaning to '==' for
-        comparison between two series.
-        We can also choose to use numpy here and compare the
-        times and values lists for each series for speed. """
-
-        if len(self) != len(other):
-            return False
-        for i in range(len(self)):
-            if ((self.__timesseq[i] != other.__timesseq[i]) |
-                (self.__valuesseq[i] != other.__valuesseq[i])):
-                return False
-        return True
+        return (np.all(self.__timesseq == other.__timesseq) &
+                np.all(self.__valuesseq == other.__valuesseq))
 
     def values(self):
         """ Returns the values sequence. """
