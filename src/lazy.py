@@ -1,18 +1,24 @@
 # lazy.py
-
+# Last modified: 2/21 (based on 2/19 lab)
 
 class LazyOperation:
 
-    """ Implement lazy evaluation. """
+    '''
+    Implement lazy evaluation.
+    '''
 
     def __init__(self, function, *args, **kwargs):
-        """ Initialize container for an arbitrary function. """
+        '''
+        Initialize container for an arbitrary function.
+        '''
         self.__function = function
         self.__args = args
         self.__kwargs = kwargs
 
     def eval(self):
-        """ Evaluates a Lazy object recursively. """
+        '''
+        Evaluate a Lazy object recursively.
+        '''
 
         templist = list(self.__args)
         for i in range(len(templist)):

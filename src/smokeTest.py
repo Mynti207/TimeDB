@@ -1,11 +1,11 @@
 # smoke test - 2/8 lab
+# Note: no longer compatible with TimeSeries class.
 
 # general modules
 import numpy as np
 
 # project specific modules
 from TimeSeries import *
-
 
 def smokeTest():
 
@@ -17,10 +17,10 @@ def smokeTest():
       if i in threes or i in fives:
         s += i
 
-    print("sum",s)
+    print('sum', s)
 
 def main():
     smokeTest()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
