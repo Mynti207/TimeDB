@@ -91,6 +91,23 @@ def testBasicFunctionality():
         print (12)
         return False
 
+    # iter
+    t = [1, 1.5, 2, 2.5, 10]
+    v = [0, 2, -1, 0.5, 0]
+    a = TimeSeries(t, v)
+    for i, (time, val) in enumerate(a.iteritems()):
+        if val != v[i] or time != t[i]:
+            print (13)
+            return False
+    for i, val in enumerate(a.itervalues()):
+        if val != v[i]:
+            print (14)
+            return False
+    for i, time in enumerate(a.itertimes()):
+        if time != t[i]:
+            print (15)
+            return False
+
     return True
 
 def runTestCases():

@@ -168,6 +168,27 @@ class TimeSeries:
         for v in self.__valuesseq:
             yield v
 
+    def itervalues(self):
+        '''
+        Iterates over the values array.
+        '''
+        for v in self.__valuesseq:
+            yield v
+
+    def itertimes(self):
+        '''
+        Iterates over the times array.
+        '''
+        for t in self.__timesseq:
+            yield t
+
+    def iteritems(self):
+        '''
+        Iterates over the time-values pairs.
+        '''
+        for t, v in zip(self.__timesseq, self.__valuesseq):
+            yield t, v
+
     def __str__(self):
         '''
         Returns a printable representation of sequence.
