@@ -1,5 +1,5 @@
 # TimeSeries.py
-# Last modified: 2/21 (based on 2/19 lab)
+# Last modified: 2/28 (moved some docstrings to unit tests)
 
 import numpy as np
 from lazy import *
@@ -30,67 +30,41 @@ class TimeSeries:
         median: returns median of values
 
     Doctests: (python3 -m doctest -v <this file>.py)
+    Note: doctests are only intended to illustrate functionality. More extensive
+    tests are included in the unit tests.
     ---
 
+    # Short time series
     >>> t = [1, 1.5, 2, 2.5, 10]
     >>> v = [0, 2, -1, 0.5, 0]
     >>> a = TimeSeries(t, v)
-    >>> a[2.5] == 0.5
-    True
-    >>> a[1.5] == 2.5
-    False
-    >>> a[1.5] = 2.5
-    >>> a[1.5] == 2.5
-    True
-    >>> a[0] = 3
-    Traceback (most recent call last):
-        ...
-    KeyError: 0
+    >>> a[2.5]
+    0.5
     >>> a.__contains__(1)
     True
-    >>> a.__contains__(3)
-    False
     >>> len(a)
     5
-    >>> for i, vals in enumerate(a):
-    ...    print (vals)  #doctest: +NORMALIZE_WHITESPACE
-    0.0
-    2.5
-    -1.0
-    0.5
-    0.0
+    >>> a.times()
+    array([  1. ,   1.5,   2. ,   2.5,  10. ])
+    >>> a.values()
+    array([ 0. ,  2. , -1. ,  0.5,  0. ])
+    >>> a.items()
+    [(1.0, 0.0), (1.5, 2.0), (2.0, -1.0), (2.5, 0.5), (10.0, 0.0)]
     >>> str(a)
-    '[0.0, 2.5, -1.0, 0.5, 0.0]'
+    '[0.0, 2.0, -1.0, 0.5, 0.0]'
+    >>> a.mean()
+    0.29999999999999999
+    >>> a.median()
+    0.0
+    >>> a.interpolate([5])
+    TimeSeries([0.333333333333])
+
+    # Long time series
     >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
     >>> v = [0, 2, -1, 0.5, 0, 3, 7]
     >>> a = TimeSeries(t, v)
     >>> print(a)
     Length: 7 [0.0, ..., 7.0]
-    >>> a.times()
-    array([  1. ,   1.5,   2. ,   2.5,  10. ,  11. ,  12. ])
-    >>> a.values()
-    array([ 0. ,  2. , -1. ,  0.5,  0. ,  3. ,  7. ])
-    >>> a.items() #doctest: +NORMALIZE_WHITESPACE
-    [(1.0, 0.0),
-    (1.5, 2.0),
-    (2.0, -1.0),
-    (2.5, 0.5),
-    (10.0, 0.0),
-    (11.0, 3.0),
-    (12.0, 7.0)]
-    >>> a = TimeSeries([0, 5, 10], [1, 2, 3])
-    >>> b = TimeSeries([2.5, 7.5], [100, -100])
-    >>> a.interpolate([1]) == TimeSeries([1], [1.2])
-    True
-    >>> a.interpolate(b.times()) == TimeSeries([2.5, 7.5], [1.5, 2.5])
-    True
-    >>> a.interpolate([-100, 100]) == TimeSeries([-100, 100], [1, 3])
-    True
-    >>> x = TimeSeries([1, 2, 3, 4], [1, 4, 9, 16])
-    >>> print (x)
-    [1, 4, 9, 16]
-    >>> print (x.lazy.eval())
-    [1, 4, 9, 16]
 
     '''
 
