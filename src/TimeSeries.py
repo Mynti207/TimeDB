@@ -298,7 +298,7 @@ class TimeSeries:
 
     def median(self):
         '''
-        Returns (arithmetic) mean of the values stored in the class.
+        Returns median of the values stored in the class.
         '''
         
         return np.median(self.__valuesseq)
