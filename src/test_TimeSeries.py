@@ -2,6 +2,7 @@
 # Last modified: 2/28 (created)
 
 import unittest
+import types
 
 from TimeSeries import *
 
@@ -63,15 +64,26 @@ class MyTest(unittest.TestCase):
 		result = list()
 		for i, vals in enumerate(a):
 			result.append(vals)
-		self.assertEqual(result, [0.0, 2.0, -1.0, 0.5, 0.0])	
+		self.assertEqual(result, [0.0, 2.0, -1.0, 0.5, 0.0])
+		self.assertIsInstance(enumerate(a), enumerate)
 
 	def test_iters(self):
+		
 		t = [1, 1.5, 2, 2.5, 10]
 		v = [0, 2, -1, 0.5, 0]
 		a = TimeSeries(t, v)
+
 		self.assertListEqual(list(a.times()), t)
 		self.assertListEqual(list(a.values()), v)
 		self.assertListEqual(list(a.items()), list(zip(t, v)))
+
+		self.assertListEqual(list(a.itertimes()), t)
+		self.assertListEqual(list(a.itervalues()), v)
+		self.assertListEqual(list(a.iteritems()), list(zip(t, v)))
+
+		self.assertIsInstance(a.itertimes(), types.GeneratorType)
+		self.assertIsInstance(a.itervalues(), types.GeneratorType)
+		self.assertIsInstance(a.iteritems(), types.GeneratorType)
 
 	def test_interpolate(self):
 		a = TimeSeries([0, 5, 10], [1, 2, 3])
