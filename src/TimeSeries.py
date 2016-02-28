@@ -26,6 +26,8 @@ class TimeSeries:
         times: returns the time series sequence
         valuesseq: returns the time series values sequence
         items: returns a sequence of (time, value) tuples
+        mean: returns mean of values
+        median: returns median of values
 
     Doctests: (python3 -m doctest -v <this file>.py)
     ---
@@ -286,3 +288,17 @@ class TimeSeries:
         valseq = [self.get_interpolated(t) for t in tseq]
 
         return TimeSeries(tseq, valseq)
+
+    def mean(self):
+        '''
+        Returns (arithmetic) mean of the values stored in the class.
+        '''
+
+        return self.__valuesseq.mean()
+
+    def median(self):
+        '''
+        Returns (arithmetic) mean of the values stored in the class.
+        '''
+        
+        return np.median(self.__valuesseq)

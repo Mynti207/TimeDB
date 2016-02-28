@@ -108,6 +108,13 @@ def testBasicFunctionality():
             print (15)
             return False
 
+    # median & mean
+    if a.mean() != 0.3:
+        return False
+
+    if a.median() != 0:
+        return False
+
     return True
 
 def runTestCases():
