@@ -2,6 +2,7 @@
 # Last modified: 2/28 (moved some docstrings to unit tests)
 
 import numpy as np
+import math
 from lazy import *
 
 class TimeSeries:
@@ -133,7 +134,7 @@ class TimeSeries:
 
     def __contains__(self, time):
         '''
-        Take a time and returns true if it is in the times array.
+        Takes a time and returns true if it is in the times array.
         '''
         return time in self.__times_to_index.keys()
 
@@ -203,9 +204,11 @@ class TimeSeries:
         Determines if two TimeSeries have the same values in
         the same sequence.
         '''
-
-        return (np.all(self.__timesseq == other.__timesseq) &
-                np.all(self.__valuesseq == other.__valuesseq))
+        try:
+            return (np.all(self.__timesseq == other.__timesseq) &
+                    np.all(self.__valuesseq == other.__valuesseq))
+        except:
+            raise NotImplemented
 
     def values(self):
         '''
@@ -274,5 +277,145 @@ class TimeSeries:
         '''
         Returns median of the values stored in the class.
         '''
-        
+
         return np.median(self.__valuesseq)
+
+    ###########
+    #
+    # new methods re: time series "mathematical" operations
+    #
+    ###########
+
+    def __neg__(self):
+        '''
+        Returns a Time Series with the values of the Time Series negated.
+
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> print (-a2)
+        Length: 7 [-10.0, ..., -17.0]
+        '''
+        return TimeSeries(self.__timesseq, self.__valuesseq * -1)
+
+    def __pos__(self):
+        '''
+        Returns the Time Series (identity).
+        '''
+        return TimeSeries(self.__timesseq, self.__valuesseq)
+
+    def __abs__(self):
+        '''
+        Returns L2 norm of Time Series values
+
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> abs(a2)
+        30.41792234851026
+        '''
+        return math.sqrt(sum(x * x for x in self.__valuesseq))
+
+    def __bool__(self):
+        '''
+        Returns true if L2 norm is non-zero.
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> bool(a2)
+        True
+        '''        
+        return bool(abs(self))
+
+    def _check_length_helper(self , rhs):
+        '''
+        Checks if two Time Series have the same length
+        '''
+        if not len(self.__timesseq)==len(rhs.__timesseq):
+            raise ValueError(str(self)+' and '+str(rhs)+' \
+                             do not have the same lengths')
+
+    def __add__(self, rhs):
+        '''
+        Takes as input two Time Series and returns a Time Series
+        object with the values added if the input Time Series
+        have the same times.
+
+        >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
+        >>> a1 = TimeSeries(t1, v1)
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> print (a1 + a2)
+        Length: 7 [10.0, ..., 24.0]
+        '''
+        try:
+            self._check_length_helper(rhs)
+            if not np.allclose(self.__timesseq, rhs.__timesseq):
+                raise ValueError(str(self)+' and '+str(rhs)+' \
+                                must have the same time points')
+            return TimeSeries(self.__timesseq,
+                              np.add(self.__valuesseq, rhs.__valuesseq))
+        except TypeError:
+            raise NotImplemented
+
+    def __radd__(self, other): # other + self delegates to __add__
+        return self + other
+
+    def __sub__(self, rhs):
+        '''
+        Takes as input two Time Series and returns a Time Series
+        object with the values of the second subtracted from the
+        first, if the input Time Series have the same times.
+
+        >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
+        >>> a1 = TimeSeries(t1, v1)
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> print (a1 - a2)
+        Length: 7 [-10.0, ..., -10.0]
+        '''
+        try:
+            self._check_length_helper(rhs)
+            if not np.allclose(self.__timesseq, rhs.__timesseq):
+                raise ValueError(str(self)+' and '+str(rhs)+' \
+                                must have the same time points')
+            return TimeSeries(self.__timesseq,
+                              np.subtract(self.__valuesseq, rhs.__valuesseq))
+        except TypeError:
+            raise NotImplemented
+
+    def __rsub__(self, other): # other + self delegates to __add__
+        return -self + other
+
+    def __mul__(self, rhs):
+        '''
+        Takes as input two Time Series and returns a Time Series
+        object with the values multiplied element-wise,
+        if the input Time Series have the same times.
+        Note: this is NOT a dot product.
+
+        >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
+        >>> a1 = TimeSeries(t1, v1)
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> print (a1 * a2)
+        Length: 7 [0.0, ..., 119.0]
+        '''
+        try:
+            self._check_length_helper(rhs)
+            if not np.allclose(self.__timesseq, rhs.__timesseq):
+                raise ValueError(str(self)+' and '+str(rhs)+' \
+                                must have the same time points')
+            return TimeSeries(self.__timesseq,
+                              np.multiply(self.__valuesseq, rhs.__valuesseq))
+        except TypeError:
+            raise NotImplemented
+
+    def __rmul__(self, other): # other + self delegates to __mul__
+        return self * other
