@@ -1,8 +1,9 @@
 # test_TimeSeries.py
-# Last modified: 2/28 (created)
+# Last modified: 3/6
 
 import unittest
 import types
+import numpy as np
 
 from TimeSeries import *
 
@@ -107,6 +108,107 @@ class MyTest(unittest.TestCase):
 	def test_lazy(self):
 		x = TimeSeries([1, 2, 3, 4], [1, 4, 9, 16])
 		self.assertEqual(x, x.lazy.eval())
+
+	def test_addition(self):
+
+		# valid addition
+		t1 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a1 = TimeSeries(t1, v1)
+		t2 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v2 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a2 = TimeSeries(t2, v2)
+		self.assertEqual(a1 + a2, TimeSeries(t1, v1 + v2))
+		
+		# invalid - different times
+		t3 = np.array([21, 21.5, 22, 22.5, 210, 211, 212])
+		v3 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a3 = TimeSeries(t3, v3)
+		with self.assertRaises(ValueError):
+			a1 + a3
+
+		# invalid - different lengths
+		t3 = np.array([1, 1.5, 2, 2.5, 10, 11])
+		v3 = np.array([10, 12, -11, 1.5, 10, 13])
+		a3 = TimeSeries(t3, v3)
+		with self.assertRaises(ValueError):
+			a1 + a3
+
+	def test_subtraction(self):
+
+		# valid subtraction
+		t1 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a1 = TimeSeries(t1, v1)
+		t2 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v2 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a2 = TimeSeries(t2, v2)
+		self.assertEqual(a1 - a2, TimeSeries(t1, v1 - v2))
+		
+		# invalid - different times
+		t3 = np.array([21, 21.5, 22, 22.5, 210, 211, 212])
+		v3 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a3 = TimeSeries(t3, v3)
+		with self.assertRaises(ValueError):
+			a1 - a3
+
+		# invalid - different lengths
+		t3 = np.array([1, 1.5, 2, 2.5, 10, 11])
+		v3 = np.array([10, 12, -11, 1.5, 10, 13])
+		a3 = TimeSeries(t3, v3)
+		with self.assertRaises(ValueError):
+			a1 - a3
+
+	def test_multiplication(self):
+
+		# valid multiplication
+		t1 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a1 = TimeSeries(t1, v1)
+		t2 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v2 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a2 = TimeSeries(t2, v2)
+		self.assertEqual(a1 * a2, TimeSeries(t1, v1 * v2))
+		
+		# invalid - different times
+		t3 = np.array([21, 21.5, 22, 22.5, 210, 211, 212])
+		v3 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a3 = TimeSeries(t3, v3)
+		with self.assertRaises(ValueError):
+			a1 * a3
+
+		# invalid - different lengths
+		t3 = np.array([1, 1.5, 2, 2.5, 10, 11])
+		v3 = np.array([10, 12, -11, 1.5, 10, 13])
+		a3 = TimeSeries(t3, v3)
+		with self.assertRaises(ValueError):
+			a1 * a3
+
+	def test_abs(self):
+		t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a = TimeSeries(t, v)
+		self.assertEqual(abs(a), 30.41792234851026)
+		self.assertEqual(abs(TimeSeries([], [])), 0)
+
+	def test_bool(self):
+		t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a = TimeSeries(t, v)
+		self.assertEqual(bool(a), True)
+		self.assertFalse(bool(TimeSeries([], [])))
+
+	def test_neg(self):
+		t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v_pos = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		v_neg = v_pos * -1
+		self.assertEqual(-TimeSeries(t, v_pos), TimeSeries(t, v_neg))
+
+	def test_pos(self):
+		t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+		v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+		a = TimeSeries(t, v)
+		self.assertEqual(a, TimeSeries(t, v))
 
 if __name__ == '__main__':
     unittest.main()
