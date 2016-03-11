@@ -23,8 +23,8 @@ tokens = [
 # TODO Here's an example:
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
-t_LBRACE = r'\)'
-t_RBRACE = r'\)'
+t_LBRACE = r'\}'
+t_RBRACE = r'\{'
 
 t_OP_ADD = r'\+'
 t_OP_SUB = r'\-'

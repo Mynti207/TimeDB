@@ -1,4 +1,4 @@
-from .ast import *
+from .ast_copy import *
 
 class CheckSingleAssignment(ASTVisitor):
   def __init__(self): pass # TODO

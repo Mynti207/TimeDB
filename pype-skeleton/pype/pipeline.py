@@ -1,16 +1,19 @@
 from .lexer import lexer
 from .parser import parser
-from .ast import *
+from .ast_copy import *
 from .semantic_analysis import CheckSingleAssignment
 
+
 class Pipeline(object):
-  def __init__(self, source):
-    self.compile(f)
 
-  def compile(self, file):
-    input = file.read()
-    # Lexing, parsing, AST construction
-    ast = parser.parse(input, lexer=lexer)
-    # Semantic analysis
-    ast.walk( CheckSingleAssignment() )
+    def __init__(self, source):
+        with open(source) as f:
+            self.compile(f)
 
+    def compile(self, file):
+        input = file.read()
+        # Lexing, parsing, AST construction
+        ast = parser.parse(input, lexer=lexer)
+        ast.pprint()
+        # Semantic analysis
+        ast.walk(CheckSingleAssignment())
