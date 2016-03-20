@@ -8,14 +8,11 @@ install:
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
-  - pip install pytest
-  - python setup.py install
 
 # command to run tests
 script:
   - nosetests
-  # - py.test #--cov=timeseries
-  - py.test --cov=path/to/package --cov-report=term --cov-report=html
+  - coverage run setup.py test
 
 # command to add coveralls
 after_success:
