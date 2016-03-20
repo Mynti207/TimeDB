@@ -12,3 +12,7 @@ install:
 script:
   - nosetests
   # - "py.test ."
+
+# command to add coveralls
+after_success:
+  - coveralls
