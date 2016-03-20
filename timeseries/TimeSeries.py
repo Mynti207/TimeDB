@@ -3,7 +3,8 @@
 
 import numpy as np
 import math
-from lazy import *
+from lazy import LazyOperation
+
 
 class TimeSeries:
 
@@ -31,8 +32,8 @@ class TimeSeries:
         median: returns median of values
 
     Doctests: (python3 -m doctest -v <this file>.py)
-    Note: doctests are only intended to illustrate functionality. More extensive
-    tests are included in the unit tests.
+    Note: doctests are only intended to illustrate functionality. More
+    extensive tests are included in the unit tests.
     ---
 
     # Short time series
@@ -175,9 +176,8 @@ class TimeSeries:
         '''
         n = len(self)
         if n > 5:
-            return('Length: {} [{}, ..., {}]'.format(n,
-                                                     self[self.__timesseq[0]],
-                                                     self[self.__timesseq[-1]]))
+            return('Length: {} [{}, ..., {}]'.format(
+                n, self[self.__timesseq[0]], self[self.__timesseq[-1]]))
         else:
             list_str = ', '.join([str(v) for v in self])
             return('[{}]'.format(list_str))
@@ -324,14 +324,14 @@ class TimeSeries:
         >>> a2 = TimeSeries(t2, v2)
         >>> bool(a2)
         True
-        '''        
+        '''
         return bool(abs(self))
 
-    def _check_length_helper(self , rhs):
+    def _check_length_helper(self, rhs):
         '''
         Checks if two Time Series have the same length
         '''
-        if not len(self.__timesseq)==len(rhs.__timesseq):
+        if not len(self.__timesseq) == len(rhs.__timesseq):
             raise ValueError(str(self)+' and '+str(rhs)+' \
                              do not have the same lengths')
 
@@ -360,7 +360,7 @@ class TimeSeries:
         except TypeError:
             raise NotImplemented
 
-    def __radd__(self, other): # other + self delegates to __add__
+    def __radd__(self, other):  # other + self delegates to __add__
         return self + other
 
     def __sub__(self, rhs):
@@ -388,7 +388,7 @@ class TimeSeries:
         except TypeError:
             raise NotImplemented
 
-    def __rsub__(self, other): # other + self delegates to __add__
+    def __rsub__(self, other):  # other + self delegates to __add__
         return -self + other
 
     def __mul__(self, rhs):
@@ -417,5 +417,5 @@ class TimeSeries:
         except TypeError:
             raise NotImplemented
 
-    def __rmul__(self, other): # other + self delegates to __mul__
+    def __rmul__(self, other):  # other + self delegates to __mul__
         return self * other
