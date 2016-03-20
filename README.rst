@@ -8,12 +8,11 @@ Mynti207
 .. image:: https://coveralls.io/repos/github/dominedo/cs207project/badge.svg?branch=master
     :target: https://coveralls.io/github/dominedo/cs207project?branch=master
 
-CS207 Group Project
-
 Description
 ===========
 
 TimeSeries module: Add description.
+
 PYPE module: Add description.
 
 Note
