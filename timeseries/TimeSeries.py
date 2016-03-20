@@ -1,9 +1,5 @@
-# TimeSeries.py
-# Last modified: 2/28 (moved some docstrings to unit tests)
-
 import numpy as np
 import math
-# from lazy import LazyOperation
 from timeseries.lazy import LazyOperation
 
 

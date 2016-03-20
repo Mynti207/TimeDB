@@ -1,7 +1,3 @@
-# lazy.py
-# Last modified: 2/21 (based on 2/19 lab)
-
-
 class LazyOperation:
 
     '''

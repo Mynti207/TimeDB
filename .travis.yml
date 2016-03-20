@@ -1,17 +1,16 @@
 # command to define language
 language: python
 python:
-  - "3.5"
+  - 3.5
 
 # command to install dependencies
 install:
-  - "pip install -r requirements.txt"
-  # - "python setup.py install"
+  - pip install -r requirements.txt
+  - pip install coveralls
 
 # command to run tests
 script:
   - nosetests
-  # - "py.test ."
 
 # command to add coveralls
 after_success:
