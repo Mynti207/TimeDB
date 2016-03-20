@@ -90,7 +90,7 @@ def test_iters():
     assert list(a.itervalues()) == v
     assert list(a.iteritems()) == list(zip(t, v))
 
-    assert isinstance(a.itertime(), types.GeneratorType)
+    assert isinstance(a.itertimes(), types.GeneratorType)
     assert isinstance(a.itervalues(), types.GeneratorType)
     assert isinstance(a.iteritems(), types.GeneratorType)
 #
