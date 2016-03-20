@@ -1,6 +1,10 @@
 import numpy as np
 import math
-from timeseries.lazy import LazyOperation
+
+try:  # Pyscaffold build
+    from timeseries.lazy import LazyOperation
+except:  # local doctests
+    from lazy import LazyOperation
 
 
 class TimeSeries:
@@ -9,62 +13,46 @@ class TimeSeries:
     Data and methods for an object representing a general time series.
 
     Attributes:
-        timesseq: sequence representing time series index
+        timesseq: sequence representing time series times (indices)
         valuesseq: sequence representing time series values
-        times_to_index: mapping to array index
+        times_to_index: mapping of time series times to index values
+        lazy: sequence representing a Lazy object
 
     Methods:
         __len__: returns the length of the sequence
         __getitem__: given an index (key), return the item of the sequence
         __setitem__: given an index (key), assign item to corresponding element
                  of the sequence
+        __contains__: given an index (key), determines if it is present
+        __iter__: iterates over the time series values
         __str__: returns printable representation of sequence
-        __resp__: returns representation of sequence
+        __repr__: returns representation of sequence
         __eq__: elementwise comparison of both times and values in sequence
+        __neg__: returns a time series object with negated values
+        __pos__: returns a time series object with positive values (identity)
+        __abs__: returns the L2 norm of the time series values
+        __bool__: returns whether the L2 norm of the time series values is
+            non-zero
+        __add__: given two time series, returns a new time series object
+            with the values for common times added
+        __sub__: given two time series, returns a new time series object
+            with the values for common times subtracted
+        __mul__: given two time series, returns a new time series object
+            with the value for common times multiplied (element-wise)
 
-        times: returns the time series sequence
-        valuesseq: returns the time series values sequence
+        times: returns the time series times sequence
+        values: returns the time series values sequence
         items: returns a sequence of (time, value) tuples
-        mean: returns mean of values
-        median: returns median of values
+        itertimes: returns an iterator of the time series times
+        itervalues: returns an iterator of the time series values
+        iteritems: returns an iterator of the time series time-value pairs
+        get_interpolated: given a time, returns the interpolated value
+        interpolate: given a time sequences, returns a time series object
+            containing the interpolated values
+        mean: returns mean of time series values
+        median: returns median of time series values
 
-    Doctests: (python3 -m doctest -v <this file>.py)
-    Note: doctests are only intended to illustrate functionality. More
-    extensive tests are included in the unit tests.
-    ---
-
-    # Short time series
-    >>> t = [1, 1.5, 2, 2.5, 10]
-    >>> v = [0, 2, -1, 0.5, 0]
-    >>> a = TimeSeries(t, v)
-    >>> a[2.5]
-    0.5
-    >>> a.__contains__(1)
-    True
-    >>> len(a)
-    5
-    >>> a.times()
-    array([  1. ,   1.5,   2. ,   2.5,  10. ])
-    >>> a.values()
-    array([ 0. ,  2. , -1. ,  0.5,  0. ])
-    >>> a.items()
-    [(1.0, 0.0), (1.5, 2.0), (2.0, -1.0), (2.5, 0.5), (10.0, 0.0)]
-    >>> str(a)
-    '[0.0, 2.0, -1.0, 0.5, 0.0]'
-    >>> a.mean()
-    0.29999999999999999
-    >>> a.median()
-    0.0
-    >>> a.interpolate([5])
-    TimeSeries([0.333333333333])
-
-    # Long time series
-    >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
-    >>> v = [0, 2, -1, 0.5, 0, 3, 7]
-    >>> a = TimeSeries(t, v)
-    >>> print(a)
-    Length: 7 [0.0, ..., 7.0]
-
+    Doctests: (python3 -m doctest -v TimeSeries.py)
     '''
 
     def __init__(self, times, values):
@@ -75,23 +63,54 @@ class TimeSeries:
         Take as an argument a sequence object representing initial data
         to fill the time series instance with. This argument can be any
         object that can be treated like a sequence.
+
+        Parameters
+        ----------
+        times : sequence of ints or floats (list, array, etc.)
+            A sequence of numerical times
+        values : sequence of ints or floats (list, array etc.)
+            A sequence of numerical values
+
+        Returns
+        -------
+        TimeSeries
+            A time series object with times and values equal to the parameters
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a[2.5]
+        0.5
         '''
+
+        # cast as float for consistency across multiple time series objects
+        times = np.array(times, dtype=float)
+        values = np.array(values, dtype=float)
+
+        # make sure that times are monotonically increasing
+        sort_order = np.argsort(times)
+        times = times[sort_order]
+        values = values[sort_order]
+
+        # private properties used to make the lookup faster
         self.__timesseq = np.array(times)
         self.__valuesseq = np.array(values)
-        # Private properties used to make the lookup faster
         self.__times_to_index = {t: i for i, t in enumerate(times)}
 
     @property
     def timesseq(self):
         '''
         Sequence representing time series index.
+        Private property - cannot be called directly.
         '''
+
         return self.__timesseq
 
     @property
     def valuesseq(self):
         '''
         Sequence representing time series values.
+        Private property - cannot be called directly.
         '''
         return self.__valuesseq
 
@@ -99,13 +118,86 @@ class TimeSeries:
     def times_to_index(self):
         '''
         Dictionary mapping times index with integer index of the array.
+        Private property - cannot be called directly.
         '''
         return self.__times_to_index
+
+    def times(self):
+        '''
+        Returns the times sequence.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Numpy array
+            Time series times
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a.times()
+        array([  1. ,   1.5,   2. ,   2.5,  10. ])
+        '''
+        return self.timesseq
+
+    def values(self):
+        '''
+        Returns the values sequence.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Numpy array
+            Time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a.values()
+        array([ 0. ,  2. , -1. ,  0.5,  0. ])
+        '''
+        return self.valuesseq
+
+    def items(self):
+        '''
+        Returns sequence of (time, value) tuples.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Numpy array of tuples
+            Time series time-value pairs
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a.items()
+        [(1.0, 0.0), (1.5, 2.0), (2.0, -1.0), (2.5, 0.5), (10.0, 0.0)]
+        '''
+        return [(time, self[time]) for time in self.__timesseq]
 
     @property
     def lazy(self):
         '''
-        Placeholder: Sequence representing Lazy object.
+        Returns sequence representing Lazy object.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Lazy operation
+            A lazified operation, i.e. doesn't evaluate until called.
         '''
         def f(*args, **kwargs):
             return self
@@ -114,38 +206,132 @@ class TimeSeries:
     def __len__(self):
         '''
         Returns the length of the sequence.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        int
+            Length of the time series time sequence
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> len(a)
+        5
+        >>> len(TimeSeries([], []))
+        0
         '''
         return len(self.timesseq)
 
     def __getitem__(self, time):
         '''
         Takes key as input and returns corresponding item in sequence.
+
+        Parameters
+        ----------
+        time : int or float
+            A potential time series time
+
+        Returns
+        -------
+        float
+            Time series value associated with the given time
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a[2.5]
+        0.5
+        >>> a[5]
         '''
-        return self.__valuesseq[self.__times_to_index[time]]
+        try:
+            return self.__valuesseq[self.__times_to_index[float(time)]]
+        except KeyError:  # not present
+            return None
 
     def __setitem__(self, time, value):
         '''
         Takes a key and item, and assigns item to element of sequence
         at position identified by key.
+
+        Parameters
+        ----------
+        time : int or float
+            A time series time
+        value : int or float
+            A time series value
+
+        Returns
+        -------
+        Modified in-place
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a[1] = 12.0
+        >>> a[1]
+        12.0
+        >>> a[5] = 9.0
+        >>> a[5]
+        9.0
         '''
-        self.__valuesseq[self.__times_to_index[time]] = value
+        try:
+            self.__valuesseq[self.__times_to_index[float(time)]] = float(value)
+        except KeyError:  # not present
+            times = list(self.timesseq) + [time]
+            values = list(self.valuesseq) + [value]
+            self.__init__(times, values)
 
     def __contains__(self, time):
         '''
         Takes a time and returns true if it is in the times array.
+
+        Parameters
+        ----------
+        time : int or float
+            A time series time
+
+        Returns
+        -------
+        bool
+            Whether the time is present in the time series
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> 1 in a
+        True
+        >>> 3 in a
+        False
         '''
-        return time in self.__times_to_index.keys()
+        return float(time) in self.__times_to_index.keys()
 
     def __iter__(self):
         '''
         Iterates over the values array.
-        '''
-        for v in self.__valuesseq:
-            yield v
 
-    def itervalues(self):
-        '''
-        Iterates over the values array.
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float(s)
+            Iterator of time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> for val in a:
+        ...     print(val)
+        0.0
+        2.0
+        -1.0
+        0.5
+        0.0
         '''
         for v in self.__valuesseq:
             yield v
@@ -153,13 +339,80 @@ class TimeSeries:
     def itertimes(self):
         '''
         Iterates over the times array.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float(s)
+            Iterator of time series times
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> for val in a.itertimes():
+        ...     print(val)
+        1.0
+        1.5
+        2.0
+        2.5
+        10.0
         '''
         for t in self.__timesseq:
             yield t
 
+    def itervalues(self):
+        '''
+        Iterates over the values array.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float(s)
+            Iterator of time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> for val in a.itervalues():
+        ...     print(val)
+        0.0
+        2.0
+        -1.0
+        0.5
+        0.0
+        '''
+        for v in self.__valuesseq:
+            yield v
+
     def iteritems(self):
         '''
         Iterates over the time-values pairs.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        tuple(s) of floats
+            Iterator of time series time-value pairs
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> for val in a.iteritems():
+        ...     print(val)
+        (1.0, 0.0)
+        (1.5, 2.0)
+        (2.0, -1.0)
+        (2.5, 0.5)
+        (10.0, 0.0)
         '''
         for t, v in zip(self.__timesseq, self.__valuesseq):
             yield t, v
@@ -170,6 +423,27 @@ class TimeSeries:
 
         If the sequence has more than five items, return the length and the
         first/last element; otherwise, return the sequence.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            Printable representation of the sequence. Format varies based on
+            sequence length.
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)  # short string
+        >>> str(a)
+        '[0.0, 2.0, -1.0, 0.5, 0.0]'
+        >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v = [0, 2, -1, 0.5, 0, 3, 0.7]
+        >>> a = TimeSeries(t, v)  # long string
+        >>> str(a)
+        'Length: 7 [0.0, ..., 0.7]'
         '''
         n = len(self)
         if n > 5:
@@ -186,11 +460,32 @@ class TimeSeries:
 
         If the sequence has more than five items, return the first/last
         element, otherwise return the sequence.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        str
+            Printable representation of the sequence. Format varies based on
+            sequence length.
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)  # short string
+        >>> repr(a)
+        'TimeSeries([0.0, 2.0, -1.0, 0.5, 0.0])'
+        >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v = [0, 2, -1, 0.5, 0, 3, 0.7]
+        >>> a = TimeSeries(t, v)  # long string
+        >>> repr(a)
+        'TimeSeries(Length: 7 [0.0, ..., 0.7])'
         '''
         n = len(self)
         if n > 5:
-            res = '[{}, ..., {}]'.format(n, self[self.__timesseq[0]],
-                                         self[self.__timesseq[-1]])
+            res = 'Length: {} [{}, ..., {}]'.format(
+                n, self[self.__timesseq[0]], self[self.__timesseq[-1]])
         else:
             list_str = ', '.join([str(v) for v in self])
             res = '[{}]'.format(list_str)
@@ -200,6 +495,30 @@ class TimeSeries:
         '''
         Determines if two TimeSeries have the same values in
         the same sequence.
+
+        Parameters
+        ----------
+        other : TimeSeries
+            A time series to compare against
+
+        Returns
+        -------
+        bool
+            Whether the times and values are equal for both time series
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a1 = TimeSeries(t, v)
+        >>> a2 = TimeSeries(t, v)
+        >>> a1 == a2
+        True
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v1 = [0, 2, -1, 0.5, 0]
+        >>> v2 = [0, 2, -1, 0.5, 1]
+        >>> a1 = TimeSeries(t, v1)
+        >>> a2 = TimeSeries(t, v2)
+        >>> a1 == a2
+        False
         '''
         try:
             return (np.all(self.__timesseq == other.__timesseq) &
@@ -207,27 +526,9 @@ class TimeSeries:
         except:
             raise NotImplemented
 
-    def values(self):
-        '''
-        Returns the values sequence.
-        '''
-        return self.valuesseq
-
-    def times(self):
-        '''
-        Returns the times sequence.
-        '''
-        return self.timesseq
-
-    def items(self):
-        '''
-        Returns sequence of (time, value) tuples.
-        '''
-        return [(time, self[time]) for time in self.__timesseq]
-
     def get_interpolated(self, tval):
         '''
-        Returns the value in TimeSeries corresponding to time tval.
+        Returns the value in TimeSeries corresponding to a single time tval.
 
         If tval does not exist, return interpolated value.
         If tval is beyond tval bounds, return value at boundary
@@ -235,11 +536,29 @@ class TimeSeries:
 
         This method assume the times in timesseq are monotonically
         increasing; otherwise, results may not be as expected.
-        '''
 
+        Parameters
+        ----------
+        tval : int or float
+            Time series value
+
+        Returns
+        -------
+        float
+            Either the actual or interpolated value associated with the time
+
+        >>> a = TimeSeries([0, 5, 10], [1, 2, 3])
+        >>> b = TimeSeries([2.5, 7.5], [100, -100])
+        >>> a.get_interpolated(1)
+        1.2
+        '''
         for i in range(len(self)-1):
+
+            # tval less than smallest time
             if tval <= self.__timesseq[i]:
                 return self[self.__timesseq[i]]
+
+            # tval within range of time series times
             if (tval > self.__timesseq[i]) & (tval < self.__timesseq[i+1]):
                 # calculate interpolated value
                 time_delta = self.__timesseq[i+1] - self.__timesseq[i]
@@ -247,7 +566,7 @@ class TimeSeries:
                 v_delta = self.__valuesseq[i+1] - self.__valuesseq[i]
                 return v_delta * step + self.__valuesseq[i]
 
-        # above range of time values
+        # tval above range of time series times
         return self[self.__timesseq[len(self)-1]]
 
     def interpolate(self, tseq):
@@ -257,6 +576,22 @@ class TimeSeries:
 
         This method assume the times in timesseq are monotonically
         increasing; otherwise, results may not be as expected.
+
+        Parameters
+        ----------
+        tseq : list of ints or floats
+            Time series times to interpolate
+
+        Returns
+        -------
+        TimeSeries
+            Time series object with all the interpolated values for the
+            given times.
+
+        >>> a = TimeSeries([0, 5, 10], [1, 2, 3])
+        >>> b = TimeSeries([2.5, 7.5], [100, -100])
+        >>> a.interpolate([-100, 100])
+        TimeSeries([1.0, 3.0])
         '''
 
         valseq = [self.get_interpolated(t) for t in tseq]
@@ -266,49 +601,106 @@ class TimeSeries:
     def mean(self):
         '''
         Returns (arithmetic) mean of the values stored in the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Arithmetic mean of time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a.mean()
+        0.29999999999999999
         '''
 
-        return self.__valuesseq.mean()
+        return np.mean(self.__valuesseq)
 
     def median(self):
         '''
         Returns median of the values stored in the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Median of time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a.median()
+        0.0
         '''
 
         return np.median(self.__valuesseq)
 
-    ###########
-    #
-    # new methods re: time series "mathematical" operations
-    #
-    ###########
-
     def __neg__(self):
         '''
-        Returns a Time Series with the values of the Time Series negated.
+        Returns a time series with the values of the time series negated.
 
-        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
-        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
-        >>> a2 = TimeSeries(t2, v2)
-        >>> print (-a2)
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        TimeSeries
+            A new time series with the same times and negated values
+
+        >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a = TimeSeries(t, v)
+        >>> print (-a)
         Length: 7 [-10.0, ..., -17.0]
         '''
-        return TimeSeries(self.__timesseq, self.__valuesseq * -1)
+        return TimeSeries(self.__timesseq, self.__valuesseq * -1.0)
 
     def __pos__(self):
         '''
-        Returns the Time Series (identity).
+        Returns the time series (identity).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        TimeSeries
+            A new time series with the same times and values
+
+        >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a = TimeSeries(t, v)
+        >>> print (a)
+        Length: 7 [10.0, ..., 17.0]
         '''
         return TimeSeries(self.__timesseq, self.__valuesseq)
 
     def __abs__(self):
         '''
-        Returns L2 norm of Time Series values
+        Returns L2 norm of time series values.
 
-        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
-        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
-        >>> a2 = TimeSeries(t2, v2)
-        >>> abs(a2)
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            L2 norm of the time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a = TimeSeries(t, v)
+        >>> abs(a)
         30.41792234851026
         '''
         return math.sqrt(sum(x * x for x in self.__valuesseq))
@@ -316,27 +708,57 @@ class TimeSeries:
     def __bool__(self):
         '''
         Returns true if L2 norm is non-zero.
-        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
-        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
-        >>> a2 = TimeSeries(t2, v2)
-        >>> bool(a2)
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        bool
+            Whether the L2 norm of the time series values is non-zero
+
+        >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a = TimeSeries(t, v)
+        >>> bool(a)
         True
         '''
         return bool(abs(self))
 
-    def _check_length_helper(self, rhs):
+    def _check_length_helper(self, other):
         '''
-        Checks if two Time Series have the same length
+        Checks if two time series have the same length
+
+        Parameters
+        ----------
+        other : TimeSeries
+            Another time series to compare against
+
+        Returns
+        -------
+        Nothing - will raise value error if lengths are not equal.
         '''
-        if not len(self.__timesseq) == len(rhs.__timesseq):
-            raise ValueError(str(self)+' and '+str(rhs)+' \
+        if not len(self.__timesseq) == len(other.__timesseq):
+            raise ValueError(str(self)+' and '+str(other)+' \
                              do not have the same lengths')
 
-    def __add__(self, rhs):
+    def __add__(self, other):
         '''
-        Takes as input two Time Series and returns a Time Series
-        object with the values added if the input Time Series
+        Takes as input two time series and returns a time series
+        object with the values added if the input time series
         have the same times.
+
+        Parameters
+        ----------
+        other : TimeSeries
+            Another time series, to add by (element-wise).
+
+        Returns
+        -------
+        TimeSeries
+            A new time series, with the same times as the two original
+            time series and value equal to the sum of their values.
 
         >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
@@ -348,23 +770,36 @@ class TimeSeries:
         Length: 7 [10.0, ..., 24.0]
         '''
         try:
-            self._check_length_helper(rhs)
-            if not np.allclose(self.__timesseq, rhs.__timesseq):
-                raise ValueError(str(self)+' and '+str(rhs)+' \
+            self._check_length_helper(other)
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self)+' and '+str(other)+' \
                                 must have the same time points')
             return TimeSeries(self.__timesseq,
-                              np.add(self.__valuesseq, rhs.__valuesseq))
+                              np.add(self.__valuesseq, other.__valuesseq))
         except TypeError:
             raise NotImplemented
 
-    def __radd__(self, other):  # other + self delegates to __add__
+    def __radd__(self, other):
+        # other + self delegates to __add__
         return self + other
 
-    def __sub__(self, rhs):
+    def __sub__(self, other):
         '''
-        Takes as input two Time Series and returns a Time Series
+        Takes as input two time series and returns a time series
         object with the values of the second subtracted from the
-        first, if the input Time Series have the same times.
+        first, if the input time series have the same times.
+
+        Parameters
+        ----------
+        other : TimeSeries
+            Another time series, to subtract by (element-wise).
+
+        Returns
+        -------
+        TimeSeries
+            A new time series, with the same times as the two original
+            time series and value equal to the subtraction of the second
+            values from the first values.
 
         >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
@@ -376,24 +811,37 @@ class TimeSeries:
         Length: 7 [-10.0, ..., -10.0]
         '''
         try:
-            self._check_length_helper(rhs)
-            if not np.allclose(self.__timesseq, rhs.__timesseq):
-                raise ValueError(str(self)+' and '+str(rhs)+' \
+            self._check_length_helper(other)
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self)+' and '+str(other)+' \
                                 must have the same time points')
             return TimeSeries(self.__timesseq,
-                              np.subtract(self.__valuesseq, rhs.__valuesseq))
+                              np.subtract(self.__valuesseq, other.__valuesseq))
         except TypeError:
             raise NotImplemented
 
-    def __rsub__(self, other):  # other + self delegates to __add__
+    def __rsub__(self, other):
+        # other + self delegates to __add__
         return -self + other
 
-    def __mul__(self, rhs):
+    def __mul__(self, other):
         '''
-        Takes as input two Time Series and returns a Time Series
-        object with the values multiplied element-wise,
-        if the input Time Series have the same times.
+        Takes as input two time series and returns a time series
+        object with the values multiplied element-wise, but only
+        if the input time series have the same times.
         Note: this is NOT a dot product.
+
+        Parameters
+        ----------
+        other : TimeSeries
+            Another time series, to multiply by (element-wise).
+
+        Returns
+        -------
+        TimeSeries
+            A new time series, with the same times as the two original
+            time series and value equal to the element-wise product of
+            their values.
 
         >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
@@ -405,12 +853,12 @@ class TimeSeries:
         Length: 7 [0.0, ..., 119.0]
         '''
         try:
-            self._check_length_helper(rhs)
-            if not np.allclose(self.__timesseq, rhs.__timesseq):
-                raise ValueError(str(self)+' and '+str(rhs)+' \
+            self._check_length_helper(other)
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self)+' and '+str(other)+' \
                                 must have the same time points')
             return TimeSeries(self.__timesseq,
-                              np.multiply(self.__valuesseq, rhs.__valuesseq))
+                              np.multiply(self.__valuesseq, other.__valuesseq))
         except TypeError:
             raise NotImplemented
 

@@ -7,6 +7,18 @@ class LazyOperation:
     def __init__(self, function, *args, **kwargs):
         '''
         Initialize container for an arbitrary function.
+
+        Parameters
+        ----------
+        function : function
+            A function to be lazy-fied
+        args, kwargs: function arguments
+            Arguments of function to be lazy-fied
+
+        Returns
+        -------
+        function
+            A lazy-fied funtion
         '''
         self.__function = function
         self.__args = args
@@ -15,6 +27,15 @@ class LazyOperation:
     def eval(self):
         '''
         Evaluate a Lazy object recursively.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Varies
+            The output of the evaluated lazy-fied function
         '''
 
         templist = list(self.__args)

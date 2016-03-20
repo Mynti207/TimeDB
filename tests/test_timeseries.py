@@ -27,17 +27,20 @@ def test_set_get():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
-    assert a.__getitem__(2.5) == 0.5
-    a.__setitem__(2.5, 8.0)
-    assert a.__getitem__(2.5) == 8.0
+    assert a[2.5] == 0.5
+    assert a[5.0] is None
+    a[2.5] = 8.0
+    assert a[2.5] == 8.0
+    a[5] = 9.0
+    assert a[5] == 9.0
 
 
 def test_contains():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
-    assert a.__contains__(1)
-    assert (not a.__contains__(3))
+    assert (1 in a)
+    assert (3 not in a)
 
 
 def test_len():
@@ -45,6 +48,8 @@ def test_len():
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
     assert len(a) == 5
+    a = TimeSeries([], [])
+    assert len(a) == 0
 
 
 def test_eq():
@@ -53,6 +58,11 @@ def test_eq():
     a1 = TimeSeries(t, v)
     a2 = TimeSeries(t, v)
     assert a1 == a2
+    v1 = [0, 2, -1, 0.5, 0]
+    v2 = [0, 2, -1, 0.5, 10]
+    a1 = TimeSeries(t, v1)
+    a2 = TimeSeries(t, v2)
+    assert a1 != a2
 
 
 def test_str():
@@ -63,18 +73,29 @@ def test_str():
     t = [1, 1.5, 2, 2.5, 10, 11, 12]
     v = [0, 2, -1, 0.5, 0, 3, 0.7]
     a = TimeSeries(t, v)  # long string
-    assert str(a) == 'Length: {} [0.0, ..., 0.7]'.format(len(a))
+    assert str(a) == 'Length: 7 [0.0, ..., 0.7]'
+
+
+def test_repr():
+    t = [1, 1.5, 2, 2.5, 10]
+    v = [0, 2, -1, 0.5, 0]
+    a = TimeSeries(t, v)  # short string
+    assert repr(a) == 'TimeSeries([0.0, 2.0, -1.0, 0.5, 0.0])'
+    t = [1, 1.5, 2, 2.5, 10, 11, 12]
+    v = [0, 2, -1, 0.5, 0, 3, 0.7]
+    a = TimeSeries(t, v)  # long string
+    assert repr(a) == 'TimeSeries(Length: 7 [0.0, ..., 0.7])'
 
 
 def test_enumerate():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
-    result = list()
-    for i, vals in enumerate(a):
-        result.append(vals)
+    result = [val for i, val in enumerate(a)]
     assert result == [0.0, 2.0, -1.0, 0.5, 0.0]
     assert isinstance(enumerate(a), enumerate)
+    result = [val for val in a]
+    assert result == [0.0, 2.0, -1.0, 0.5, 0.0]
 
 
 def test_iters():
@@ -98,6 +119,7 @@ def test_iters():
 def test_interpolate():
     a = TimeSeries([0, 5, 10], [1, 2, 3])
     b = TimeSeries([2.5, 7.5], [100, -100])
+    assert a.get_interpolated(1) == 1.2
     assert a.interpolate([1]) == TimeSeries([1], [1.2])
     assert a.interpolate(b.times()) == TimeSeries([2.5, 7.5], [1.5, 2.5])
     assert a.interpolate([-100, 100]) == TimeSeries([-100, 100], [1, 3])
