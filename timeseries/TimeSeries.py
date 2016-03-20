@@ -3,7 +3,8 @@
 
 import numpy as np
 import math
-from lazy import LazyOperation
+# from lazy import LazyOperation
+from timeseries.lazy import LazyOperation
 
 
 class TimeSeries:
