@@ -245,12 +245,11 @@ class TimeSeries:
         >>> a = TimeSeries(t, v)
         >>> a[2.5]
         0.5
-        >>> a[5]
         '''
         try:
             return self.__valuesseq[self.__times_to_index[float(time)]]
         except KeyError:  # not present
-            return None
+            raise KeyError(str(time) + ' is not present in the TimeSeries.')
 
     def __setitem__(self, time, value):
         '''

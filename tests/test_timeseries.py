@@ -28,7 +28,8 @@ def test_set_get():
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
     assert a[2.5] == 0.5
-    assert a[5.0] is None
+    with pytest.raises(KeyError):
+        a[5.0]
     a[2.5] = 8.0
     assert a[2.5] == 8.0
     a[5] = 9.0
