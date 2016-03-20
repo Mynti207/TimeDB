@@ -12,7 +12,8 @@ install:
 # command to run tests
 script:
   - nosetests
-  - py.test #--cov=timeseries
+  # - py.test #--cov=timeseries
+  - py.test --cov=path/to/package --cov-report=term --cov-report=html
 
 # command to add coveralls
 after_success:
