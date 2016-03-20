@@ -5,13 +5,14 @@ python:
 
 # command to install dependencies
 install:
-  - pip install -r requirements.txt
+  - pip install -r requirements.txt --use-mirrors
+  - pip install coverage
   - pip install coveralls
 
 # command to run tests
 script:
   - nosetests
-  - coverage run --source=timeseries,pype setup.py test
+  - py.test --cov=timeseries
 
 # command to add coveralls
 after_success:
