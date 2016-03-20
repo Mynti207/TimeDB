@@ -11,7 +11,7 @@ __copyright__ = "Mynti207"
 __license__ = "mit"
 
 
-def test_init(self):
+def test_init():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
@@ -23,7 +23,7 @@ def test_init(self):
         a[0]
 
 
-def test_set_get(self):
+def test_set_get():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
@@ -77,7 +77,7 @@ def test_set_get(self):
 #     self.assertIsInstance(enumerate(a), enumerate)
 
 
-def test_iters(self):
+def test_iters():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]
     a = TimeSeries(t, v)
@@ -122,7 +122,7 @@ def test_iters(self):
 #     self.assertEqual(x, x.lazy.eval())
 
 
-def test_addition(self):
+def test_addition():
 
     # valid addition
     t1 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
