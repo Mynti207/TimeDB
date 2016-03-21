@@ -14,7 +14,6 @@ install:
 # command to run tests
 script:
   - nosetests
-  # - coverage run setup.py test
   - py.test --cov timeseries
 
 # command to add coveralls

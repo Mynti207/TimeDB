@@ -64,6 +64,14 @@ def test_eq():
     a1 = TimeSeries(t, v1)
     a2 = TimeSeries(t, v2)
     assert a1 != a2
+    t1 = [1, 1.5, 2, 2.5, 10]
+    v1 = [0, 2, -1, 0.5, 0]
+    t2 = [1, 1.5, 2, 2.5, 10, 11]
+    v2 = [0, 2, -1, 0.5, 0, 12]
+    a1 = TimeSeries(t1, v1)
+    a2 = TimeSeries(t2, v2)
+    with pytest.raises(ValueError):
+        a1 == a2
 
 
 def test_str():
@@ -171,6 +179,23 @@ def test_addition():
     with pytest.raises(ValueError):
         a1 + a3
 
+    # right-hand addition
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a1 = TimeSeries(t, v1)
+    v2 = v1 + 5
+    a2 = TimeSeries(t, v2)
+    assert (a1 + 5) == a2
+
+    # arrays or lists
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a = TimeSeries(t, v)
+    with pytest.raises(NotImplementedError):
+        a + [10, 12, -11, 1.5, 10, 13, 17]
+    with pytest.raises(NotImplementedError):
+        a + np.array([10, 12, -11, 1.5, 10, 13, 17])
+
 
 def test_subtraction():
 
@@ -196,6 +221,23 @@ def test_subtraction():
     a3 = TimeSeries(t3, v3)
     with pytest.raises(ValueError):
         a1 - a3
+
+    # right-hand subtraction
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a1 = TimeSeries(t, v1)
+    v2 = v1 - 5
+    a2 = TimeSeries(t, v2)
+    assert (a1 - 5) == a2
+
+    # arrays or lists
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a = TimeSeries(t, v)
+    with pytest.raises(NotImplementedError):
+        a - [10, 12, -11, 1.5, 10, 13, 17]
+    with pytest.raises(NotImplementedError):
+        a - np.array([10, 12, -11, 1.5, 10, 13, 17])
 
 
 def test_multiplication():
@@ -223,6 +265,39 @@ def test_multiplication():
     with pytest.raises(ValueError):
         a1 * a3
 
+    # right-hand multiplication
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a1 = TimeSeries(t, v1)
+    v2 = v1 * 5
+    a2 = TimeSeries(t, v2)
+    assert (a1 * 5) == a2
+
+    # arrays or lists
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a = TimeSeries(t, v)
+    with pytest.raises(NotImplementedError):
+        a * [10, 12, -11, 1.5, 10, 13, 17]
+    with pytest.raises(NotImplementedError):
+        a * np.array([10, 12, -11, 1.5, 10, 13, 17])
+
+
+def test_pos():
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a = TimeSeries(t, v)
+    assert (+a) == a
+
+
+def test_neg():
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v_pos = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    v_neg = v_pos * -1
+    a_pos = TimeSeries(t, v_pos)
+    a_neg = TimeSeries(t, v_neg)
+    assert -a_pos == a_neg
+
 
 def test_abs():
     t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
@@ -238,17 +313,3 @@ def test_bool():
     a = TimeSeries(t, v)
     assert bool(a)
     assert(not bool(TimeSeries([], [])))
-
-
-def test_neg():
-    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
-    v_pos = np.array([10, 12, -11, 1.5, 10, 13, 17])
-    v_neg = v_pos * -1
-    assert -TimeSeries(t, v_pos) == TimeSeries(t, v_neg)
-
-
-def test_pos():
-    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
-    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
-    a = TimeSeries(t, v)
-    assert a == TimeSeries(t, v)

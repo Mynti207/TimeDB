@@ -247,7 +247,7 @@ class TimeSeries:
         0.5
         '''
         try:
-            return self.__valuesseq[self.__times_to_index[float(time)]]
+            return self.__valuesseq[self.times_to_index[float(time)]]
         except KeyError:  # not present
             raise KeyError(str(time) + ' is not present in the TimeSeries.')
 
@@ -278,7 +278,7 @@ class TimeSeries:
         9.0
         '''
         try:
-            self.__valuesseq[self.__times_to_index[float(time)]] = float(value)
+            self.__valuesseq[self.times_to_index[float(time)]] = float(value)
         except KeyError:  # not present
             times = list(self.timesseq) + [time]
             values = list(self.valuesseq) + [value]
@@ -306,7 +306,7 @@ class TimeSeries:
         >>> 3 in a
         False
         '''
-        return float(time) in self.__times_to_index.keys()
+        return float(time) in self.times_to_index.keys()
 
     def __iter__(self):
         '''
@@ -490,6 +490,22 @@ class TimeSeries:
             res = '[{}]'.format(list_str)
         return 'TimeSeries({})'.format(res)
 
+    def _check_equal_length(self, other):
+        '''
+        Checks if two time series have the same length
+
+        Parameters
+        ----------
+        other : TimeSeries
+            Another time series to compare against
+
+        Returns
+        -------
+        boolean
+            Whether the time series have the same length
+        '''
+        return len(self.__timesseq) == len(other.__timesseq)
+
     def __eq__(self, other):
         '''
         Determines if two TimeSeries have the same values in
@@ -519,11 +535,11 @@ class TimeSeries:
         >>> a1 == a2
         False
         '''
-        try:
+        if self._check_equal_length(other):
             return (np.all(self.__timesseq == other.__timesseq) &
                     np.all(self.__valuesseq == other.__valuesseq))
-        except:
-            raise NotImplemented
+        else:
+            raise ValueError('Cannot compare TimeSeries of different lengths.')
 
     def get_interpolated(self, tval):
         '''
@@ -678,7 +694,7 @@ class TimeSeries:
         >>> t = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v = [10, 12, -11, 1.5, 10, 13, 17]
         >>> a = TimeSeries(t, v)
-        >>> print (a)
+        >>> print (+a)
         Length: 7 [10.0, ..., 17.0]
         '''
         return TimeSeries(self.__timesseq, self.__valuesseq)
@@ -725,39 +741,28 @@ class TimeSeries:
         '''
         return bool(abs(self))
 
-    def _check_length_helper(self, other):
-        '''
-        Checks if two time series have the same length
-
-        Parameters
-        ----------
-        other : TimeSeries
-            Another time series to compare against
-
-        Returns
-        -------
-        Nothing - will raise value error if lengths are not equal.
-        '''
-        if not len(self.__timesseq) == len(other.__timesseq):
-            raise ValueError(str(self)+' and '+str(other)+' \
-                             do not have the same lengths')
-
     def __add__(self, other):
         '''
-        Takes as input two time series and returns a time series
-        object with the values added if the input time series
-        have the same times.
+        Takes as input two time series and returns a time series object with
+        the values added if the input time series have the same times.
+
+        Alternatively, if other is an int or float, it is added to all elements
+        of the time series values.
 
         Parameters
         ----------
         other : TimeSeries
             Another time series, to add by (element-wise).
+        OR
+        other: int or float
+            A numeric value to add to each element of the time series values.
 
         Returns
         -------
         TimeSeries
             A new time series, with the same times as the two original
-            time series and value equal to the sum of their values.
+            time series and value equal to the sum of their values
+            (or, alternatively, with values incremented by other).
 
         >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
@@ -767,38 +772,50 @@ class TimeSeries:
         >>> a2 = TimeSeries(t2, v2)
         >>> print (a1 + a2)
         Length: 7 [10.0, ..., 24.0]
+        >>> print (a1 + 2)
+        Length: 7 [2.0, ..., 9.0]
         '''
-        try:
-            self._check_length_helper(other)
-            if not np.allclose(self.__timesseq, other.__timesseq):
-                raise ValueError(str(self)+' and '+str(other)+' \
-                                must have the same time points')
-            return TimeSeries(self.__timesseq,
-                              np.add(self.__valuesseq, other.__valuesseq))
-        except TypeError:
-            raise NotImplemented
 
-    def __radd__(self, other):
-        # other + self delegates to __add__
-        return self + other
+        if type(other) in (int, float):
+            return TimeSeries(self.__timesseq, self.__valuesseq + other)
+
+        if not isinstance(other, TimeSeries):
+            raise NotImplementedError
+
+        if self._check_equal_length(other):
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self) + ' and ' + str(other) +
+                                 ' must have the same time points.')
+            else:
+                return TimeSeries(self.__timesseq,
+                                  np.add(self.__valuesseq, other.__valuesseq))
+        else:
+            raise ValueError('Cannot carry out arithmetic operations on \
+                              TimeSeries of different lengths.')
 
     def __sub__(self, other):
         '''
-        Takes as input two time series and returns a time series
-        object with the values of the second subtracted from the
-        first, if the input time series have the same times.
+        Takes as input two time series and returns a time series object with
+        the values subtracted if the input time series have the same times.
+
+        Alternatively, if other is an int or float, it is subtracted from all
+        elements of the time series values.
 
         Parameters
         ----------
         other : TimeSeries
             Another time series, to subtract by (element-wise).
+        OR
+        other: int or float
+            A numeric value to subtract from each element of the time series
+            values.
 
         Returns
         -------
         TimeSeries
             A new time series, with the same times as the two original
-            time series and value equal to the subtraction of the second
-            values from the first values.
+            time series and value equal to the difference of their values
+            (or, alternatively, with values subtracted by other).
 
         >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
@@ -808,39 +825,50 @@ class TimeSeries:
         >>> a2 = TimeSeries(t2, v2)
         >>> print (a1 - a2)
         Length: 7 [-10.0, ..., -10.0]
+        >>> print (a1 - 2)
+        Length: 7 [-2.0, ..., 5.0]
         '''
-        try:
-            self._check_length_helper(other)
-            if not np.allclose(self.__timesseq, other.__timesseq):
-                raise ValueError(str(self)+' and '+str(other)+' \
-                                must have the same time points')
-            return TimeSeries(self.__timesseq,
-                              np.subtract(self.__valuesseq, other.__valuesseq))
-        except TypeError:
-            raise NotImplemented
+        if type(other) in (int, float):
+            return TimeSeries(self.__timesseq, self.__valuesseq - other)
 
-    def __rsub__(self, other):
-        # other + self delegates to __add__
-        return -self + other
+        if not isinstance(other, TimeSeries):
+            raise NotImplementedError
+
+        if self._check_equal_length(other):
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self) + ' and ' + str(other) +
+                                 ' must have the same time points.')
+            else:
+                return TimeSeries(self.__timesseq,
+                                  np.subtract(self.__valuesseq,
+                                              other.__valuesseq))
+        else:
+            raise ValueError('Cannot carry out arithmetic operations on \
+                              TimeSeries of different lengths.')
 
     def __mul__(self, other):
         '''
-        Takes as input two time series and returns a time series
-        object with the values multiplied element-wise, but only
-        if the input time series have the same times.
-        Note: this is NOT a dot product.
+        Takes as input two time series and returns a time series object with
+        the values multiplied if the input time series have the same times.
+
+        Alternatively, if other is an int or float, it is multiplied by all
+        elements of the time series values.
 
         Parameters
         ----------
         other : TimeSeries
             Another time series, to multiply by (element-wise).
+        OR
+        other: int or float
+            A numeric value to multiply to each element of the time series
+            values.
 
         Returns
         -------
         TimeSeries
             A new time series, with the same times as the two original
-            time series and value equal to the element-wise product of
-            their values.
+            time series and value equal to the product of their values
+            (or, alternatively, with values multiplied by other).
 
         >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
         >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
@@ -850,16 +878,23 @@ class TimeSeries:
         >>> a2 = TimeSeries(t2, v2)
         >>> print (a1 * a2)
         Length: 7 [0.0, ..., 119.0]
+        >>> print (a1 * 2)
+        Length: 7 [0.0, ..., 14.0]
         '''
-        try:
-            self._check_length_helper(other)
-            if not np.allclose(self.__timesseq, other.__timesseq):
-                raise ValueError(str(self)+' and '+str(other)+' \
-                                must have the same time points')
-            return TimeSeries(self.__timesseq,
-                              np.multiply(self.__valuesseq, other.__valuesseq))
-        except TypeError:
-            raise NotImplemented
+        if type(other) in (int, float):
+            return TimeSeries(self.__timesseq, self.__valuesseq * other)
 
-    def __rmul__(self, other):  # other + self delegates to __mul__
-        return self * other
+        if not isinstance(other, TimeSeries):
+            raise NotImplementedError
+
+        if self._check_equal_length(other):
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self) + ' and ' + str(other) +
+                                 ' must have the same time points.')
+            else:
+                return TimeSeries(self.__timesseq,
+                                  np.multiply(self.__valuesseq,
+                                              other.__valuesseq))
+        else:
+            raise ValueError('Cannot carry out arithmetic operations on \
+                              TimeSeries of different lengths.')
