@@ -1,10 +1,7 @@
 import numpy as np
 import math
 
-try:  # Pyscaffold build
-    from timeseries.lazy import LazyOperation
-except:  # local doctests
-    from lazy import LazyOperation
+from timeseries.lazy import LazyOperation
 
 
 class TimeSeries:

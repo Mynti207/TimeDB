@@ -2,6 +2,8 @@ class LazyOperation:
 
     '''
     Implement lazy evaluation.
+
+    Note: no doctests as this class is not intended to be called directly.
     '''
 
     def __init__(self, function, *args, **kwargs):
@@ -38,14 +40,16 @@ class LazyOperation:
             The output of the evaluated lazy-fied function
         '''
 
+        # can't modify args (tuple) in-place
         templist = list(self.__args)
-        for i in range(len(templist)):
-            if isinstance(self.__args[i], LazyOperation):
-                templist[i] = self.__args[i].eval()
+        for key, value in enumerate(templist):
+            if isinstance(value, LazyOperation):
+                templist[key] = value.eval()
         self.__args = tuple(templist)
 
-        for i in range(len(self.__kwargs)):
-            if isinstance(self.__kwargs[i], LazyOperation):
-                self.__kwargs[i] = self.__kwargs[i].eval()
+        # can modify kwargs (dict) in-place
+        for key, value in self.__kwargs.items():
+            if isinstance(value, LazyOperation):
+                self.__kwargs[key] = value.eval()
 
         return self.__function(*self.__args, **self.__kwargs)
