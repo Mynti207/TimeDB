@@ -3,6 +3,7 @@ Mynti207
 ========
 
 Development repo:
+
 .. image:: https://travis-ci.org/dominedo/cs207project.svg?branch=master
     :target: https://travis-ci.org/dominedo/cs207project
 
@@ -10,11 +11,12 @@ Development repo:
     :target: https://coveralls.io/github/dominedo/cs207project?branch=master
 
 Group repo:
+
 .. image:: https://travis-ci.org/Mynti207/cs207project.svg?branch=master
     :target: https://travis-ci.org/Mynti207/cs207project
 
 .. image:: https://coveralls.io/repos/github/Mynti207/cs207project/badge.svg?branch=master
-    :target: https://coveralls.io/github/Mynti207/cs207project?branch=master
+    :target: https://coqveralls.io/github/Mynti207/cs207project?branch=master
 
 TimeSeries module
 ===========
