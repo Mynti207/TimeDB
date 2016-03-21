@@ -30,15 +30,18 @@ Data and methods for an object representing a general time series. A TimeSeries 
 
 Add description.
 
-Team Members
-===========
-
-Gioia Dominedo | @dominedo | dominedo@g.harvard.edu
-Nicolas Drizard | @nicodri | nicolasdrizard@g.harvard.edu
-Kendrick Lo | @ppgmg | klo@g.harvard.edu
-Malcolm Mason Rodriguez | @malcolmjmr | mmasonrodriguez@college.harvard.edu
-
 **Note**
 
 This project has been set up using PyScaffold 2.5.5. For details and usage
 information on PyScaffold see http://pyscaffold.readthedocs.org/.
+
+Team Members
+===========
+
+Gioia Dominedo | @dominedo | dominedo@g.harvard.edu
+
+Nicolas Drizard | @nicodri | nicolasdrizard@g.harvard.edu
+
+Kendrick Lo | @ppgmg | klo@g.harvard.edu
+
+Malcolm Mason Rodriguez | @malcolmjmr | mmasonrodriguez@college.harvard.edu
