@@ -2,7 +2,7 @@ from .lexer import lexer
 from .parser import parser
 from .ast_copy import *
 from .semantic_analysis import CheckSingleAssignment
-
+from .translate import SymbolTableVisitor
 
 class Pipeline(object):
 
@@ -16,4 +16,7 @@ class Pipeline(object):
         ast = parser.parse(input, lexer=lexer)
         ast.pprint()
         # Semantic analysis
-        ast.walk(CheckSingleAssignment())
+        ast.walk( CheckSingleAssignment() )
+        # Translation
+        syms = ast.walk( SymbolTableVisitor() )
+        return syms
