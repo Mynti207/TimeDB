@@ -14,7 +14,7 @@ class Pipeline(object):
         input = file.read()
         # Lexing, parsing, AST construction
         ast = parser.parse(input, lexer=lexer)
-        ast.pprint()
+        print_tree = ast.pprint()
         # Semantic analysis
         ast.walk( CheckSingleAssignment() )
         # Translation

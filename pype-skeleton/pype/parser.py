@@ -18,8 +18,7 @@ def p_statement_list(p):
                        | component'''
 
     if len(p) > 2:
-        p[1].append(p[2])
-        p[0] = p[1]
+        p[0] = p[1] + [p[2]]
     else:
         p[0] = [p[1]]
 
@@ -35,7 +34,7 @@ def p_import_statement(p):
 def p_component(p):
     r'''component : LBRACE ID expression_list RBRACE'''
     p[2] = ASTID(p[2])
-    p[0] = ASTComponent(p[2].append(p[3]))
+    p[0] = ASTComponent([p[2]] + p[3])
 
 
 def p_expression_list(p):
@@ -94,37 +93,36 @@ def p_type(p):
 
 def p_expression_assign(p):
     r'''expression : LPAREN ASSIGN ID expression RPAREN'''
-    p[0] = ASTAssignmentExpr(ASTID(p[3]), p[4])
+    p[0] = ASTAssignmentExpr((ASTID(p[3]), p[4]))
 
 
 def p_expression_id_parens(p):
     r'''expression : LPAREN ID parameter_list RPAREN
                    | LPAREN ID RPAREN'''
     if len(p) > 4:
-        p[2].append(p[3])
-        p[0] = p[2]
+        p[0] = ASTEvalExpr([ASTID(p[2])] + p[3])
     else:
-        p[0] = [p[2]]
+        p[0] = ASTID(p[2])
 
 
 def p_expression_plus(p):
     r'''expression : LPAREN OP_ADD parameter_list RPAREN'''
-    p[0] = ASTEvalExpr(p[2].append(p[3]))
+    p[0] = ASTEvalExpr([ASTID(p[2])] + p[3])
 
 
 def p_expression_minus(p):
     r'''expression : LPAREN OP_SUB parameter_list RPAREN'''
-    p[0] = ASTEvalExpr(p[2].append(p[3]))
+    p[0] = ASTEvalExpr([ASTID(p[2])] + p[3])
 
 
 def p_expression_mult(p):
     r'''expression : LPAREN OP_MUL parameter_list RPAREN'''
-    p[0] = ASTEvalExpr(p[2].append(p[3]))
+    p[0] = ASTEvalExpr([ASTID(p[2])] + p[3])
 
 
 def p_expression_div(p):
     r'''expression : LPAREN OP_DIV parameter_list RPAREN'''
-    p[0] = ASTEvalExpr(p[2].append(p[3]))
+    p[0] = ASTEvalExpr([ASTID(p[2])] + p[3])
 
 
 def p_expression_id(p):
@@ -146,8 +144,7 @@ def p_parameter_list(p):
     r'''parameter_list : parameter_list expression
                        | expression'''
     if len(p) > 2:
-        p[2].append(p[3])
-        p[0] = p[2]
+        p[0] = p[1] + [p[2]]
     else:
         p[0] = [p[1]]
 
@@ -159,15 +156,15 @@ def p_parameter_list(p):
 #       understanding of LR parsers and the language specification.
 
 
-def p_error(p):
-    if p:
-        print("Syntax error at token ", p.type)
-        print("Line number ", p.lineno)
-        print("Position ", p.lexpos)
-        # Just discard the token and tell the parser it's okay.
-        parser.errok()
-    else:
-        print("Syntax error at EOF")
+# def p_error(p):
+#     if p:
+#         print("Syntax error at token ", p.type)
+#         print("Line number ", p.lineno)
+#         print("Position ", p.lexpos)
+#         # Just discard the token and tell the parser it's okay.
+#         parser.errok()
+#     else:
+#         print("Syntax error at EOF")
 
 start = 'program'
 parser = ply.yacc.yacc(debug=True)  # To get more information, add debug=True

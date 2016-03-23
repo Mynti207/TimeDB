@@ -37,10 +37,10 @@ class ASTNode(object):
                 child21 child22
         '''
         # TODO
-        line = indent + self.parent + '\n'
+        line = indent + str(self) + '\n'
         for child in self.children:
-            line += pprint(child, indent=indent+'\t')
-        return ret
+            line += child.pprint(indent=indent+'\t')
+        return line
 
     def walk(self, visitor):
         '''Traverses an AST, calling visitor.visit() on every node.
@@ -50,14 +50,11 @@ class ASTNode(object):
         children will all be visited before its siblings.
         The visitor may modify attributes, but may not add or delete nodes.'''
         # TODO
-        # Stop criterion
-        if visitor is None:
-            return
         # Visiting parent
-        visitor.visit()
+        visitor.visit(self)
         # Walking from children in order
-        for child in visitor.children:
-            self.walk(child)
+        for child in self.children:
+            child.walk(visitor)
 
         return visitor.return_value()
 
