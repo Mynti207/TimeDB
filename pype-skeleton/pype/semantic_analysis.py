@@ -10,6 +10,22 @@ class PrettyPrint(ASTVisitor):
 
 class CheckSingleAssignment(ASTVisitor):
   def __init__(self):
-    pass # TODO
+    self.local_vars = []
+    self.global_vars = []
+  
   def visit(self, node):
-    pass # TODO
+    if isinstance(node, ASTProgram):
+      for child in node.child:
+        self.visit(child)
+
+    if isinstance(node, ASTComponent):
+      self.local_vars = [] # reset local assignments
+      self.global_vars.append(node.name) # add to global variables
+
+      for child in node.children:
+        if isinstance(child, ASTAssignmentExpr):
+          self.local_vars.append(node.name)
+          if child.binding in self.local_vars:
+            raise Exception('Double Assignement: {}'.format(child.binding))
+          else:
+            self.local_vars.append(child.binding) 

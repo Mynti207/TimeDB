@@ -54,10 +54,10 @@ class ASTNode(object):
         if visitor is None:
             return
         # Visiting parent
-        visitor.visit()
+        visitor.visit(self)
         # Walking from children in order
-        for child in visitor.children:
-            self.walk(child)
+        for child in self.children:
+            child.walk(visitor)
 
         return visitor.return_value()
 
@@ -88,7 +88,7 @@ class ASTComponent(ASTNode):  # TODO
 
     @property
     def expressions(self):  # TODO return one or more children
-        return self.children[1]
+        return self.children[1:]
 
 
 class ASTInputExpr(ASTNode):  # TODO
