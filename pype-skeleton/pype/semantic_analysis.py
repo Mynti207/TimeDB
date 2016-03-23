@@ -24,7 +24,6 @@ class CheckSingleAssignment(ASTVisitor):
 
       for child in node.children:
         if isinstance(child, ASTAssignmentExpr):
-          self.local_vars.append(node.name)
           if child.binding in self.local_vars:
             raise Exception('Double Assignement: {}'.format(child.binding))
           else:
