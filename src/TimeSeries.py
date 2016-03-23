@@ -4,6 +4,7 @@
 import numpy as np
 import math
 from lazy import *
+import pype
 
 class TimeSeries:
 
@@ -266,6 +267,7 @@ class TimeSeries:
 
         return TimeSeries(tseq, valseq)
 
+    @pype.component
     def mean(self):
         '''
         Returns (arithmetic) mean of the values stored in the class.
@@ -273,6 +275,7 @@ class TimeSeries:
 
         return self.__valuesseq.mean()
 
+    @pype.component
     def median(self):
         '''
         Returns median of the values stored in the class.
