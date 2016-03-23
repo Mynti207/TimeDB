@@ -19,4 +19,5 @@ class Pipeline(object):
         ast.walk( CheckSingleAssignment() )
         # Translation
         syms = ast.walk( SymbolTableVisitor() )
+        print(syms.pprint())
         return syms

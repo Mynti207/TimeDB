@@ -93,4 +93,4 @@ def t_error(t):
     t.lexer.skip(1)
 
 # This actually builds the lexer.
-lexer = ply.lex.lex(debug=True)
+lexer = ply.lex.lex()

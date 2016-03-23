@@ -156,15 +156,15 @@ def p_parameter_list(p):
 #       understanding of LR parsers and the language specification.
 
 
-# def p_error(p):
-#     if p:
-#         print("Syntax error at token ", p.type)
-#         print("Line number ", p.lineno)
-#         print("Position ", p.lexpos)
-#         # Just discard the token and tell the parser it's okay.
-#         parser.errok()
-#     else:
-#         print("Syntax error at EOF")
+def p_error(p):
+    if p:
+        print("Syntax error at token ", p.type)
+        print("Line number ", p.lineno)
+        print("Position ", p.lexpos)
+        # Just discard the token and tell the parser it's okay.
+        parser.errok()
+    else:
+        print("Syntax error at EOF")
 
 start = 'program'
-parser = ply.yacc.yacc(debug=True)  # To get more information, add debug=True
+parser = ply.yacc.yacc()  # To get more information, add debug=True
