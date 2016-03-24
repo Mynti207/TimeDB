@@ -43,14 +43,14 @@ class ASTNode(object):
         return line
 
     def walk(self, visitor):
-        '''Traverses an AST, calling visitor.visit() on every node.
+        '''Traverses an AST, calling node.visit(visitor) on every node.
 
         This is a depth-first, pre-order traversal. Parents will be visited before
         any children, children will be visited in order, and (by extension) a node's
         children will all be visited before its siblings.
         The visitor may modify attributes, but may not add or delete nodes.'''
         # TODO
-        # Visiting parent
+        # Visiting node
         visitor.visit(self)
         # Walking from children in order
         for child in self.children:

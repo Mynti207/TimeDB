@@ -16,8 +16,8 @@ class Pipeline(object):
         ast = parser.parse(input, lexer=lexer)
         print_tree = ast.pprint()
         # Semantic analysis
-        ast.walk( CheckSingleAssignment() )
+        ast.walk(CheckSingleAssignment())
         # Translation
-        syms = ast.walk( SymbolTableVisitor() )
+        syms = ast.walk(SymbolTableVisitor())
         print(syms.pprint())
         return syms
