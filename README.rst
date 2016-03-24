@@ -6,7 +6,7 @@ Mynti207
     :target: https://travis-ci.org/Mynti207/cs207project
 
 .. image:: https://coveralls.io/repos/github/Mynti207/cs207project/badge.svg?branch=master
-    :target: https://coqveralls.io/github/Mynti207/cs207project?branch=master
+    :target: https://coveralls.io/github/Mynti207/cs207project?branch=master
 
 Description
 ===========
