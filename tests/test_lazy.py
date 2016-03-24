@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from timeseries.TimeSeries import TimeSeries
-from timeseries.lazy import LazyOperation
+from timeseries import *
 
 
 # FUNCTIONS TO FACILITATE TESTING -->

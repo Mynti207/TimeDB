@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 from timeseries.lazy import LazyOperation
-
+import pype
 
 class TimeSeries:
 
@@ -610,6 +610,7 @@ class TimeSeries:
 
         return TimeSeries(tseq, valseq)
 
+    @pype.component
     def mean(self):
         '''
         Returns (arithmetic) mean of the values stored in the class.
@@ -632,6 +633,7 @@ class TimeSeries:
 
         return np.mean(self.__valuesseq)
 
+    @pype.component
     def median(self):
         '''
         Returns median of the values stored in the class.

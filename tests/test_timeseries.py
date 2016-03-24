@@ -1,14 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import pytest
-from timeseries.TimeSeries import TimeSeries
 import types
 import numpy as np
-
-__author__ = "Mynti207"
-__copyright__ = "Mynti207"
-__license__ = "mit"
+from timeseries import *
 
 
 def test_init():
