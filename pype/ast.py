@@ -129,8 +129,6 @@ class ASTEvalExpr(ASTNode):
     def args(self):
         return self.children[1:]
 
-# These are already complete.
-
 
 class ASTID(ASTNode):
 
