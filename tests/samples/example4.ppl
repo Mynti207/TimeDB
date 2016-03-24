@@ -1,0 +1,11 @@
+{ math
+  (:= x 1.0)
+  (:= y 2.0)
+
+  (:= test (+ (x y)))
+  (:= test (- (x y)))
+  (:= test (* (x y)))
+  (:= test (/ (x y)))
+
+  (output test)
+}

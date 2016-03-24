@@ -1,8 +1,0 @@
-(import timeseries)
-
-{ test
-(:= x 3)
-(output x)
-}
-
-

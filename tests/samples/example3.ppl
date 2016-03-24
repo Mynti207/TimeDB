@@ -1,0 +1,7 @@
+{ test
+  (:= example1 "hello")
+  (:= example2 "world")
+
+  (output example1)
+  (output example2)
+}

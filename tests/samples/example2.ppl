@@ -1,0 +1,5 @@
+{ syntax_error
+  (x := 1)
+
+  (output)
+}
