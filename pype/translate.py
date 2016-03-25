@@ -13,25 +13,27 @@ class SymbolTableVisitor(ASTVisitor):
 
     def visit(self, node):
 
-        # import statements make library functions available to PyPE
+        # import statements make library functions available to PYPE
         if isinstance(node, ASTImport):
             imp = LibraryImporter(node.module)
             imp.add_symbols(self.symbol_table)
 
         # traverse the rest of the nodes in the tree
         elif isinstance(node, ASTProgram):
-            for child in node.children:
-                self.visit(child)
+            if node.children is not None:
+                for child in node.children:
+                    self.visit(child)
 
         # add symbols for inputs, i.e. anything in an expression_list
         # SymbolType: inputs
         # ref: None
         # scope: enclosing component
         elif isinstance(node, ASTInputExpr):
-            for child in node.children:
-                sym = Symbol(child.name, SymbolType.input, None)
-                scope = node.parent.name.name
-                self.symbol_table.addsym(sym, scope=scope)
+            if node.children is not None:
+                for child in node.children:
+                    sym = Symbol(child.name, SymbolType.input, None)
+                    scope = node.parent.name.name
+                    self.symbol_table.addsym(sym, scope=scope)
 
         # add symbols for assigned names, i.e. the bound name in an
         # assignment expression
@@ -52,5 +54,6 @@ class SymbolTableVisitor(ASTVisitor):
             self.symbol_table.addsym(sym)
 
             # traverse the rest of the nodes in the tree
-            for child in node.children:
-                self.visit(child)
+            if node.children is not None:
+                for child in node.children:
+                    self.visit(child)

@@ -9,7 +9,7 @@ Symbol = collections.namedtuple('Symbol', 'name type ref')
 
 class SymbolTable(object):
     '''
-    SymbolTabl: a dictionary of scoped symbol tables
+    SymbolTable: a dictionary of scoped symbol tables
     Each scoped symbol table is a dictionary of metadata for each variable.
     '''
 
@@ -28,6 +28,15 @@ class SymbolTable(object):
         return str(self.T)
 
     def pprint(self):
+        '''
+        Loop through all defined scopes and print all the symbols
+        associated with them.
+
+        Format of the print:
+        scope
+            symbol1 name => symbol details
+            symbol2 name => symbol details
+        '''
         print('---SYMBOL TABLE---')
         for (scope, table) in self.T.items():
             print(scope)
@@ -35,6 +44,10 @@ class SymbolTable(object):
                 print(' ', name, '=>', symbol)
 
     def addsym(self, sym, scope='global'):
+        '''
+        Adds a symbols to the symbol table, in the relevant dictionary
+        item that corresponds to the symbol scope.
+        '''
 
         # create dictionary if scope is not already present
         if scope not in self.T:

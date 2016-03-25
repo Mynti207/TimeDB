@@ -1,4 +1,7 @@
 { syntax_error
+
+  (input)
+  (x)
   (x := 1)
 
   (output)

@@ -26,7 +26,8 @@ class ASTNode(object):
                 child.parent = self
 
     def pprint(self, indent=''):
-        '''Recursively prints a formatted string representation of the AST.
+        '''
+        Recursively prints a formatted string representation of the AST.
         Format of the print:
         parent
             child1
@@ -34,22 +35,25 @@ class ASTNode(object):
             child2
                 child21 child22
         '''
-        line = indent + str(self) + '\n'
+        print(indent + str(self))
         if self.children is not None:
             for child in self.children:
-                line += child.pprint(indent=indent+'\t')
-        return line
+                child.pprint(indent=indent+'\t')
 
     def walk(self, visitor):
-        '''Traverses an AST, calling node.visit(visitor) on every node.
+        '''
+        Traverses an AST, calling node.visit(visitor) on every node.
 
         This is a depth-first, pre-order traversal. Parents will be visited
         before any children, children will be visited in order, and (by
         extension) a node's children will all be visited before its siblings.
-        The visitor may modify attributes, but may not add or delete nodes.'''
-        # Visiting node (self)
+        The visitor may modify attributes, but may not add or delete nodes.
+        '''
+
+        # visit self first
         visitor.visit(self)
-        # walking from children in order
+
+        # then visit all children (if any)
         if self.children is not None:
             for child in self.children:
                 child.walk(visitor)

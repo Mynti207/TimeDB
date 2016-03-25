@@ -6,6 +6,13 @@ from pype.translate import SymbolTableVisitor
 
 
 class Pipeline(object):
+    '''
+    Main PYPE driver. Carries out the following steps:
+        - Opens and load a PPL (pipeline) file
+        - Carries out lexing, parsing and AST construction of tokens contained
+        in PPL file
+        - Creates symbol table for relevant scope(s)
+    '''
 
     def __init__(self, source):
         with open(source) as f:
@@ -15,12 +22,11 @@ class Pipeline(object):
 
         input = file.read()
 
-        # Lexing, parsing, AST construction
+        # lexing, parsing, AST construction
         ast = parser.parse(input, lexer=lexer)
         ast.pprint()
 
-        # Semantic analysis
+        # semantic analysis
         ast.walk(CheckSingleAssignment())
-        # Translation
         syms = ast.walk(SymbolTableVisitor())
-        print(syms.pprint())
+        syms.pprint()

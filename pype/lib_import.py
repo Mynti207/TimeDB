@@ -19,7 +19,6 @@ def is_component(func):
     '''
     Checks whether the @component decorator was applied to a function.
     '''
-    # if '_attributes' in vars(func):
     if hasattr(func, '_attributes'):
         return func._attributes[ATTRIB_COMPONENT]
     return False
@@ -43,7 +42,7 @@ class LibraryImporter(object):
                 symtab.addsym(Symbol(name, SymbolType.libraryfunction, obj))
             elif inspect.isclass(obj):
                 for (methodname, method) in inspect.getmembers(obj):
-                    # check if method was decorated; add a symbol
+                    # check if method was decorated; if so, add a symbol
                     if inspect.isroutine(method) and is_component(method):
                         sym = Symbol(methodname,
                                      SymbolType.librarymethod, method)

@@ -42,7 +42,7 @@ def test_lexer():
         assert isinstance(tok, ply.lex.LexToken)
 
 
-def test_parser():
+def test_files():
 
     # time series examples
     Pipeline(source='tests/samples/example0.ppl')
@@ -56,3 +56,6 @@ def test_parser():
 
     # arithmetic operations
     Pipeline(source='tests/samples/example4.ppl')
+
+    # two (more complicated) functions
+    Pipeline(source='tests/samples/six.ppl')
