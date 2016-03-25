@@ -30,7 +30,7 @@ class SymbolTableVisitor(ASTVisitor):
         elif isinstance(node, ASTInputExpr):
             for child in node.children:
                 sym = Symbol(child.name, SymbolType.input, None)
-                scope = node.parent.name
+                scope = node.parent.name.name
                 self.symbol_table.addsym(sym, scope=scope)
 
         # add symbols for assigned names, i.e. the bound name in an
@@ -40,7 +40,7 @@ class SymbolTableVisitor(ASTVisitor):
         # scope: enclosing component
         elif isinstance(node, ASTAssignmentExpr):
             sym = Symbol(node.binding.name, SymbolType.var, None)
-            scope = node.binding.name
+            scope = node.parent.name.name
             self.symbol_table.addsym(sym, scope=scope)
 
         # add symbols for components, i.e. the name of each components

@@ -24,4 +24,3 @@ class Pipeline(object):
         # Translation
         syms = ast.walk(SymbolTableVisitor())
         print(syms.pprint())
-        return syms

@@ -1,0 +1,15 @@
+digraph standardize {
+  "@N3" -> "@N8"
+  "@N1" -> "@N0"
+  "@N6" -> "@N0"
+  "@N1" -> "@N6"
+  "@N1" -> "@N7"
+  "@N0" -> "@N3"
+  "@N7" -> "@N3"
+  "@N6" [ label = "mu" ]
+  "@N7" [ label = "sig" ]
+  "@N3" [ label = "new_t" ]
+  "@N1" [ label = "t" ]
+  "@N1" [ color = "green" ]
+  "@N8" [ color = "red" ]
+}

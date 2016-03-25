@@ -34,7 +34,6 @@ class ASTNode(object):
             child2
                 child21 child22
         '''
-        # TODO
         line = indent + str(self) + '\n'
         if self.children is not None:
             for child in self.children:

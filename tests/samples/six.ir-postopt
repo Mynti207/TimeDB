@@ -1,0 +1,25 @@
+digraph six {
+  "@N10" -> "@N19"
+  "@N10" [ label = "c" ]
+  "@N1" [ label = "y" ]
+  "@N0" [ label = "x" ]
+  "@N0" [ color = "green" ]
+  "@N1" [ color = "green" ]
+  "@N19" [ color = "red" ]
+}
+
+digraph component2 {
+  "@N0" -> "@N2"
+  "@N0" -> "@N2"
+  "@N4" -> "@N6"
+  "@N1" -> "@N3"
+  "@N1" -> "@N3"
+  "@N2" -> "@N4"
+  "@N3" -> "@N4"
+  "@N4" [ label = "z" ]
+  "@N1" [ label = "y" ]
+  "@N0" [ label = "x" ]
+  "@N0" [ color = "green" ]
+  "@N1" [ color = "green" ]
+  "@N6" [ color = "red" ]
+}

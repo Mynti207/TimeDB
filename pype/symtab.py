@@ -35,4 +35,10 @@ class SymbolTable(object):
                 print(' ', name, '=>', symbol)
 
     def addsym(self, sym, scope='global'):
-        self.T[scope] = {sym.name: {sym.type: sym.ref}}
+
+        # create dictionary if scope is not already present
+        if scope not in self.T:
+            self.T[scope] = {}
+
+        # in all cases, add symbol
+        self.T[scope][sym.name] = sym
