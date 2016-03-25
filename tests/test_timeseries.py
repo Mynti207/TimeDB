@@ -134,6 +134,13 @@ def test_mean():
     assert a.mean() == 0.3
 
 
+def test_std():
+    t = [1, 1.5, 2, 2.5, 10]
+    v = [0, 2, -1, 0.5, 0]
+    a = TimeSeries(t, v)
+    assert a.std() == 0.9797958971132712
+
+
 def test_median():
     t = [1, 1.5, 2, 2.5, 10]
     v = [0, 2, -1, 0.5, 0]

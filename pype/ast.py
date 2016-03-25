@@ -50,8 +50,9 @@ class ASTNode(object):
         # Visiting node (self)
         visitor.visit(self)
         # walking from children in order
-        for child in self.children:
-            child.walk(visitor)
+        if self.children is not None:
+            for child in self.children:
+                child.walk(visitor)
 
         return visitor.return_value()
 

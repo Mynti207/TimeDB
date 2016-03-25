@@ -48,7 +48,7 @@ class SymbolTableVisitor(ASTVisitor):
         # ref: None
         # scope: global
         elif isinstance(node, ASTComponent):
-            sym = Symbol(node.name, SymbolType.component, None)
+            sym = Symbol(node.name.name, SymbolType.component, None)
             self.symbol_table.addsym(sym)
 
             # traverse the rest of the nodes in the tree

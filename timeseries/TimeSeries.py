@@ -634,6 +634,28 @@ class TimeSeries:
         return np.mean(self.__valuesseq)
 
     @pype.component
+    def std(self):
+        '''
+        Returns standard deviation of the values stored in the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        float
+            Standard deviation of time series values
+
+        >>> t = [1, 1.5, 2, 2.5, 10]
+        >>> v = [0, 2, -1, 0.5, 0]
+        >>> a = TimeSeries(t, v)
+        >>> a.std()
+        0.9797958971132712
+        '''
+
+        return np.std(self.__valuesseq)
+
     def median(self):
         '''
         Returns median of the values stored in the class.
