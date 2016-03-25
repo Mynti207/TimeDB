@@ -20,8 +20,8 @@ class Pipeline(object):
         ast.pprint()
 
         # Semantic analysis
-        # ast.walk(CheckSingleAssignment())
+        ast.walk(CheckSingleAssignment())
         # Translation
-        # syms = ast.walk(SymbolTableVisitor())
-        # print(syms.pprint())
-        # return syms
+        syms = ast.walk(SymbolTableVisitor())
+        print(syms.pprint())
+        return syms

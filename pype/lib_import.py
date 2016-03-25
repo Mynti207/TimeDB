@@ -19,7 +19,8 @@ def is_component(func):
     '''
     Checks whether the @component decorator was applied to a function.
     '''
-    if '_attributes' in vars(func):
+    # if '_attributes' in vars(func):
+    if hasattr(func, '_attributes'):
         return func._attributes[ATTRIB_COMPONENT]
     return False
 

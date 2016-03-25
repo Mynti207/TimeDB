@@ -29,7 +29,7 @@ class SymbolTableVisitor(ASTVisitor):
         # scope: enclosing component
         elif isinstance(node, ASTInputExpr):
             for child in node.children:
-                sym = Symbold(child.name, SympolType.input, None)
+                sym = Symbol(child.name, SymbolType.input, None)
                 scope = node.parent.name
                 self.symbol_table.addsym(sym, scope=scope)
 
