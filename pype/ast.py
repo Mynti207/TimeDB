@@ -1,4 +1,7 @@
 class ASTVisitor():
+    '''
+    Wrapper class to walk througha tree and visit each Node.
+    '''
 
     def visit(self, astnode):
         'A read-only function which looks at a single AST node.'
@@ -9,6 +12,9 @@ class ASTVisitor():
 
 
 class ASTNode(object):
+    '''
+    Node of the AST tree.
+    '''
 
     def __init__(self):
         self.parent = None
@@ -62,6 +68,9 @@ class ASTNode(object):
 
 
 class ASTProgram(ASTNode):
+    '''
+    Node storing a programm in the AST.
+    '''
 
     def __init__(self, statements):
         super().__init__()
@@ -69,6 +78,9 @@ class ASTProgram(ASTNode):
 
 
 class ASTImport(ASTNode):
+    '''
+    Node storing an import statement in the AST.
+    '''
 
     def __init__(self, module):
         super().__init__()
@@ -76,6 +88,10 @@ class ASTImport(ASTNode):
 
 
 class ASTComponent(ASTNode):
+    '''
+    Node storing a component in the AST, ie a group of instructions between
+    brackets.
+    '''
 
     def __init__(self, children):
         super().__init__()
@@ -91,6 +107,9 @@ class ASTComponent(ASTNode):
 
 
 class ASTInputExpr(ASTNode):
+    '''
+    Node storing an input expression in the AST.
+    '''
 
     def __init__(self, children=None):
         super().__init__()
@@ -98,6 +117,9 @@ class ASTInputExpr(ASTNode):
 
 
 class ASTOutputExpr(ASTNode):
+    '''
+    Node storing an output expression in the AST.
+    '''
 
     def __init__(self, children=None):
         super().__init__()
@@ -105,6 +127,9 @@ class ASTOutputExpr(ASTNode):
 
 
 class ASTAssignmentExpr(ASTNode):
+    '''
+    Node storing an assignement expression in the AST.
+    '''
 
     def __init__(self, children):
         super().__init__()
@@ -120,6 +145,9 @@ class ASTAssignmentExpr(ASTNode):
 
 
 class ASTEvalExpr(ASTNode):
+    '''
+    Node storing an evaluation expression in the AST.
+    '''
 
     def __init__(self, children):
         super().__init__()
@@ -135,6 +163,9 @@ class ASTEvalExpr(ASTNode):
 
 
 class ASTID(ASTNode):
+    '''
+    Node storing an ID in the AST.
+    '''
 
     def __init__(self, name, typedecl=None):
         super().__init__()
@@ -143,6 +174,9 @@ class ASTID(ASTNode):
 
 
 class ASTLiteral(ASTNode):
+    '''
+    Node storing a Literal variable in the AST.
+    '''
 
     def __init__(self, value):
         super().__init__()

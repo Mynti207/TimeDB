@@ -2,6 +2,9 @@ from pype.ast import *
 
 
 class PrettyPrint(ASTVisitor):
+    '''
+    Vistor sublcass to visit an AST.
+    '''
 
     def __init__(self):
         pass
@@ -13,7 +16,10 @@ class PrettyPrint(ASTVisitor):
 
 
 class CheckSingleAssignment(ASTVisitor):
-
+    '''
+    Visitor subclass to check for multiple assignements of the same ID in the
+    same component of the AST
+    '''
     def __init__(self):
         self.local_vars = []
         self.global_vars = []

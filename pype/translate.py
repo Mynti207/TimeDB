@@ -4,6 +4,9 @@ from pype.lib_import import LibraryImporter
 
 
 class SymbolTableVisitor(ASTVisitor):
+    '''
+    Visitor subclass to walk through a SymbolTable
+    '''
 
     def __init__(self):
         self.symbol_table = SymbolTable()

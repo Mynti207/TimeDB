@@ -25,6 +25,9 @@ def is_component(func):
 
 
 class LibraryImporter(object):
+    '''
+    Class to import module and expand a SymbolTable
+    '''
 
     def __init__(self, modname=None):
         self.mod = None
