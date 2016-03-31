@@ -49,10 +49,8 @@ t_OP_MUL = r'\*'
 t_OP_DIV = r'\/'
 
 
+# STRING: anything enclosed by double quotes
 def t_STRING(t):
-    '''
-    STRING: anything enclosed by double quotes
-    '''
     r'"(.*?)"'
     t.value = str(t.value)
     return t
@@ -61,10 +59,8 @@ def t_STRING(t):
 t_ASSIGN = r'\:='
 
 
+# NUMBER: an arbitrary number of digits
 def t_NUMBER(t):
-    '''
-    NUMBER: an arbitrary number of digits
-    '''
     r'\d+'
     t.value = int(t.value)
     return t
@@ -73,31 +69,25 @@ def t_NUMBER(t):
 t_ignore = ' \t'
 
 
+# ID/KEYWORD: sequence of letters, numbers, underscores
+# (must not start with number)
+# reference: PLY documentation, secton 4.3
 def t_ID(t):
-    '''
-    ID/KEYWORD: sequence of letters, numbers, underscores
-    (must not start with number)
-    reference: PLY documentation, secton 4.3
-    '''
     r'[a-zA-Z_][a-zA-Z_0-9]*'
     t.type = reserved.get(t.value, 'ID')  # check for reserved words
     return t
 
 
+# COMMENT: denoted by # (same format as Python)
+# reference: PLY documentation, section 4.5
 def t_COMMENT(t):
-    '''
-    COMMENT: denoted by # (same format as Python)
-    reference: PLY documentation, section 4.5
-    '''
     r'\#.*'
     pass  # no return value - token discarded
 
 
+# tracks line numbers
+# reference: PLY documentation, section 4.6
 def t_newline(t):
-    '''
-    tracks line numbers
-    reference: PLY documentation, section 4.6
-    '''
     r'\n+'
     t.lexer.lineno += len(t.value)
 
