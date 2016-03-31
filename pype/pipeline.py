@@ -1,8 +1,8 @@
 from pype.lexer import lexer
 from pype.parser import parser
 from pype.ast import *
-from pype.semantic_analysis import CheckSingleAssignment
-from pype.translate import SymbolTableVisitor
+from pype.semantic_analysis import CheckSingleAssignment, CheckSingleIOExpression, CheckUndefinedVariables
+from pype.translate import SymbolTableVisitor, LoweringVisitor
 
 
 class Pipeline(object):
@@ -24,9 +24,20 @@ class Pipeline(object):
 
         # lexing, parsing, AST construction
         ast = parser.parse(input, lexer=lexer)
-        ast.pprint()
+        # ast.pprint()
 
         # semantic analysis
         ast.walk(CheckSingleAssignment())
+        ast.walk(CheckSingleIOExpression())
         syms = ast.walk(SymbolTableVisitor())
         syms.pprint()
+        ast.walk(CheckUndefinedVariables(syms))
+
+        # translation
+        ir = ast.mod_walk(LoweringVisitor(syms))
+
+        # optimization
+        ir.flowgraph_pass(AssignmentEllision())
+        ir.flowgraph_pass(DeadCodeElimination())
+
+        return ir

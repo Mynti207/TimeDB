@@ -4,6 +4,7 @@ import math
 from timeseries.lazy import LazyOperation
 import pype
 
+
 class TimeSeries:
 
     '''
@@ -762,6 +763,7 @@ class TimeSeries:
         '''
         return bool(abs(self))
 
+    @pype.component
     def __add__(self, other):
         '''
         Takes as input two time series and returns a time series object with
@@ -814,6 +816,7 @@ class TimeSeries:
             raise ValueError('Cannot carry out arithmetic operations on \
                               TimeSeries of different lengths.')
 
+    @pype.component
     def __sub__(self, other):
         '''
         Takes as input two time series and returns a time series object with
@@ -867,6 +870,7 @@ class TimeSeries:
             raise ValueError('Cannot carry out arithmetic operations on \
                               TimeSeries of different lengths.')
 
+    @pype.component
     def __mul__(self, other):
         '''
         Takes as input two time series and returns a time series object with
@@ -916,6 +920,60 @@ class TimeSeries:
                 return TimeSeries(self.__timesseq,
                                   np.multiply(self.__valuesseq,
                                               other.__valuesseq))
+        else:
+            raise ValueError('Cannot carry out arithmetic operations on \
+                              TimeSeries of different lengths.')
+
+    @pype.component
+    def __truediv__(self, other):
+        '''
+        Takes as input two time series and returns a time series object with
+        the values divided if the input time series have the same times.
+
+        Alternatively, if other is an int or float, it is divided by all
+        elements of the time series values.
+
+        Parameters
+        ----------
+        other : TimeSeries
+            Another time series, to divide by (element-wise).
+        OR
+        other: int or float
+            A numeric value to divide to each element of the time series
+            values.
+
+        Returns
+        -------
+        TimeSeries
+            A new time series, with the same times as the two original
+            time series and value equal to the quotient of their values
+            (or, alternatively, with values divided by other).
+
+        >>> t1 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v1 = [0, 2, -1, 0.5, 0, 3, 7]
+        >>> a1 = TimeSeries(t1, v1)
+        >>> t2 = [1, 1.5, 2, 2.5, 10, 11, 12]
+        >>> v2 = [10, 12, -11, 1.5, 10, 13, 17]
+        >>> a2 = TimeSeries(t2, v2)
+        >>> print (a1 / a2)
+        Length: 7 [0.0, ..., 0.4117647058823529]
+        >>> print (a1 / 2)
+        Length: 7 [0.0, ..., 3.5]
+        '''
+        if type(other) in (int, float):
+            return TimeSeries(self.__timesseq, self.__valuesseq / other)
+
+        if not isinstance(other, TimeSeries):
+            raise NotImplementedError
+
+        if self._check_equal_length(other):
+            if not np.allclose(self.__timesseq, other.__timesseq):
+                raise ValueError(str(self) + ' and ' + str(other) +
+                                 ' must have the same time points.')
+            else:
+                return TimeSeries(self.__timesseq,
+                                  np.divide(self.__valuesseq,
+                                            other.__valuesseq))
         else:
             raise ValueError('Cannot carry out arithmetic operations on \
                               TimeSeries of different lengths.')
