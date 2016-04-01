@@ -2,7 +2,7 @@ import enum
 
 FGNodeType = enum.Enum('FGNodeType',
                        'component libraryfunction librarymethod input output '
-                       'assignment literal unknown')
+                       'assignment literal forward unknown')
 
 
 class FGNode(object):
