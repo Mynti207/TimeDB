@@ -3,6 +3,8 @@ from pype.parser import parser
 from pype.ast import *
 from pype.semantic_analysis import CheckSingleAssignment, CheckSingleIOExpression, CheckUndefinedVariables
 from pype.translate import SymbolTableVisitor, LoweringVisitor
+from pype.optimize import *
+from pype.pcode import PCodeGenerator
 
 
 class Pipeline(object):
@@ -15,6 +17,7 @@ class Pipeline(object):
     '''
 
     def __init__(self, source):
+        self.pcodes = {}
         with open(source) as f:
             self.compile(f)
 
@@ -39,5 +42,12 @@ class Pipeline(object):
         # optimization
         ir.flowgraph_pass(AssignmentEllision())
         ir.flowgraph_pass(DeadCodeElimination())
+        ir.topological_flowgraph_pass(InlineComponents())
 
-        return ir
+        # pcode Generation
+        pcodegen = PCodeGenerator()
+        ir.flowgraph_pass(pcodegen)
+        self.pcodes = pcodegen.pcodes
+
+    def __getitem__(self, component_name):
+        return self.pcodes[component_name]

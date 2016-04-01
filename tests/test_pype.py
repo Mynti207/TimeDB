@@ -44,18 +44,18 @@ def test_lexer():
 
 def test_files():
 
-    # time series examples
-    Pipeline(source='tests/samples/example0.ppl')
-    Pipeline(source='tests/samples/example1.ppl')
-
-    # syntax error
-    Pipeline(source='tests/samples/example2.ppl')
-
-    # strings
-    Pipeline(source='tests/samples/example3.ppl')
-
-    # arithmetic operations
-    Pipeline(source='tests/samples/example4.ppl')
+    # # time series examples
+    # Pipeline(source='tests/samples/example0.ppl')
+    # Pipeline(source='tests/samples/example1.ppl')
+    #
+    # # syntax error
+    # Pipeline(source='tests/samples/example2.ppl')
+    #
+    # # strings
+    # Pipeline(source='tests/samples/example3.ppl')
+    #
+    # # arithmetic operations
+    # Pipeline(source='tests/samples/example4.ppl')
 
     # two (more complicated) functions
     Pipeline(source='tests/samples/six.ppl')
