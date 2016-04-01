@@ -40,14 +40,14 @@ class Pipeline(object):
         ir = ast.mod_walk(LoweringVisitor(syms))
 
         # optimization
-        ir.flowgraph_pass(AssignmentEllision())
-        ir.flowgraph_pass(DeadCodeElimination())
-        ir.topological_flowgraph_pass(InlineComponents())
+        # ir.flowgraph_pass(AssignmentEllision())
+        # ir.flowgraph_pass(DeadCodeElimination())
+        # ir.topological_flowgraph_pass(InlineComponents())
 
         # pcode Generation
-        pcodegen = PCodeGenerator()
-        ir.flowgraph_pass(pcodegen)
-        self.pcodes = pcodegen.pcodes
+        # pcodegen = PCodeGenerator()
+        # ir.flowgraph_pass(pcodegen)
+        # self.pcodes = pcodegen.pcodes
 
     def __getitem__(self, component_name):
         return self.pcodes[component_name]
