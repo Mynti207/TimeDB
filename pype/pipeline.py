@@ -1,10 +1,11 @@
-from pype.lexer import lexer
-from pype.parser import parser
-from pype.ast import *
-from pype.semantic_analysis import CheckSingleAssignment, CheckSingleIOExpression, CheckUndefinedVariables
-from pype.translate import SymbolTableVisitor, LoweringVisitor
-from pype.optimize import *
-from pype.pcode import PCodeGenerator
+from .lexer import lexer
+from .parser import parser
+from .ast import *
+from .semantic_analysis import (CheckSingleAssignment, CheckSingleIOExpression,
+                                CheckUndefinedVariables)
+from .translate import SymbolTableVisitor, LoweringVisitor
+from .optimize import *
+from .pcode import PCodeGenerator
 
 
 class Pipeline(object):
@@ -40,9 +41,9 @@ class Pipeline(object):
         ir = ast.mod_walk(LoweringVisitor(syms))
 
         # optimization
-        # ir.flowgraph_pass(AssignmentEllision())
-        # ir.flowgraph_pass(DeadCodeElimination())
-        # ir.topological_flowgraph_pass(InlineComponents())
+        ir.flowgraph_pass(AssignmentEllision())
+        ir.flowgraph_pass(DeadCodeElimination())
+        ir.topological_flowgraph_pass(InlineComponents())
 
         # pcode Generation
         # pcodegen = PCodeGenerator()

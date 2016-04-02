@@ -174,3 +174,22 @@ class FGIR(object):
 
     def topological_node_pass(self, topo_optimizer):
         self.node_pass(topo_optimizer, topological=True)
+
+    def _topo_helper(self, name, deps, order=[]):
+        for dep in deps[name]:
+            if dep not in order:
+                order = self._topo_helper(dep, deps, order)
+        return order + [name]
+
+    def topological_flowgraph_pass(self, topo_flowgraph_optimizer):
+        deps = {}
+        for (name, fg) in self.graphs.items():
+            deps[name] = [n.ref for n in fg.nodes.values()
+                          if n.type == FGNodeType.component]
+        order = []
+        for name in self.graphs:
+            order = self._topo_helper(name, deps, order)
+        for name in order:
+            fg = topo_flowgraph_optimizer.visit(self.graphs[name])
+        if fg is not None:
+            self.graphs[name] = fg
