@@ -214,5 +214,5 @@ class InlineComponents(TopologicalFlowgraphOptimization):
                 for v in victims:
                     del flowgraph.variables[v]
 
-            self.component_cache[flowgraph.name] = flowgraph
-            return flowgraph
+        self.component_cache[flowgraph.name] = flowgraph
+        return flowgraph
