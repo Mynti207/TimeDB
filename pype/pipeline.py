@@ -46,9 +46,9 @@ class Pipeline(object):
         ir.topological_flowgraph_pass(InlineComponents())
 
         # Printing flowgraph
-        for name, g in ir.graphs.items():
-            print(name)
-            print(g.dotfile())
+        # for name, g in ir.graphs.items():
+        #     print(g.variables)
+        #     print(g.dotfile())
 
         # pcode Generation
         # pcodegen = PCodeGenerator()

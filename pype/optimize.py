@@ -94,8 +94,12 @@ class AssignmentEllision(FlowgraphOptimization):
 
                 # clean up variable name mappings, i.e. update flowgraph's
                 # variable attribute to have the string map to its predecessor
-                if idx in flowgraph.variables:
-                    flowgraph.variables[idx] = parent
+                if idx in flowgraph.variables.values():
+                    # Need to find the key associate to idx (ie variable label)
+                    for k, v in flowgraph.variables.items():
+                        if v == idx:
+                            # Reassignement
+                            flowgraph.variables[k] = parent
 
                 # remove node
                 del flowgraph.nodes[idx]
@@ -187,32 +191,27 @@ class InlineComponents(TopologicalFlowgraphOptimization):
             # add a copy of every node in target flowgraph
             id_map = {}  # maps node ids in target to node id's in flowgraph
             for tnode in target.nodes.values():
-                if (tnode.type == FGNodeType.input or tnode.type == FGNodeType.output):
+                if tnode.type == FGNodeType.input or tnode.type == FGNodeType.output:
                     newtype = FGNodeType.forward
                 else:
                     newtype = tnode.type
                 n = flowgraph.new_node(newtype, ref=tnode.ref)
                 id_map[tnode.nodeid] = n.nodeid
-                # Connect all copies together
-                for tid, tnode in target.nodes.items():
-                    flowgraph.nodes[id_map[tid]].inputs = [id_map[i] for
-                                                           i in tnode.inputs]
-
-                # Link inputs of cnode to inputs of target flowgraph
-                for cnode_input, targ_input in zip(cnode.inputs, target.inputs):
-                    flowgraph.nodes[id_map[targ_input]].inputs = [cnode_input]
-
-                # Link output of target flowgraph to outputs of cnode
-                for oid, onode in flowgraph.nodes.items():
-                    if cnode_id in onode.inputs:
-                        onode.inputs[onode.inputs.index(cnode_id)] = id_map[target.outputs[0]]
-
-                # Remove all other references to cnode in flowgraph
-                del flowgraph.nodes[cnode_id]
-                victims = [s for s, nid in flowgraph.variables.items()
-                           if nid == cnode_id]
-                for v in victims:
-                    del flowgraph.variables[v]
+            # Connect all copies together
+            for tid, tnode in target.nodes.items():
+                flowgraph.nodes[id_map[tid]].inputs = [id_map[i] for i in tnode.inputs]
+            # Link inputs of cnode to inputs of target flowgraph
+            for cnode_input, targ_input in zip(cnode.inputs, target.inputs):
+                flowgraph.nodes[id_map[targ_input]].inputs = [cnode_input]
+            # Link output of target flowgraph to outputs of cnode
+            for oid, onode in flowgraph.nodes.items():
+                if cnode_id in onode.inputs:
+                    onode.inputs[onode.inputs.index(cnode_id)] = id_map[target.outputs[0]]
+            # Remove all other references to cnode in flowgraph
+            del flowgraph.nodes[cnode_id]
+            victims = [s for s, nid in flowgraph.variables.items() if nid == cnode_id]
+            for v in victims:
+                del flowgraph.variables[v]
 
         self.component_cache[flowgraph.name] = flowgraph
         return flowgraph
