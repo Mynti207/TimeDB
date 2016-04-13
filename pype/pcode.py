@@ -24,11 +24,13 @@ class PCodeOp(object):
             should go
         `func`: the function to apply to the inputs which produces the output
             value'''
-        # TODO
-        # hint: look at asyncio.gather
-        # hint: the same return value of the function is put in every output
-        # queue
-        pass
+        input_gen = (in_q.get() for in_q in in_qs)
+        input_vals = await asyncio.gather(*input_gen)
+        
+        output_val = func(*input_vals)
+        
+        for out_q in out_qs:
+            await out_q.put(output_val)
 
     @staticmethod
     async def forward(in_qs, out_qs):
@@ -39,8 +41,7 @@ class PCodeOp(object):
     @staticmethod
     async def libraryfunction(in_qs, out_qs, function_ref):
         def f(*inputs):
-            # TODO
-            pass
+            return function_ref(*inputs)
         await PCodeOp._node(in_qs, out_qs, f)
 
     @staticmethod
