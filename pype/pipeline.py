@@ -51,9 +51,9 @@ class Pipeline(object):
         #     print(g.dotfile())
 
         # pcode Generation
-        # pcodegen = PCodeGenerator()
-        # ir.flowgraph_pass(pcodegen)
-        # self.pcodes = pcodegen.pcodes
+        pcodegen = PCodeGenerator()
+        ir.flowgraph_pass(pcodegen)
+        self.pcodes = pcodegen.pcodes
 
     def __getitem__(self, component_name):
         return self.pcodes[component_name]

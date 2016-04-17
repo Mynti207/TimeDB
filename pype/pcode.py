@@ -114,7 +114,9 @@ class PCodeGenerator(FlowgraphOptimization):
         # TODO
         # hint: destination nodes should be in flowgraph nodes
         # hint: sources are their inputs
-        pass
+        for destination in flowgraph.nodes:
+            for source in flowgraph.nodes[destination].inputs:
+                qs[(source,destination)] = asyncio.Queue()
 
         # Add an extra input queue for each component input
         component_inputs = []
