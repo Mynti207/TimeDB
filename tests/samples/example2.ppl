@@ -1,8 +1,6 @@
-{ syntax_error
+{ test
+  (:= example1 "hello")
+  (:= example2 "world")
 
-  (input)
-  (x)
-  (x := 1)
-
-  (output)
+  (output example1)
 }

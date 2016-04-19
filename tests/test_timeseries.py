@@ -283,6 +283,49 @@ def test_multiplication():
         a * np.array([10, 12, -11, 1.5, 10, 13, 17])
 
 
+def test_division():
+
+    # valid multiplication
+    t1 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a1 = TimeSeries(t1, v1)
+    t2 = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v2 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a2 = TimeSeries(t2, v2)
+    assert (a1 / a2) == TimeSeries(t1, v1 / v2)
+
+    # invalid - different times
+    t3 = np.array([21, 21.5, 22, 22.5, 210, 211, 212])
+    v3 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a3 = TimeSeries(t3, v3)
+    with pytest.raises(ValueError):
+        a1 / a3
+
+    # invalid - different lengths
+    t3 = np.array([1, 1.5, 2, 2.5, 10, 11])
+    v3 = np.array([10, 12, -11, 1.5, 10, 13])
+    a3 = TimeSeries(t3, v3)
+    with pytest.raises(ValueError):
+        a1 / a3
+
+    # right-hand multiplication
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v1 = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a1 = TimeSeries(t, v1)
+    v2 = v1 / 5
+    a2 = TimeSeries(t, v2)
+    assert (a1 / 5) == a2
+
+    # arrays or lists
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a = TimeSeries(t, v)
+    with pytest.raises(NotImplementedError):
+        a / [10, 12, -11, 1.5, 10, 13, 17]
+    with pytest.raises(NotImplementedError):
+        a / np.array([10, 12, -11, 1.5, 10, 13, 17])
+
+
 def test_pos():
     t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
     v = np.array([10, 12, -11, 1.5, 10, 13, 17])
