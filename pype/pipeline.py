@@ -34,7 +34,7 @@ class Pipeline(object):
         ast.walk(CheckSingleAssignment())
         ast.walk(CheckSingleIOExpression())
         syms = ast.walk(SymbolTableVisitor())
-        syms.pprint()
+        # syms.pprint()
         ast.walk(CheckUndefinedVariables(syms))
 
         # translation
@@ -44,11 +44,6 @@ class Pipeline(object):
         ir.flowgraph_pass(AssignmentEllision())
         ir.flowgraph_pass(DeadCodeElimination())
         ir.topological_flowgraph_pass(InlineComponents())
-
-        # Printing flowgraph
-        # for name, g in ir.graphs.items():
-        #     print(g.variables)
-        #     print(g.dotfile())
 
         # pcode Generation
         pcodegen = PCodeGenerator()

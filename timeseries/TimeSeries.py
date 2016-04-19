@@ -798,8 +798,7 @@ class TimeSeries:
         >>> print (a1 + 2)
         Length: 7 [2.0, ..., 9.0]
         '''
-
-        if type(other) in (int, float):
+        if isinstance(other, (int, float)):
             return TimeSeries(self.__timesseq, self.__valuesseq + other)
 
         if not isinstance(other, TimeSeries):
@@ -852,7 +851,7 @@ class TimeSeries:
         >>> print (a1 - 2)
         Length: 7 [-2.0, ..., 5.0]
         '''
-        if type(other) in (int, float):
+        if isinstance(other, (int, float)):
             return TimeSeries(self.__timesseq, self.__valuesseq - other)
 
         if not isinstance(other, TimeSeries):
@@ -906,7 +905,7 @@ class TimeSeries:
         >>> print (a1 * 2)
         Length: 7 [0.0, ..., 14.0]
         '''
-        if type(other) in (int, float):
+        if isinstance(other, (int, float)):
             return TimeSeries(self.__timesseq, self.__valuesseq * other)
 
         if not isinstance(other, TimeSeries):
@@ -960,7 +959,7 @@ class TimeSeries:
         >>> print (a1 / 2)
         Length: 7 [0.0, ..., 3.5]
         '''
-        if type(other) in (int, float):
+        if isinstance(other, (int, float)):
             return TimeSeries(self.__timesseq, self.__valuesseq / other)
 
         if not isinstance(other, TimeSeries):

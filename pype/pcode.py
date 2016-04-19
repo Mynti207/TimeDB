@@ -26,9 +26,9 @@ class PCodeOp(object):
             value'''
         input_gen = (in_q.get() for in_q in in_qs)
         input_vals = await asyncio.gather(*input_gen)
-        
+
         output_val = func(*input_vals)
-        
+
         for out_q in out_qs:
             await out_q.put(output_val)
 
@@ -103,6 +103,7 @@ class PCodeGenerator(FlowgraphOptimization):
         self.pcodes = {}
 
     def visit(self, flowgraph):
+
         pc = PCode()
 
         # Create asyncio queues for every edge
@@ -114,20 +115,21 @@ class PCodeGenerator(FlowgraphOptimization):
         # TODO
         # hint: destination nodes should be in flowgraph nodes
         # hint: sources are their inputs
+
         for destination in flowgraph.nodes:
             for source in flowgraph.nodes[destination].inputs:
-                qs[(source,destination)] = asyncio.Queue()
+                qs[(source, destination)] = asyncio.Queue()
 
-        # Add an extra input queue for each component input
+        # add an extra input queue for each component input
         component_inputs = []
         for dst in flowgraph.inputs:
             q = asyncio.Queue()
             component_inputs.append(q)
             qs[(None, dst)] = q
-            qs[(None, dst)]._endpoints = (None,dst)
+            qs[(None, dst)]._endpoints = (None, dst)
         pc.inputs = component_inputs
 
-        # Now create all the coroutines from the nodes.
+        # now create all the coroutines from the nodes
         for (node_id, node) in flowgraph.nodes.items():
             node_in_qs = [qs[src_id, node_id] for src_id in node.inputs]
             out_ids = [i for (i, n) in flowgraph.nodes.items() if node_id in n.inputs]
@@ -140,11 +142,11 @@ class PCodeGenerator(FlowgraphOptimization):
             elif node.type == FGNodeType.librarymethod:
                 pc.add_op(PCodeOp.librarymethod(node_in_qs, node_out_qs, node.ref))
             elif node.type == FGNodeType.input:
-                # Add an extra input queue for each component input
+                # add an extra input queue for each component input
                 node_in_q = qs[(None, node_id)]
                 pc.add_op(PCodeOp.input([node_in_q], node_out_qs))
             elif node.type == FGNodeType.output:
-                # Remove the output node and just use its input queues directly.
+                # remove the output node and just use its input queues directly
                 pc.outputs = node_in_qs
             elif node.type == FGNodeType.literal:
                 pc.add_op(PCodeOp.literal(node_out_qs, node.ref))
