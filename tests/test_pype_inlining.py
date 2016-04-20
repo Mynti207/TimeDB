@@ -34,13 +34,12 @@ def test_inling():
     ir.flowgraph_pass(DeadCodeElimination())
     ir.topological_flowgraph_pass(InlineComponents())
 
-    # Check there is no component nodes in the graph
+    # check there is no component nodes in the graph
     for name, g in ir.graphs.items():
         for tnode in g.nodes.values():
             assert(tnode.type != FGNodeType.component)
 
     # Check inputs are correct (right names)
-    # NB: need to think a way to check for outputs also
     inputs = {'mul': ['x', 'y'], 'dist': ['a', 'b']}
     outputs = {'mul': ['z'], 'dist': ['c']}
     for name, g in ir.graphs.items():

@@ -23,7 +23,8 @@ class PCodeOp(object):
         `out_qs`: a list of asyncio.Queues() into which the function's output
             should go
         `func`: the function to apply to the inputs which produces the output
-            value'''
+            value
+        '''
         input_gen = (in_q.get() for in_q in in_qs)
         input_vals = await asyncio.gather(*input_gen)
 
@@ -85,7 +86,9 @@ class PCode(object):
         return output_args
 
     async def driver(self, input_args, future):
-        _, value, *_ = await asyncio.gather(self.input_generator(input_args), self.output_collector(future), *self.ops)
+        _, value, *_ = await asyncio.gather(self.input_generator(input_args),
+                                            self.output_collector(future),
+                                            *self.ops)
         future.set_result(value)
 
     def run(self, *input_args):
@@ -106,16 +109,12 @@ class PCodeGenerator(FlowgraphOptimization):
 
         pc = PCode()
 
-        # Create asyncio queues for every edge
+        # create asyncio queues for every edge
         # qs is indexed by tuples of the source and destination node ids
         # for the inputs of a component, the source should be None
         qs = {}  # { (src,dst)=>asyncio.Queue(), ... }
 
-        # Populate qs by iterating over inputs of every node
-        # TODO
-        # hint: destination nodes should be in flowgraph nodes
-        # hint: sources are their inputs
-
+        # populate qs by iterating over inputs of every node
         for destination in flowgraph.nodes:
             for source in flowgraph.nodes[destination].inputs:
                 qs[(source, destination)] = asyncio.Queue()
@@ -132,15 +131,18 @@ class PCodeGenerator(FlowgraphOptimization):
         # now create all the coroutines from the nodes
         for (node_id, node) in flowgraph.nodes.items():
             node_in_qs = [qs[src_id, node_id] for src_id in node.inputs]
-            out_ids = [i for (i, n) in flowgraph.nodes.items() if node_id in n.inputs]
+            out_ids = [i for (i, n) in flowgraph.nodes.items()
+                       if node_id in n.inputs]
             node_out_qs = [qs[node_id, dst_id] for dst_id in out_ids]
 
             if node.type == FGNodeType.forward:
                 pc.add_op(PCodeOp.forward(node_in_qs, node_out_qs))
             elif node.type == FGNodeType.libraryfunction:
-                pc.add_op(PCodeOp.libraryfunction(node_in_qs, node_out_qs, node.ref))
+                pc.add_op(PCodeOp.libraryfunction(node_in_qs, node_out_qs,
+                                                  node.ref))
             elif node.type == FGNodeType.librarymethod:
-                pc.add_op(PCodeOp.librarymethod(node_in_qs, node_out_qs, node.ref))
+                pc.add_op(PCodeOp.librarymethod(node_in_qs, node_out_qs,
+                                                node.ref))
             elif node.type == FGNodeType.input:
                 # add an extra input queue for each component input
                 node_in_q = qs[(None, node_id)]

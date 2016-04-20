@@ -1,10 +1,11 @@
 from pype.fgir import *
 from pype.error import *
 
-# Optimization pass interfaces
-
 
 class Optimization(object):
+    '''
+    Optimization pass interfaces.
+    '''
     def visit(self, obj): pass
 
 
@@ -38,9 +39,10 @@ class NodeOptimization(Optimization):
 
 
 class TopologicalNodeOptimization(NodeOptimization):
+    '''
+    Optimization pass implementations.
+    '''
     pass
-
-# Optimization pass implementations
 
 
 class PrintIR(TopologicalNodeOptimization):
@@ -185,31 +187,43 @@ class InlineComponents(TopologicalFlowgraphOptimization):
 
     def visit(self, flowgraph):
 
-        for (cnode_id, cnode) in [(nid, n) for (nid, n) in flowgraph.nodes.items() if n.type == FGNodeType.component]:
+        for (cnode_id, cnode) in ([(nid, n) for (nid, n) in
+                                  flowgraph.nodes.items()
+                                  if n.type == FGNodeType.component]):
 
             target = self.component_cache[cnode.ref]
-            # add a copy of every node in target flowgraph
+
             id_map = {}  # maps node ids in target to node id's in flowgraph
+
+            # add a copy of every node in target flowgraph
             for tnode in target.nodes.values():
-                if tnode.type == FGNodeType.input or tnode.type == FGNodeType.output:
+                if (tnode.type == FGNodeType.input or
+                        tnode.type == FGNodeType.output):
                     newtype = FGNodeType.forward
                 else:
                     newtype = tnode.type
                 n = flowgraph.new_node(newtype, ref=tnode.ref)
                 id_map[tnode.nodeid] = n.nodeid
-            # Connect all copies together
+
+            # connect all copies together
             for tid, tnode in target.nodes.items():
-                flowgraph.nodes[id_map[tid]].inputs = [id_map[i] for i in tnode.inputs]
-            # Link inputs of cnode to inputs of target flowgraph
+                flowgraph.nodes[id_map[tid]].inputs = [id_map[i]
+                                                       for i in tnode.inputs]
+
+            # link inputs of cnode to inputs of target flowgraph
             for cnode_input, targ_input in zip(cnode.inputs, target.inputs):
                 flowgraph.nodes[id_map[targ_input]].inputs = [cnode_input]
-            # Link output of target flowgraph to outputs of cnode
+
+            # link output of target flowgraph to outputs of cnode
             for oid, onode in flowgraph.nodes.items():
                 if cnode_id in onode.inputs:
-                    onode.inputs[onode.inputs.index(cnode_id)] = id_map[target.outputs[0]]
-            # Remove all other references to cnode in flowgraph
+                    onode.inputs[onode.inputs.index(cnode_id)] = \
+                        id_map[target.outputs[0]]
+
+            # remove all other references to cnode in flowgraph
             del flowgraph.nodes[cnode_id]
-            victims = [s for s, nid in flowgraph.variables.items() if nid == cnode_id]
+            victims = [s for s, nid in flowgraph.variables.items()
+                       if nid == cnode_id]
             for v in victims:
                 del flowgraph.variables[v]
 

@@ -93,11 +93,13 @@ class ASTNode(object):
         return visitor.return_value()
 
     def mod_walk(self, mod_visitor):
-        '''Traverses an AST, building up a return value from visitor methods.
+        '''
+        Traverses an AST, building up a return value from visitor methods.
 
         Similar to walk(), but constructs a return value from the result of
         postvisit() calls. This can be used to modify an AST by building up the
-        desired new AST with return values.'''
+        desired new AST with return values.
+        '''
 
         selfval = mod_visitor.visit(self)
         child_values = [child.mod_walk(mod_visitor) for child in self.children]
