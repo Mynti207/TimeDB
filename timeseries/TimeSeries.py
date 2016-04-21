@@ -333,6 +333,12 @@ class TimeSeries:
         for v in self.__valuesseq:
             yield v
 
+    def to_json(self):
+        '''
+        Get JSON representation of a timeseries object
+        '''
+        return [list(self.__timesseq), list(self.__timesseq)]
+
     def itertimes(self):
         '''
         Iterates over the times array.
