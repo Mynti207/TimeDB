@@ -337,7 +337,7 @@ class TimeSeries:
         '''
         Get JSON representation of a timeseries object
         '''
-        return [list(self.__timesseq), list(self.__timesseq)]
+        return [list(self.__timesseq), list(self.__valuesseq)]
 
     def itertimes(self):
         '''

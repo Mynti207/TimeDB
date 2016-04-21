@@ -22,9 +22,21 @@ class TSDBClient(object):
         print("C> msg", msg)
         return self._send(msg)
 
-    def select(self, metadata_dict={}):
+    def select(self, metadata_dict={}, fields=None):
         # your code here
-        msg = TSDBOp_Select(metadata_dict).to_json()
+        msg = TSDBOp_Select(metadata_dict, fields).to_json()
+        print("C> msg", msg)
+        return self._send(msg)
+
+    def add_trigger(self, proc, onwhat, target, arg):
+        # your code here
+        msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
+        print("C> msg", msg)
+        return self._send(msg)
+
+    def remove_trigger(self, proc, onwhat):
+        # your code here
+        msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
         print("C> msg", msg)
         return self._send(msg)
 
