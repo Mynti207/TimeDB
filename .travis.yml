@@ -15,9 +15,7 @@ install:
 # command to run tests
 script:
   - nosetests
-  - py.test --cov timeseries
-  - py.test --cov pype
-  - py.test --cov tsdb
+  - py.test --cov timeseries  # actually runs tests for all modules
 
 # command to add coveralls
 after_success:
