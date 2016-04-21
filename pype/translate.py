@@ -89,7 +89,7 @@ class LoweringVisitor(ASTModVisitor):
             for child_v in child_values:
                 varname = child_v.name
                 var_nodeid = fg.get_var(varname)
-                if var_nodeid is None:  # No use yet, declare it.
+                if var_nodeid is None:  # no use yet, declare it
                     var_nodeid = fg.new_node(FGNodeType.input).nodeid
                 else:  # use before declaration
                     fg.nodes[var_nodeid].type = FGNodeType.input
@@ -103,24 +103,24 @@ class LoweringVisitor(ASTModVisitor):
                 n = fg.new_node(FGNodeType.output)
                 varname = child_v.name
                 var_nodeid = fg.get_var(varname)
-                if var_nodeid is None:  # Use before declaration
-                    # The "unknown" type will be replaced later
+                if var_nodeid is None:  # use before declaration
+                    # the "unknown" type will be replaced later
                     var_nodeid = fg.new_node(FGNodeType.unknown).nodeid
                     fg.set_var(varname, var_nodeid)
-                # Already declared in an assignment or input expression
+                # already declared in an assignment or input expression
                 n.inputs.append(var_nodeid)
                 fg.add_output(n.nodeid)
             return None
 
         elif isinstance(node, ASTAssignmentExpr):
             fg = self.ir[self.current_component]
-            # If a variable use precedes its declaration,
+            # if a variable use precedes its declaration,
             # a stub will be in this table
             stub_nodeid = fg.get_var(node.binding.name)
-            if stub_nodeid is not None:  # Modify the existing stub
+            if stub_nodeid is not None:  # modify the existing stub
                 n = fg.nodes[stub_nodeid]
                 n.type = FGNodeType.assignment
-            else:  # Create a new node
+            else:  # create a new node
                 n = fg.new_node(FGNodeType.assignment)
             child_v = child_values[1]
             if isinstance(child_v, FGNode):  # subexpressions or literals
@@ -128,11 +128,11 @@ class LoweringVisitor(ASTModVisitor):
             elif isinstance(child_v, ASTID):  # variable lookup
                 varname = child_v.name
                 var_nodeid = fg.get_var(varname)
-                if var_nodeid is None:  # Use before declaration
-                    # The "unknown" type will be replaced later
+                if var_nodeid is None:  # use before declaration
+                    # the "unknown" type will be replaced later
                     var_nodeid = fg.new_node(FGNodeType.unknown).nodeid
                     fg.set_var(varname, var_nodeid)
-                # Already declared in an assignment or input expression
+                # already declared in an assignment or input expression
                 n.inputs.append(var_nodeid)
             fg.set_var(node.binding.name, n.nodeid)
             return None
@@ -161,11 +161,11 @@ class LoweringVisitor(ASTModVisitor):
                 elif isinstance(child_v, ASTID):  # variable lookup
                     varname = child_v.name
                     var_nodeid = fg.get_var(varname)
-                    if var_nodeid is None:  # Use before declaration
-                        # The "unknown" type will be replaced later
+                    if var_nodeid is None:  # use before declaration
+                        # the "unknown" type will be replaced later
                         var_nodeid = fg.new_node(FGNodeType.unknown).nodeid
                         fg.set_var(varname, var_nodeid)
-                    # Already declared in an assignment or input expression
+                    # already declared in an assignment or input expression
                     n.inputs.append(var_nodeid)
             return n
 

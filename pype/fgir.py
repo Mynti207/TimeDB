@@ -6,6 +6,7 @@ FGNodeType = enum.Enum('FGNodeType',
 
 
 class FGNode(object):
+
     def __init__(self, nodeid, nodetype, ref=None, inputs=[]):
         self.nodeid = nodeid
         self.type = nodetype
@@ -19,6 +20,7 @@ class FGNode(object):
 
 
 class Flowgraph(object):
+
     def __init__(self, name='?'):
         self.name = name
         self.variables = {}  # { str -> nodeid }
@@ -83,30 +85,32 @@ class Flowgraph(object):
         https://en.wikipedia.org/wiki/Topological_sorting
         '''
 
+        # if n has a temporary mark then stop (not a DAG)
         if n in tempmark:
-            # if n has a temporary mark then stop (not a DAG)
             print("WARNING: NOT A DAG", n)
             return
 
+        # if n is in the list of sorted nodes, do nothing
         if n in L:
-            return  # do nothing
+            return
 
-        # if n is not marked (i.e. has not been visited yet) then
-        #   mark n temporarily
-        #   for each node m with an edge from n to m do
-        #        visit(m)
-        #   mark n permanently
-        #   unmark n temporarily
-        #   add n to head of L
+        # if n is not marked (i.e. has not been visited yet) then...
 
+        # mark n temporarily
         tempmark.append(n)
 
+        # visit each node m with an edge from n to m
         for m in self.nodes[n].inputs:
             self.visit(L, nodelist, m, tempmark)
 
-        # print("L", L)
-        L.append(n)  # assume if node in L, n is marked as visited
+        # mark n permanently
+        # assume if node in L, n is marked as visited
+        L.append(n)
+
+        # remove from list of temporarily marked nodes
         tempmark.remove(n)
+
+        # remove from list of unmarked nodes
         nodelist.remove(n)
 
         return
@@ -120,28 +124,35 @@ class Flowgraph(object):
         https://en.wikipedia.org/wiki/Topological_sorting
         '''
 
-        L = []  # (initially) empty list that will contain the sorted nodes
+        # (initially) empty list that will contain the sorted nodes
+        L = []
 
-        nodelist = list(self.nodes.keys())  # unmarked nodes
-        # print("nodelist", nodelist)
-        tempmark = []  # temporarily marked nodes
+        # unmarked nodes
+        nodelist = list(self.nodes.keys())
 
-        while len(nodelist) > 0:  # while there are unmarked nodes, do
-            unmarkednode = nodelist[0]  # select an unmarked node n
-            self.visit(L, nodelist, unmarkednode, tempmark)  # visit n
+        # temporarily marked nodes
+        tempmark = []
 
-        # print L  # pre-reverse, like in slides
+        # while there are unmarked nodes
+        while len(nodelist) > 0:
+            # select an unmarked node n
+            unmarkednode = nodelist[0]
+
+            # visit n
+            self.visit(L, nodelist, unmarkednode, tempmark)
+
+        # pre-reverse, like in slides
         L.reverse()
 
-        # should return a list of node ids in sorted order
-        # Bob wants inputs before outputs
+        # return a list of node ids in sorted order (inputs before outputs)
         return L
 
 
 class FGIR(object):
 
     def __init__(self):
-        self.graphs = {}  # { component_name:str => Flowgraph }
+        # { component_name:str => Flowgraph }
+        self.graphs = {}
 
     def __getitem__(self, component):
         return self.graphs[component]
@@ -159,7 +170,6 @@ class FGIR(object):
             if fg is not None:
                 self.graphs[component] = fg
 
-    # def node_pass(self, node_optimizer, *args, topological=False):
     def node_pass(self, node_optimizer, topological=False):
         for component in self.graphs:
             fg = self.graphs[component]

@@ -15,6 +15,8 @@ class Pipeline(object):
         - Carries out lexing, parsing and AST construction of tokens contained
         in PPL file
         - Creates symbol table for relevant scope(s)
+        - Runs code optimization
+        - Generates pcode
     '''
 
     def __init__(self, source):
@@ -28,13 +30,11 @@ class Pipeline(object):
 
         # lexing, parsing, AST construction
         ast = parser.parse(input, lexer=lexer)
-        # ast.pprint()
 
         # semantic analysis
         ast.walk(CheckSingleAssignment())
         ast.walk(CheckSingleIOExpression())
         syms = ast.walk(SymbolTableVisitor())
-        # syms.pprint()
         ast.walk(CheckUndefinedVariables(syms))
 
         # translation
@@ -45,7 +45,7 @@ class Pipeline(object):
         ir.flowgraph_pass(DeadCodeElimination())
         ir.topological_flowgraph_pass(InlineComponents())
 
-        # pcode Generation
+        # pcode generation
         pcodegen = PCodeGenerator()
         ir.flowgraph_pass(pcodegen)
         self.pcodes = pcodegen.pcodes
