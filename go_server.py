@@ -2,9 +2,10 @@
 from tsdb import TSDBServer, DictDB
 import timeseries as ts
 
-identity=lambda x:x
+identity = lambda x: x
+
 schema = {
-  'pk': {'convert': identity, 'index': None},  #will be indexed anyways
+  'pk': {'convert': identity, 'index': None},  # will be indexed anyways
   'ts': {'convert': identity, 'index': None},
   'order': {'convert': int, 'index': 1},
   'blarg': {'convert': int, 'index': 1},
@@ -13,10 +14,12 @@ schema = {
   'std': {'convert': identity, 'index': None},
 }
 
-def main():
-  db = DictDB(schema, 'pk')
-  server = TSDBServer(db)
-  server.run()
 
-if __name__=='__main__':
-  main()
+def main():
+    db = DictDB(schema, 'pk')
+    server = TSDBServer(db)
+    server.run()
+
+
+if __name__ == '__main__':
+    main()

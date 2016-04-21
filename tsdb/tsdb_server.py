@@ -41,9 +41,11 @@ class TSDBProtocol(asyncio.Protocol):
         loids, fields = self.server.db.select(op['md'], op['fields'])
         self._run_trigger('select', loids)
         if fields is not None:
-            return TSDBOp_Return(TSDBStatus.OK, op['op'], dict(zip(loids, fields)))
+            return TSDBOp_Return(TSDBStatus.OK, op['op'],
+                                 dict(zip(loids, fields)))
         else:
-            return TSDBOp_Return(TSDBStatus.OK, op['op'], {k: {} for k in loids})
+            return TSDBOp_Return(TSDBStatus.OK, op['op'],
+                                 {k: {} for k in loids})
 
     def _add_trigger(self, op):
         trigger_proc = op['proc']  # the module in procs
@@ -52,7 +54,7 @@ class TSDBProtocol(asyncio.Protocol):
         trigger_target = op['target']
         trigger_arg = op['arg']  # an additional argument, could be a constant
         # FIXME: this import should have error handling
-        mod = import_module('procs.'+trigger_proc)
+        mod = import_module('procs.' + trigger_proc)
         storedproc = getattr(mod, 'main')
         self.server.triggers[trigger_onwhat].append(
             (trigger_proc, storedproc, trigger_arg, trigger_target))
@@ -75,7 +77,8 @@ class TSDBProtocol(asyncio.Protocol):
                 row = self.server.db.rows[pk]
                 task = asyncio.ensure_future(t(pk, row, arg))
                 task.add_done_callback(
-                    trigger_callback_maker(pk, target, self.server.db.upsert_meta))
+                    trigger_callback_maker(pk, target,
+                                           self.server.db.upsert_meta))
 
     def connection_made(self, conn):
         print('S> connection made')
@@ -129,8 +132,8 @@ class TSDBServer(object):
     def run(self):
         loop = asyncio.get_event_loop()
         # NOTE: enable this if you'd rather have the server stop on an error
-        #       currently it dumps the protocol and keeps going; new connections
-        #       are unaffected. Rather nice, actually.
+        #       currently it dumps the protocol and keeps going; new
+        #       connections are unaffected. Rather nice, actually.
         # loop.set_exception_handler(self.exception_handler)
         self.listener = loop.create_server(
             lambda: TSDBProtocol(self), '127.0.0.1', self.port)

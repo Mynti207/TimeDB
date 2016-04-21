@@ -16,6 +16,8 @@ install:
 script:
   - nosetests
   - py.test --cov timeseries
+  - py.test --cov pype
+  - py.test --cov tsdb
 
 # command to add coveralls
 after_success:

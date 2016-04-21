@@ -2,21 +2,22 @@
 from tsdb import TSDBClient
 import timeseries as ts
 
+
 def main():
     print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
     client = TSDBClient()
 
-    #ppl = open('standardize.ppl').read()
+    # ppl = open('standardize.ppl').read()
     client.add_trigger('junk', 'insert_ts', None, 23)
-    #client.add_trigger('junk', 'select', None, 23)
+    # client.add_trigger('junk', 'select', None, 23)
     client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
 
-    client.insert_ts('one',ts.TimeSeries([1, 2, 3],[1, 4, 9]))
-    client.insert_ts('two',ts.TimeSeries([2, 3, 4],[4, 9, 16]))
-    client.insert_ts('three',ts.TimeSeries([9,3,4],[4,0,16]))
+    client.insert_ts('one', ts.TimeSeries([1, 2, 3], [1, 4, 9]))
+    client.insert_ts('two', ts.TimeSeries([2, 3, 4], [4, 9, 16]))
+    client.insert_ts('three', ts.TimeSeries([9, 3, 4], [4, 0, 16]))
 
     client.remove_trigger('junk', 'insert_ts')
-    client.insert_ts('four',ts.TimeSeries([0,0,4],[1,0,4]))
+    client.insert_ts('four', ts.TimeSeries([0, 0, 4], [1, 0, 4]))
 
     client.upsert_meta('one', {'order': 1, 'blarg': 1})
     client.upsert_meta('two', {'order': 2})
@@ -39,8 +40,9 @@ def main():
     print("END", bla)
     client.select({'blarg': {'>=': 2}}, fields=['blarg', 'mean'])
     client.select({'blarg': {'>=': 2}, 'order': 1}, fields=['blarg', 'std'])
-    #client.add_pipeline(ppl)
-    #client.autokey('useless','print', None)
+    # client.add_pipeline(ppl)
+    # client.autokey('useless','print', None)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()

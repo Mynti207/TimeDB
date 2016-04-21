@@ -108,7 +108,8 @@ class TSDBOp_AddTrigger(TSDBOp):
 
     @classmethod
     def from_json(cls, json_dict):
-        return cls(json_dict['proc'], json_dict['onwhat'], json_dict['target'], json_dict['arg'])
+        return cls(json_dict['proc'], json_dict['onwhat'], json_dict['target'],
+                   json_dict['arg'])
 
 
 class TSDBOp_RemoveTrigger(TSDBOp):

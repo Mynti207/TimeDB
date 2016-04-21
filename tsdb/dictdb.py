@@ -15,7 +15,9 @@ OPMAP = {
 
 
 class DictDB:
-    "Database implementation in a dict"
+    '''
+    Database implementation in a dict
+    '''
     def __init__(self, schema, pkfield):
         self.indexes = {}
         self.rows = {}
@@ -30,7 +32,9 @@ class DictDB:
                 self.indexes[s] = defaultdict(set)
 
     def insert_ts(self, pk, ts):
-        "given a pk and a timeseries, insert them"
+        '''
+        Given a pk and a timeseries, insert them
+        '''
         if pk not in self.rows:
             self.rows[pk] = {'pk': pk}
         else:
@@ -39,7 +43,9 @@ class DictDB:
         self.update_indices(pk)
 
     def upsert_meta(self, pk, meta):
-        "implement upserting field values, as long as the fields are in the schema."
+        '''
+        Implement upserting field values, as long as fields are in the schema
+        '''
         # your code here
         # Insert if not already present
         if pk not in self.rows:
@@ -71,12 +77,12 @@ class DictDB:
         # if fields is None: return only pks
         # like so [pk1,pk2],[{},{}]
         # if fields is [], this means all fields
-        #except for the 'ts' field. Looks like
-        #['pk1',...],[{'f1':v1, 'f2':v2},...]
-        # if the names of fields are given in the list, include only those fields. `ts` ia an
-        #acceptable field and can be used to just return time series.
-        #see tsdb_server to see how this return
-        #value is used
+        # except for the 'ts' field. Looks like
+        # ['pk1',...],[{'f1':v1, 'f2':v2},...]
+        # if the field names are given in the list, include only those fields.
+        # `ts` is an acceptable field and can be used to  return time series.
+        # see tsdb_server to see how this return
+        # value is used
 
         # Filtering of pks
         pks = set(self.rows.keys())
@@ -107,9 +113,11 @@ class DictDB:
             if not len(fields):
                 print('S> D> ALL FIELDS')
                 # Removing ts
-                matchedfielddicts = [{k: v for k, v in self.rows[pk].items() if k != 'ts'} for pk in pks]
+                matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
+                                     if k != 'ts'} for pk in pks]
             else:
-                matchedfielddicts = [{k: v for k, v in self.rows[pk].items() if k in fields} for pk in pks]
+                matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
+                                     if k in fields} for pk in pks]
                 print('S> D> FIELDS {} {}'.format(fields, pks))
 
         return pks, matchedfielddicts
