@@ -14,31 +14,38 @@ class TSDBClient(object):
     def insert_ts(self, primary_key, ts):
         # your code here, construct from the code in tsdb_ops.py
         msg = TSDBOp_InsertTS(primary_key, ts).to_json()
-        print("C> msg", msg)
+        # print("C> msg", msg)
         return self._send(msg)
 
     def upsert_meta(self, primary_key, metadata_dict):
         # your code here
         msg = TSDBOp_UpsertMeta(primary_key, metadata_dict).to_json()
-        print("C> msg", msg)
+        # print("C> msg", msg)
         return self._send(msg)
 
-    def select(self, metadata_dict={}, fields=None):
+    def select(self, metadata_dict={}, fields=None, additional=None):
         # your code here
-        msg = TSDBOp_Select(metadata_dict, fields).to_json()
-        print("C> msg", msg)
+        msg = TSDBOp_Select(metadata_dict, fields, additional).to_json()
+        # print("C> msg", msg)
+        return self._send(msg)
+
+    def augmented_select(self, proc, target, arg=None, metadata_dict={}, additional=None):
+        # your code here
+        msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
+                                     additional).to_json()
+        # print("C> msg", msg)
         return self._send(msg)
 
     def add_trigger(self, proc, onwhat, target, arg):
         # your code here
         msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
-        print("C> msg", msg)
+        # print("C> msg", msg)
         return self._send(msg)
 
     def remove_trigger(self, proc, onwhat):
         # your code here
         msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
-        print("C> msg", msg)
+        # print("C> msg", msg)
         return self._send(msg)
 
     # Feel free to change this to be completely synchronous

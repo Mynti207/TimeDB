@@ -14,10 +14,24 @@ OPMAP = {
 }
 
 
+def metafiltered(d, schema, fieldswanted):
+    d2 = {}
+    if len(fieldswanted) == 0:
+        keys = [k for k in d.keys() if k != 'ts']
+    else:
+        keys = [k for k in d.keys() if k in fieldswanted]
+    for k in keys:
+        if k in schema:
+            d2[k] = schema[k]['convert'](d[k])
+    return d2
+
+
 class DictDB:
+
     '''
     Database implementation in a dict
     '''
+
     def __init__(self, schema, pkfield):
         self.indexes = {}
         self.rows = {}
@@ -72,38 +86,81 @@ class DictDB:
                 idx = self.indexes[field]
                 idx[v].add(pk)
 
-    def select(self, meta, fields):
+    def select(self, meta, fields, additional):
         # your code here
         # if fields is None: return only pks
         # like so [pk1,pk2],[{},{}]
         # if fields is [], this means all fields
         # except for the 'ts' field. Looks like
         # ['pk1',...],[{'f1':v1, 'f2':v2},...]
-        # if the field names are given in the list, include only those fields.
-        # `ts` is an acceptable field and can be used to  return time series.
+        # if the names of fields are given in the list, include only those
+        # fields. `ts` ia an
+        # acceptable field and can be used to just return time series.
         # see tsdb_server to see how this return
         # value is used
+        # additional is a dictionary. It has two possible keys:
+        # (a){'sort_by':'-order'} or {'sort_by':'+order'} where order
+        # must be in the schema AND have an index. (b) limit: 'limit':10
+        # which will give you the top 10 in the current sort order.
+        # your code here
 
         # Filtering of pks
+        print('Schema is {}'.format(self.schema))
         pks = set(self.rows.keys())
-        for field in meta:
-            # Case operators
-            if isinstance(meta[field], dict):
-                for op in meta[field]:
-                    operation = OPMAP[op]
-                    value = meta[field][op]
-                    # linear scan
-                    filtered_pks = set()
-                    for i in self.indexes[field].keys():
-                        if operation(i, value):
-                            filtered_pks.update(self.indexes[field][i])
-                    # Update current selection AND'ing on pks filterred
-                    pks = pks.intersection(filtered_pks)
-            # Case precise value
-            elif meta[field] in self.indexes[field]:
-                pks = pks.intersection(set(self.indexes[field][meta[field]]))
+        for field, value in meta.items():
+            # Checking field in schema
+            if field in self.schema:
+                # Conversion to apply
+                conversion = self.schema[field]['convert']
+                # Case operators
+                if isinstance(value, dict):
+                    for op in value:
+                        operation = OPMAP[op]
+                        val = conversion(value[op])
+                        # linear scan
+                        filtered_pks = set()
+                        for i in self.indexes[field].keys():
+                            if operation(i, val):
+                                filtered_pks.update(self.indexes[field][i])
+                        # Update current selection AND'ing on pks filterred
+                        pks = pks.intersection(filtered_pks)
+                # Case list
+                elif isinstance(value, list):
+                    converted_values = [conversion(v) for v in value]
+                    print('Converted values are {}'.format(converted_values))
+                    # index present
+                    if field in self.indexes:
+                        selected = set([self.indexes[field][v] for v in converted_values])
+                    # No index
+                    else:
+                        selected = set([pk for pk in pks if field in self.rows[pk] and self.rows[pk][field] in converted_values])
+                    pks = pks.intersection(selected)
+                # Case precise
+                else:
+                    # index present
+                    if field in self.indexes:
+                        selected = set(self.indexes[field][conversion(value)])
+                    # No index
+                    else:
+                        selected = set([pk for pk in pks if field in self.rows[pk] and self.rows[pk][field] == conversion(value)])
+                    pks = pks.intersection(selected)
+
         # Convert set to list
         pks = list(pks)
+
+        # Sorting pks
+        if additional is not None and 'sort_by' in additional:
+            predicate = additional['sort_by'][1:]
+            # 0: ascending, 1: descending
+            reverse = 0 if additional['sort_by'][0] == '-' else 1
+            # Sanity check
+            if predicate not in self.schema or predicate not in self.indexes:
+                raise ValueError('Additional field {} not in schema or in indexes'.format(predicate))
+            # inplace sorting
+            pks.sort(key=lambda pk: self.rows[pk][predicate], reverse=reverse)
+            # Limit (we assume limit is possible only if sorting)
+            if 'limit' in additional:
+                pks = pks[:additional['limit']]
 
         # Retrieve fields
         if fields is None:
@@ -114,10 +171,10 @@ class DictDB:
                 print('S> D> ALL FIELDS')
                 # Removing ts
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
-                                     if k != 'ts'} for pk in pks]
+                                      if k != 'ts'} for pk in pks]
             else:
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
-                                     if k in fields} for pk in pks]
+                                      if k in fields} for pk in pks]
                 print('S> D> FIELDS {} {}'.format(fields, pks))
-
+        print('pks returned: {}, matchedfielddicts: {}'.format(pks, matchedfielddicts))
         return pks, matchedfielddicts

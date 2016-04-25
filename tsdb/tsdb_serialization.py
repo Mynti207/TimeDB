@@ -1,6 +1,8 @@
 import json
+from collections import OrderedDict
 
 LENGTH_FIELD_LENGTH = 4
+
 
 
 def serialize(json_obj):
@@ -39,8 +41,7 @@ class Deserializer(object):
 
     def _maybe_set_length(self):
         if self.buflen < 0 and len(self.buf) >= LENGTH_FIELD_LENGTH:
-            self.buflen = int.from_bytes(self.buf[0:LENGTH_FIELD_LENGTH],
-                                         byteorder="little")
+            self.buflen = int.from_bytes(self.buf[0:LENGTH_FIELD_LENGTH], byteorder="little")
 
     def ready(self):
         return (self.buflen > 0 and len(self.buf) >= self.buflen)
@@ -52,7 +53,9 @@ class Deserializer(object):
         # There may be more data in the buffer already, so preserve it
         self._maybe_set_length()
         try:
-            obj = json.loads(json_str)
+            #Note how now everything is assumed to be an OrderedDict
+            obj = json.loads(json_str, object_pairs_hook=OrderedDict)
+            #print("OBJ", obj)
             return obj
         except json.JSONDecodeError:
             print('Invalid JSON object received:\n'+str(json_str))
