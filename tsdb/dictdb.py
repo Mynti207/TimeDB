@@ -105,7 +105,6 @@ class DictDB:
         # your code here
 
         # Filtering of pks
-        print('Schema is {}'.format(self.schema))
         pks = set(self.rows.keys())
         for field, value in meta.items():
             # Checking field in schema
@@ -127,7 +126,6 @@ class DictDB:
                 # Case list
                 elif isinstance(value, list):
                     converted_values = [conversion(v) for v in value]
-                    print('Converted values are {}'.format(converted_values))
                     # index present
                     if field in self.indexes:
                         selected = set([self.indexes[field][v] for v in converted_values])
@@ -176,5 +174,4 @@ class DictDB:
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k in fields} for pk in pks]
                 print('S> D> FIELDS {} {}'.format(fields, pks))
-        print('pks returned: {}, matchedfielddicts: {}'.format(pks, matchedfielddicts))
         return pks, matchedfielddicts
