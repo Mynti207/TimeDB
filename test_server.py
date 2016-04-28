@@ -38,6 +38,12 @@ def request_add_trigger(proc, onwhat, target, arg=None):
 def request_remove_trigger(proc, onwhat):
     msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
     r = requests.post("http://127.0.0.1:8080/tsdb/remove_trigger", data=json.dumps(msg))
+
+def request_similarity_search(query, top=1):
+    msg = {'query': query.to_json(), 'top': top}
+    r = requests.get("http://127.0.0.1:8080/tsdb/similarity_search", data=json.dumps(msg))
+    print('r.text' is r.text)
+    return json.loads(r.text, object_pairs_hook=OrderedDict)
     
 # m is the mean, s is the standard deviation, and j is the jitter
 # the meta just fills in values for order and blarg from the schema
@@ -164,6 +170,10 @@ def main():
     plt.plot(query)
     plt.plot(tsdict[nearestwanted])
     plt.show()
+
+    # Similarity search
+    nearestwanted = request_similarity_search(query, 3)
+    print('Nearest wanted ', nearestwanted)
 
 if __name__=='__main__':
     main()

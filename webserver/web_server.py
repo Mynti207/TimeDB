@@ -6,6 +6,7 @@ from aiohttp import web
 from tsdb import TSDBClient
 
 
+# Helpers to process the requests
 def check_arguments(request_type, request_json, *required_args):
     '''
     Check that the json message of the request contain the
@@ -142,6 +143,27 @@ class Handler(object):
 
         return web.Response(body=get_body(status, payload))
 
+    async def handle_similarity_search(self, request):
+        request_json = await request.json()
+
+        # Checking format
+        required_args = ['query']
+        check = check_arguments('remove_trigger', request_json, *required_args)
+        if check is not None:
+            return web.Response(body=check)
+
+        query = ts.TimeSeries(*request_json['query'])
+        top = int(request_json['top']) if 'top' in request_json else 1
+
+        # Computing the distance to the query timeseries
+        status, results = await self.client.augmented_select('corr', ['d'],
+                                                             query)
+        # Retrieving the closest ts with associated distance
+        nearestwanted = [(k, results[k]['d']) for k in results.keys()]
+        nearestwanted.sort(key=lambda x: x[1])
+
+        return web.Response(body=get_body(status, nearestwanted[:top]))
+
 
 class WebServer(object):
 
@@ -163,6 +185,8 @@ class WebServer(object):
                                   self.handler.handle_add_trigger)
         self.app.router.add_route('POST', '/tsdb/remove_trigger',
                                   self.handler.handle_remove_trigger)
+        self.app.router.add_route('GET', '/tsdb/similarity_search',
+                                  self.handler.handle_similarity_search)
 
     def run(self):
         # Run the app
