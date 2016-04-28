@@ -4,13 +4,12 @@ from collections import OrderedDict
 LENGTH_FIELD_LENGTH = 4
 
 
-
 def serialize(json_obj):
     '''Turn a JSON object into bytes suitable for writing out to the network.
 
     Includes a fixed-width length field to simplify reconstruction on the other
     end of the wire.'''
-    #your code here. Returns the bytes on the wire
+    # your code here. Returns the bytes on the wire
     obj_serialized = bytearray(json.dumps(json_obj), 'utf-8')
 
     # Starting the buffer with the length of the buffer
@@ -41,7 +40,8 @@ class Deserializer(object):
 
     def _maybe_set_length(self):
         if self.buflen < 0 and len(self.buf) >= LENGTH_FIELD_LENGTH:
-            self.buflen = int.from_bytes(self.buf[0:LENGTH_FIELD_LENGTH], byteorder="little")
+            self.buflen = int.from_bytes(self.buf[0:LENGTH_FIELD_LENGTH],
+                                         byteorder="little")
 
     def ready(self):
         return (self.buflen > 0 and len(self.buf) >= self.buflen)

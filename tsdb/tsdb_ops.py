@@ -24,6 +24,7 @@ class TSDBOp(dict):
         json_dict = {}
         if isinstance(obj, str) or not hasattr(obj, '__len__') or obj is None:
             return obj
+        # print('obj in to_json ', obj)
         for k, v in obj.items():
             if isinstance(v, str) or not hasattr(v, '__len__') or v is None:
                 json_dict[k] = v

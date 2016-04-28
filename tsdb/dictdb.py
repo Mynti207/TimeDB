@@ -174,4 +174,5 @@ class DictDB:
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k in fields} for pk in pks]
                 print('S> D> FIELDS {} {}'.format(fields, pks))
+
         return pks, matchedfielddicts

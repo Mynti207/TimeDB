@@ -11,42 +11,49 @@ class TSDBClient(object):
     def __init__(self, port=9999):
         self.port = port
 
-    def insert_ts(self, primary_key, ts):
+    async def insert_ts(self, primary_key, ts):
         # your code here, construct from the code in tsdb_ops.py
         msg = TSDBOp_InsertTS(primary_key, ts).to_json()
         # print("C> msg", msg)
-        return self._send(msg)
+        status, payload = await self._send(msg)
+        return status, payload
 
-    def upsert_meta(self, primary_key, metadata_dict):
+    async def upsert_meta(self, primary_key, metadata_dict):
         # your code here
         msg = TSDBOp_UpsertMeta(primary_key, metadata_dict).to_json()
         # print("C> msg", msg)
-        return self._send(msg)
+        status, payload = await self._send(msg)
+        return status, payload
 
-    def select(self, metadata_dict={}, fields=None, additional=None):
+    async def select(self, metadata_dict={}, fields=None, additional=None):
         # your code here
         msg = TSDBOp_Select(metadata_dict, fields, additional).to_json()
         # print("C> msg", msg)
-        return self._send(msg)
+        status, payload = await self._send(msg)
+        return status, payload
 
-    def augmented_select(self, proc, target, arg=None, metadata_dict={}, additional=None):
+    async def augmented_select(self, proc, target, arg=None, metadata_dict={},
+                               additional=None):
         # your code here
         msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
                                      additional).to_json()
         # print("C> msg", msg)
-        return self._send(msg)
+        status, payload = await self._send(msg)
+        return status, payload
 
-    def add_trigger(self, proc, onwhat, target, arg):
+    async def add_trigger(self, proc, onwhat, target, arg):
         # your code here
         msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
         # print("C> msg", msg)
-        return self._send(msg)
+        status, payload = await self._send(msg)
+        return status, payload
 
-    def remove_trigger(self, proc, onwhat):
+    async def remove_trigger(self, proc, onwhat):
         # your code here
         msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
         # print("C> msg", msg)
-        return self._send(msg)
+        status, payload = await self._send(msg)
+        return status, payload
 
     # Feel free to change this to be completely synchronous
     # from here onwards. Return the status and the payload
@@ -80,8 +87,10 @@ class TSDBClient(object):
 
     # call `_send` with a well formed message to send.
     # once again replace this function if appropriate
-    def _send(self, msg):
+    async def _send(self, msg):
+        # coro = asyncio.ensure_future(self._send_coro(msg, loop))
+        # loop.run_until_complete(coro)
+        # return coro.result()
         loop = asyncio.get_event_loop()
-        coro = asyncio.ensure_future(self._send_coro(msg, loop))
-        loop.run_until_complete(coro)
-        return coro.result()
+        status, payload = await self._send_coro(msg, loop)
+        return status, payload
