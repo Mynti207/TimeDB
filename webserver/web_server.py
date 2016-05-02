@@ -1,8 +1,8 @@
 import asyncio
 import json
+import aiohttp
 import timeseries as ts
 
-from aiohttp import web
 from tsdb import TSDBClient
 
 
@@ -39,7 +39,7 @@ class Handler(object):
         self.client = TSDBClient()
 
     async def handle_intro(self, request):
-        return web.Response(body=b"REST API for TimeSeries Implementation")
+        return aiohttp.web.Response(body=b"REST API for TimeSeries Implementation")
 
     async def handle_insert_ts(self, request):
         request_json = await request.json()
@@ -48,7 +48,7 @@ class Handler(object):
         required_args = ['pk', 'ts']
         check = check_arguments('insert_ts', request_json, *required_args)
         if check is not None:
-            return web.Response(body=check)
+            return aiohttp.web.Response(body=check)
 
         pk = request_json['pk']
         ts_ = ts.TimeSeries(*request_json['ts'])
@@ -56,7 +56,7 @@ class Handler(object):
         status, payload = await self.client.insert_ts(pk, ts_)
         body = get_body(status, payload)
 
-        return web.Response(body=body)
+        return aiohttp.web.Response(body=body)
 
     async def handle_upsert_meta(self, request):
         request_json = await request.json()
@@ -64,14 +64,14 @@ class Handler(object):
         required_args = ['pk', 'md']
         check = check_arguments('upsert_meta', request_json, *required_args)
         if check is not None:
-            return web.Response(body=check)
+            return aiohttp.web.Response(body=check)
         pk = request_json['pk']
         md = request_json['md']
 
         status, payloa = await self.client.upsert_meta(pk, md)
         body = get_body(status, payload)
 
-        return web.Response(body=get_body(status, payload))
+        return aiohttp.web.Response(body=get_body(status, payload))
 
     async def handle_select(self, request):
         request_json = await request.json()
@@ -85,7 +85,7 @@ class Handler(object):
                                                    fields=fields,
                                                    additional=additional)
 
-        return web.Response(body=get_body(status, payload))
+        return aiohttp.web.Response(body=get_body(status, payload))
 
     async def handle_augmented_select(self, request):
         request_json = await request.json()
@@ -94,7 +94,7 @@ class Handler(object):
         required_args = ['proc', 'target']
         check = check_arguments('augmented_select', request_json, *required_args)
         if check is not None:
-            return web.Response(body=check)
+            return aiohttp.web.Response(body=check)
 
         proc = request_json['proc']
         target = request_json['target']
@@ -106,7 +106,7 @@ class Handler(object):
                                                              metadata_dict=md,
                                                              additional=additional)
 
-        return web.Response(body=get_body(status, payload))
+        return aiohttp.web.Response(body=get_body(status, payload))
 
     async def handle_add_trigger(self, request):
         request_json = await request.json()
@@ -115,7 +115,7 @@ class Handler(object):
         required_args = ['proc', 'onwhat', 'target']
         check = check_arguments('add_trigger', request_json, *required_args)
         if check is not None:
-            return web.Response(body=check)
+            return aiohttp.web.Response(body=check)
 
         proc = request_json['proc']
         onwhat = request_json['onwhat']
@@ -125,7 +125,7 @@ class Handler(object):
         status, payload = await self.client.add_trigger(proc, onwhat, target,
                                                         arg)
 
-        return web.Response(body=get_body(status, payload))
+        return aiohttp.web.Response(body=get_body(status, payload))
 
     async def handle_remove_trigger(self, request):
         request_json = await request.json()
@@ -134,14 +134,14 @@ class Handler(object):
         required_args = ['proc', 'onwhat']
         check = check_arguments('remove_trigger', request_json, *required_args)
         if check is not None:
-            return web.Response(body=check)
+            return aiohttp.web.Response(body=check)
 
         proc = request_json['proc']
         onwhat = request_json['onwhat']
 
         status, payload = await self.client.add_trigger(proc, onwhat)
 
-        return web.Response(body=get_body(status, payload))
+        return aiohttp.web.Response(body=get_body(status, payload))
 
     async def handle_similarity_search(self, request):
         request_json = await request.json()
@@ -150,7 +150,7 @@ class Handler(object):
         required_args = ['query']
         check = check_arguments('remove_trigger', request_json, *required_args)
         if check is not None:
-            return web.Response(body=check)
+            return aiohttp.web.Response(body=check)
 
         query = ts.TimeSeries(*request_json['query'])
         top = int(request_json['top']) if 'top' in request_json else 1
@@ -162,14 +162,14 @@ class Handler(object):
         nearestwanted = [(k, results[k]['d']) for k in results.keys()]
         nearestwanted.sort(key=lambda x: x[1])
 
-        return web.Response(body=get_body(status, nearestwanted[:top]))
+        return aiohttp.web.Response(body=get_body(status, nearestwanted[:top]))
 
 
 class WebServer(object):
 
     def __init__(self):
         # Create the web application
-        self.app = web.Application()
+        self.app = aiohttp.web.Application()
         self.handler = Handler()
         # Adding the routes
         self.app.router.add_route('GET', '/tsdb', self.handler.handle_intro)
@@ -190,7 +190,7 @@ class WebServer(object):
 
     def run(self):
         # Run the app
-        web.run_app(self.app)
+        aiohttp.web.run_app(self.app)
 
 if __name__ == '__main__':
     wb = WebServer()
