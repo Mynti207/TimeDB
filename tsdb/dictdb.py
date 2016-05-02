@@ -128,7 +128,9 @@ class DictDB:
                     converted_values = [conversion(v) for v in value]
                     # index present
                     if field in self.indexes:
-                        selected = set([self.indexes[field][v] for v in converted_values])
+                        selected = set()
+                        for v in converted_values:
+                            selected.update(self.indexes[field][v])
                     # No index
                     else:
                         selected = set([pk for pk in pks if field in self.rows[pk] and self.rows[pk][field] in converted_values])
