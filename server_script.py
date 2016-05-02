@@ -1,11 +1,50 @@
 #!/usr/bin/env python3
-from tsdb import TSDBClient
+from tsdb import *
 import timeseries as ts
 import numpy as np
 import asyncio
+import requests
+import json
 
 from scipy.stats import norm
 
+
+# Helper to build the HTTP request for the REST API
+def request_insert(pk, ts):
+    msg = TSDBOp_InsertTS(pk, ts).to_json()
+    r = requests.post("http://127.0.0.1:8080/tsdb/insert_ts", data=json.dumps(msg))
+
+def request_upsert_meta(pk, md):
+    msg = TSDBOp_UpsertMeta(pk, md).to_json()
+    r = requests.post("http://127.0.0.1:8080/tsdb/upsert_meta", data=json.dumps(msg))
+
+
+def request_select(md={}, fields=None, additional=None):
+    msg = TSDBOp_Select(md, fields, additional).to_json()
+    r = requests.get("http://127.0.0.1:8080/tsdb/select", data=json.dumps(msg))
+    print('r.text: ', r.text)
+    return json.loads(r.text, object_pairs_hook=OrderedDict)
+    
+def request_augmented_select(proc, target, arg=None, md={}, additional=None):
+    msg = TSDBOp_AugmentedSelect(proc, target, arg, md, additional).to_json()
+    r = requests.get("http://127.0.0.1:8080/tsdb/augmented_select", data=json.dumps(msg))
+    print('r.text: ', r.text)
+    return json.loads(r.text, object_pairs_hook=OrderedDict)
+    
+def request_add_trigger(proc, onwhat, target, arg=None):
+    msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
+    r = requests.post("http://127.0.0.1:8080/tsdb/add_trigger", data=json.dumps(msg))
+    
+def request_remove_trigger(proc, onwhat):
+    msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
+    r = requests.post("http://127.0.0.1:8080/tsdb/remove_trigger", data=json.dumps(msg))
+
+def request_similarity_search(query, top=1):
+    msg = {'query': query.to_json(), 'top': top}
+    r = requests.get("http://127.0.0.1:8080/tsdb/similarity_search", data=json.dumps(msg))
+    print('r.text' is r.text)
+    return json.loads(r.text, object_pairs_hook=OrderedDict)
+    
 # m is the mean, s is the standard deviation, and j is the jitter
 # the meta just fills in values for order and blarg from the schema
 def tsmaker(m, s, j):
@@ -18,15 +57,14 @@ def tsmaker(m, s, j):
     return meta, ts.TimeSeries(t, v)
 
 
-async def main():
+def main():
     print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-    client = TSDBClient()
 
     # add a trigger. notice the argument. It does not do anything here but
     # could be used to save a shlep of data from client to server.
-    await client.add_trigger('junk', 'insert_ts', None, 'db:one:ts')
+    request_add_trigger('junk', 'insert_ts', None, 'db:one:ts')
     # our stats trigger
-    await client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
+    request_add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
     #Set up 50 time series
     mus = np.random.uniform(low=0.0, high=1.0, size=50)
     sigs = np.random.uniform(low=0.05, high=0.4, size=50)
@@ -47,51 +85,51 @@ async def main():
     vpkeys = ["ts-{}".format(i) for i in np.random.choice(range(50), size=5, replace=False)]
     for i in range(5):
         # add 5 triggers to upsert distances to these vantage points
-        await client.add_trigger('corr', 'insert_ts', ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
+        request_add_trigger('corr', 'insert_ts', ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
         # change the metadata for the vantage points to have meta['vp']=True
         metadict[vpkeys[i]]['vp']=True
     # Having set up the triggers, now inser the time series, and upsert the metadata
     for k in tsdict:
-        await client.insert_ts(k, tsdict[k])
-        await client.upsert_meta(k, metadict[k])
+        request_insert(k, tsdict[k])
+        request_upsert_meta(k, metadict[k])
 
     print("UPSERTS FINISHED")
     print('---------------------')
     print("STARTING SELECTS")
 
     print('---------DEFAULT------------')
-    await client.select()
+    request_select()
 
     #in this version, select has sprouted an additional keyword argument
     # to allow for sorting. Limits could also be enforced through this.
     print('---------ADDITIONAL------------')
-    await client.select(additional={'sort_by': '-order'})
+    request_select(additional={'sort_by': '-order'})
 
     print('----------ORDER FIELD-----------')
-    _, results = await client.select(fields=['order'])
+    results = request_select(fields=['order'])
     for k in results:
         print(k, results[k])
 
     print('---------ALL FILEDS------------')
-    await client.select(fields=[])
+    request_select(fields=[])
 
     print('------------TS with order 1---------')
-    await client.select({'order': 1}, fields=['ts'])
+    request_select({'order': 1}, fields=['ts'])
 
     print('------------All fields, blarg 1 ---------')
-    await client.select({'blarg': 1}, fields=[])
+    request_select({'blarg': 1}, fields=[])
 
     print('------------order 1 blarg 2 no fields---------')
-    _, bla = await client.select({'order': 1, 'blarg': 2})
+    bla = request_select({'order': 1, 'blarg': 2})
     print(bla)
 
     print('------------order >= 4  order, blarg and mean sent back, also sorted---------')
-    _, results = await client.select({'order': {'>=': 4}}, fields=['order', 'blarg', 'mean'], additional={'sort_by': '-order'})
+    results = request_select({'order': {'>=': 4}}, fields=['order', 'blarg', 'mean'], additional={'sort_by': '-order'})
     for k in results:
         print(k, results[k])
 
     print('------------order 1 blarg >= 1 fields blarg and std---------')
-    _, results = await client.select({'blarg': {'>=': 1}, 'order': 1}, fields=['blarg', 'std'])
+    results = request_select({'blarg': {'>=': 1}, 'order': 1}, fields=['blarg', 'std'])
     for k in results:
         print(k, results[k])
 
@@ -106,9 +144,9 @@ async def main():
     # Step 1: in the vpdist key, get  distances from query to vantage points
     # this is an augmented select
     vpdist = {}
-    _, result_distance = await client.augmented_select('corr', ['vpdist'], query, {'vp':{'==':True}})
+    result_distance = request_augmented_select('corr', ['vpdist'], query, {'vp':{'==':True}})
     vpdist = {v:result_distance[v]['vpdist'] for v in vpkeys}
-    print(vpdist)
+    print('vpdist is: ', vpdist)
     #1b: choose the lowest distance vantage point
     # you can do this in local code
     nearest_vp_to_query = min(vpkeys, key=lambda v:vpdist[v])
@@ -119,7 +157,7 @@ async def main():
     print('Radius is {}'.format(radius))
     # Find the reative index of the nearest_vp_to_query
     realtive_index_vp = vpkeys.index(nearest_vp_to_query)
-    _, results = await client.augmented_select('corr', ['towantedvp'], query,
+    results = request_augmented_select('corr', ['towantedvp'], query,
                                          {'d_vp-{}'.format(realtive_index_vp):{'<=': radius}})
 
     #2b: find the smallest distance amongst this ( or k smallest)
@@ -133,8 +171,9 @@ async def main():
     plt.plot(tsdict[nearestwanted])
     plt.show()
 
+    # Similarity search
+    nearestwanted = request_similarity_search(query, 3)
+    print('Nearest wanted ', nearestwanted)
+
 if __name__=='__main__':
-    # Run the coroutine main
-    loop = asyncio.get_event_loop()
-    coro = asyncio.ensure_future(main())
-    loop.run_until_complete(coro)
+    main()
