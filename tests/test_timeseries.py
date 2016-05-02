@@ -356,3 +356,11 @@ def test_bool():
     a = TimeSeries(t, v)
     assert bool(a)
     assert(not bool(TimeSeries([], [])))
+
+
+def test_to_json():
+    t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
+    v = np.array([10, 12, -11, 1.5, 10, 13, 17])
+    a = TimeSeries(t, v)
+    a_bis = TimeSeries(*a.to_json())
+    assert a == a_bis
