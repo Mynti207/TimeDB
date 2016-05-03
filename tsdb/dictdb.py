@@ -60,11 +60,12 @@ class DictDB:
         '''
         Implement upserting field values, as long as fields are in the schema
         '''
-        # your code here
-        # Insert if not already present
+
+        # insert if not already present
         if pk not in self.rows:
             self.rows[pk] = {'pk': pk}
-        # Insert meta
+
+        # insert meta
         row = self.rows[pk]
         for field in meta:
             if self.schema[field]['index'] is not None:
@@ -75,7 +76,7 @@ class DictDB:
     def index_bulk(self, pks=[]):
         if len(pks) == 0:
             pks = self.rows
-        for pkid in self.pks:
+        for pkid in pks:
             self.update_indices(pkid)
 
     def update_indices(self, pk):
@@ -87,31 +88,15 @@ class DictDB:
                 idx[v].add(pk)
 
     def select(self, meta, fields, additional):
-        # your code here
-        # if fields is None: return only pks
-        # like so [pk1,pk2],[{},{}]
-        # if fields is [], this means all fields
-        # except for the 'ts' field. Looks like
-        # ['pk1',...],[{'f1':v1, 'f2':v2},...]
-        # if the names of fields are given in the list, include only those
-        # fields. `ts` ia an
-        # acceptable field and can be used to just return time series.
-        # see tsdb_server to see how this return
-        # value is used
-        # additional is a dictionary. It has two possible keys:
-        # (a){'sort_by':'-order'} or {'sort_by':'+order'} where order
-        # must be in the schema AND have an index. (b) limit: 'limit':10
-        # which will give you the top 10 in the current sort order.
-        # your code here
 
-        # Filtering of pks
+        # filtering of pks
         pks = set(self.rows.keys())
         for field, value in meta.items():
-            # Checking field in schema
+            # checking field in schema
             if field in self.schema:
-                # Conversion to apply
+                # conversion to apply
                 conversion = self.schema[field]['convert']
-                # Case operators
+                # case operators
                 if isinstance(value, dict):
                     for op in value:
                         operation = OPMAP[op]
@@ -121,9 +106,9 @@ class DictDB:
                         for i in self.indexes[field].keys():
                             if operation(i, val):
                                 filtered_pks.update(self.indexes[field][i])
-                        # Update current selection AND'ing on pks filterred
+                        # update current selection AND'ing on pks filtered
                         pks = pks.intersection(filtered_pks)
-                # Case list
+                # case list
                 elif isinstance(value, list):
                     converted_values = [conversion(v) for v in value]
                     # index present
@@ -131,45 +116,50 @@ class DictDB:
                         selected = set()
                         for v in converted_values:
                             selected.update(self.indexes[field][v])
-                    # No index
+                    # no index
                     else:
-                        selected = set([pk for pk in pks if field in self.rows[pk] and self.rows[pk][field] in converted_values])
+                        selected = set([pk for pk in pks
+                                        if field in self.rows[pk] and
+                                        self.rows[pk][field]
+                                        in converted_values])
                     pks = pks.intersection(selected)
-                # Case precise
+                # case precise
                 else:
                     # index present
                     if field in self.indexes:
                         selected = set(self.indexes[field][conversion(value)])
-                    # No index
+                    # no index
                     else:
-                        selected = set([pk for pk in pks if field in self.rows[pk] and self.rows[pk][field] == conversion(value)])
+                        selected = set([pk for pk in pks
+                                        if field in self.rows[pk] and
+                                        self.rows[pk][field] == conversion(value)])
                     pks = pks.intersection(selected)
 
-        # Convert set to list
+        # convert set to list
         pks = list(pks)
 
-        # Sorting pks
+        # sorting pks
         if additional is not None and 'sort_by' in additional:
             predicate = additional['sort_by'][1:]
             # 0: ascending, 1: descending
             reverse = 0 if additional['sort_by'][0] == '-' else 1
-            # Sanity check
+            # sanity check
             if predicate not in self.schema or predicate not in self.indexes:
                 raise ValueError('Additional field {} not in schema or in indexes'.format(predicate))
             # inplace sorting
             pks.sort(key=lambda pk: self.rows[pk][predicate], reverse=reverse)
-            # Limit (we assume limit is possible only if sorting)
+            # limit (we assume limit is possible only if sorting)
             if 'limit' in additional:
                 pks = pks[:additional['limit']]
 
-        # Retrieve fields
+        # retrieve fields
         if fields is None:
             print('S> D> NO FIELDS')
             matchedfielddicts = [{} for pk in pks]
         else:
             if not len(fields):
                 print('S> D> ALL FIELDS')
-                # Removing ts
+                # removing ts
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k != 'ts'} for pk in pks]
             else:

@@ -21,7 +21,7 @@ A compiler for PyPE, a DSL built around computational pipelines. Includes a lexe
 
 **procs module**
 
-Contains several submodules to analyse time series.
+Contains several submodules to analyze time series.
 
 **tsdb module**
 

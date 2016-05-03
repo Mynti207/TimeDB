@@ -41,7 +41,6 @@ def test_pcode():
     pcodes = pcodegen.pcodes
     result = pcodes['standardize'].run(ts)
 
-    print("Output should be 0, 1")
-    print("Output:", result.mean(), result.std())
+    # output should be 0, 1
     assert(round(result.mean(), 10) == 0)
     assert(round(result.std(), 10) == 1)

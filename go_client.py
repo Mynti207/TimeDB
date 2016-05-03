@@ -27,30 +27,34 @@ async def main():
     await client.add_trigger('junk', 'insert_ts', None, 'db:one:ts')
     # our stats trigger
     await client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
-    #Set up 50 time series
+    # set up 50 time series
     mus = np.random.uniform(low=0.0, high=1.0, size=50)
     sigs = np.random.uniform(low=0.05, high=0.4, size=50)
     jits = np.random.uniform(low=0.05, high=0.2, size=50)
 
     # dictionaries for time series and their metadata
-    tsdict={}
-    metadict={}
+    tsdict = {}
+    metadict = {}
     for i, m, s, j in zip(range(50), mus, sigs, jits):
         meta, tsrs = tsmaker(m, s, j)
         # the primary key format is ts-1, ts-2, etc
         pk = "ts-{}".format(i)
         tsdict[pk] = tsrs
-        meta['vp'] = False # augment metadata with a boolean asking if this is a  VP.
+        meta['vp'] = False  # augment metadata w/ boolean asking if it is a VP
         metadict[pk] = meta
 
     # choose 5 distinct vantage point time series
-    vpkeys = ["ts-{}".format(i) for i in np.random.choice(range(50), size=5, replace=False)]
+    vpkeys = ["ts-{}".format(i) for i in np.random.choice(range(50), size=5,
+                                                          replace=False)]
     for i in range(5):
         # add 5 triggers to upsert distances to these vantage points
-        await client.add_trigger('corr', 'insert_ts', ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
+        await client.add_trigger('corr', 'insert_ts',
+                                 ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
         # change the metadata for the vantage points to have meta['vp']=True
-        metadict[vpkeys[i]]['vp']=True
-    # Having set up the triggers, now inser the time series, and upsert the metadata
+        metadict[vpkeys[i]]['vp'] = True
+
+    # having set up the triggers, now insert the time series,
+    # and upsert the metadata
     for k in tsdict:
         await client.insert_ts(k, tsdict[k])
         await client.upsert_meta(k, metadict[k])
@@ -62,7 +66,7 @@ async def main():
     print('---------DEFAULT------------')
     await client.select()
 
-    #in this version, select has sprouted an additional keyword argument
+    # in this version, select has sprouted an additional keyword argument
     # to allow for sorting. Limits could also be enforced through this.
     print('---------ADDITIONAL------------')
     await client.select(additional={'sort_by': '-order'})
@@ -86,19 +90,22 @@ async def main():
     print(bla)
 
     print('------------order >= 4  order, blarg and mean sent back, also sorted---------')
-    _, results = await client.select({'order': {'>=': 4}}, fields=['order', 'blarg', 'mean'], additional={'sort_by': '-order'})
+    _, results = await client.select({'order': {'>=': 4}},
+                                     fields=['order', 'blarg', 'mean'],
+                                     additional={'sort_by': '-order'})
     for k in results:
         print(k, results[k])
 
     print('------------order 1 blarg >= 1 fields blarg and std---------')
-    _, results = await client.select({'blarg': {'>=': 1}, 'order': 1}, fields=['blarg', 'std'])
+    _, results = await client.select({'blarg': {'>=': 1}, 'order': 1},
+                                     fields=['blarg', 'std'])
     for k in results:
         print(k, results[k])
 
     print('------now computing vantage point stuff---------------------')
     print("VPS", vpkeys)
 
-    #we first create a query time series.
+    # we first create a query time series.
     _, query = tsmaker(0.5, 0.2, 0.1)
 
     # your code here begins
@@ -109,24 +116,24 @@ async def main():
     _, result_distance = await client.augmented_select('corr', ['vpdist'], query, {'vp':{'==':True}})
     vpdist = {v:result_distance[v]['vpdist'] for v in vpkeys}
     print(vpdist)
-    #1b: choose the lowest distance vantage point
+    # 1b: choose the lowest distance vantage point
     # you can do this in local code
     nearest_vp_to_query = min(vpkeys, key=lambda v:vpdist[v])
 
     # Step 2: find all time series within 2*d(query, nearest_vp_to_query)
-    #this is an augmented select to the same proc in correlation
+    # this is an augmented select to the same proc in correlation
     radius = 2*vpdist[nearest_vp_to_query]
     print('Radius is {}'.format(radius))
     # Find the reative index of the nearest_vp_to_query
-    realtive_index_vp = vpkeys.index(nearest_vp_to_query)
+    relative_index_vp = vpkeys.index(nearest_vp_to_query)
     _, results = await client.augmented_select('corr', ['towantedvp'], query,
-                                         {'d_vp-{}'.format(realtive_index_vp):{'<=': radius}})
+                                               {'d_vp-{}'.format(relative_index_vp):{'<=': radius}})
 
     #2b: find the smallest distance amongst this ( or k smallest)
     #you can do this in local code
     nearestwanted = min(results.keys(), key=lambda k:results[k]['towantedvp'])
     print('nearest is {} distance is {}'.format(nearestwanted, results[nearestwanted]['towantedvp']))
-    #your code here ends
+    # your code here ends
     # plot the timeseries to see visually how we did.
     import matplotlib.pyplot as plt
     plt.plot(query)

@@ -11,10 +11,10 @@ __license__ = "mit"
 
 
 def test_tsdb_serialization():
-    # Creating deserializer
+    # creating deserializer
     deserializer = Deserializer()
 
-    # Json data test
+    # json data test
     t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
     v = np.array([10, 12, -11, 1.5, 10, 13, 17])
     a = TimeSeries(t, v)
@@ -44,7 +44,7 @@ def test_tsdb_serialization():
     deserializer = Deserializer()
     wrong_msg = b'\x00\x00\x00"\\\\"\x00"!!IM NOT A JSON object!!"'
     deserializer.append(wrong_msg)
-    assert deserializer.deserialize() == None
+    assert deserializer.deserialize() is None
 
 
 def test_tsdb_dictdb():
@@ -59,7 +59,7 @@ def test_tsdb_dictdb():
     identity = lambda x: x
 
     schema = {
-      'pk': {'convert': identity, 'index': None},  #will be indexed anyways
+      'pk': {'convert': identity, 'index': None},  # will be indexed anyways
       'ts': {'convert': identity, 'index': None},
       'order': {'convert': int, 'index': 1},
       'blarg': {'convert': int, 'index': 1},
@@ -73,10 +73,13 @@ def test_tsdb_dictdb():
 
     ddb.insert_ts('pk1', a1)
     ddb.insert_ts('pk2', a2)
+    with pytest.raises(ValueError):
+        ddb.insert_ts('pk2', a2)  # duplicate primary key
     ddb.upsert_meta('pk1', {'order': 1, 'blarg': 2})
     ddb.upsert_meta('pk2', {'order': 2, 'blarg': 2})
+    ddb.upsert_meta('pk3', {'order': 2, 'blarg': 2}) # insert if not present
 
-    # Select operations
+    # select operations
     ddb.select({}, None, None)
     ddb.select({}, None, {'sort_by': '-order', 'limit': 5})
     ddb.select({'order': 1, 'blarg': 2}, [], None)
@@ -85,3 +88,6 @@ def test_tsdb_dictdb():
     with pytest.raises(ValueError):
         ddb.select({}, None, {'sort_by': '-unknown', 'limit': 5})
 
+    # bulk update of indices
+    ddb.index_bulk()
+    assert sorted(ddb.indexes.keys()) == ['blarg', 'mean', 'order', 'std', 'vp']
