@@ -29,7 +29,8 @@ python:
 before_install:
     - sudo apt-get install -qq python-numpy python-scipy python-aiohttp
 
-  install:
+# command to install modules
+install:
     - python setup.py install
 
 # command to run tests
