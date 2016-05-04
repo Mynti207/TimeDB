@@ -24,7 +24,7 @@ install:
   - source activate test-environment
   - conda install pip nose numpy scipy
   # conda doens't have access to all packages
-  - pip install python-coveralls nose-cov ply
+  - pip install python-coveralls nose-cov ply aiohttp
   - python setup.py install
 
 # command to run tests
