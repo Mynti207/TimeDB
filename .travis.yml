@@ -23,11 +23,9 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install pip nose numpy scipy
-  - pip install python-coveralls nose-cov # conda doens't have access to all packages
+  # conda doens't have access to all packages
+  - pip install python-coveralls nose-cov ply
   - python setup.py install
-
-# script:
-#   # Your test script goes here
 
 # command to run tests
 script:
