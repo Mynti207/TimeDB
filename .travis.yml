@@ -22,7 +22,8 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
-  - pip install python-coveralls nose-cov
+  - conda install pip nose numpy scipy
+  - pip install python-coveralls nose-cov # conda doens't have access to all packages
   - python setup.py install
 
 # script:
