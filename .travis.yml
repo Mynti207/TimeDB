@@ -29,7 +29,8 @@ install:
 
 # command to run tests
 script:
-  - nosetests --with-cov
+  # - nosetests --with-cov
+  - py.test --cov timeseries  # actually runs tests for all modules
 
 # command to add coveralls
 after_success:
