@@ -20,7 +20,7 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  # - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION dep1 dep2 ...
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - python setup.py install
 
@@ -29,8 +29,7 @@ install:
 
 # command to run tests
 script:
-  - nosetests
-  - py.test --cov timeseries  # actually runs tests for all modules
+  - nosetests --with-cov
 
 # command to add coveralls
 after_success:
