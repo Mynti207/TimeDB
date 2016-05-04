@@ -1,37 +1,17 @@
-# # command to define language
-# language: python
-# python:
-#   - 3.5
-#
-# # command to install dependencies and modules
-# install:
-#   - pip install -r requirements.txt
-#   - pip install coverage
-#   - pip install coveralls
-#   - pip install pytest
-#   - pip install pytest-cov
-#   - pip install ply
-#
-# # command to run tests
-# script:
-#   - nosetests
-#   - py.test --cov timeseries  # actually runs tests for all modules
-#
-# # command to add coveralls
-# after_success:
-#   - coveralls
-
 # command to define language
 language: python
 python:
   - 3.5
 
-before_install:
-    - sudo apt-get install -qq python-numpy python-scipy python-aiohttp
-
-# command to install modules
+# command to install dependencies and modules
 install:
-    - python setup.py install
+  - pip install -r requirements.txt
+  - pip install coverage
+  - pip install coveralls
+  - pip install pytest
+  - pip install pytest-cov
+  - pip install ply
+  - python setup.py install
 
 # command to run tests
 script:
