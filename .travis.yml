@@ -22,15 +22,14 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
-  - conda install pip nose numpy scipy pytest
+  - conda install pip nose numpy scipy pytest coverage
   # conda doens't have access to all packages
   - pip install python-coveralls nose-cov ply aiohttp
   - python setup.py install
 
 # command to run tests
 script:
-  # - nosetests --with-cov
-  - py.test --cov timeseries  # actually runs tests for all modules
+  - nosetests --with-coverage --cover-package=timeseries,pype,tsdb,procs
 
 # command to add coveralls
 after_success:
