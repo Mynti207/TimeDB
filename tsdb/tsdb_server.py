@@ -3,7 +3,7 @@ from .dictdb import DictDB
 from importlib import import_module
 from collections import defaultdict, OrderedDict
 from .tsdb_serialization import Deserializer, serialize
-from .tsdb_error import *
+from .tsdb_error import TSDBStatus
 from .tsdb_ops import *
 import procs
 
@@ -19,15 +19,16 @@ def trigger_callback_maker(pk, target, calltomake):
 
 class TSDBProtocol(asyncio.Protocol):
 
-    def __init__(self, server):
+    def __init__(self, server, verbose=False):
         self.server = server
         self.deserializer = Deserializer()
         self.futures = []
+        self.verbose = verbose
 
     def _insert_ts(self, op):
         try:
             self.server.db.insert_ts(op['pk'], op['ts'])
-        except ValueError as e:
+        except ValueError:
             return TSDBOp_Return(TSDBStatus.INVALID_KEY, op['op'])
         self._run_trigger('insert_ts', [op['pk']])
         return TSDBOp_Return(TSDBStatus.OK, op['op'])
@@ -51,12 +52,24 @@ class TSDBProtocol(asyncio.Protocol):
 
     def _augmented_select(self, op):
         "run a select and then synchronously run some computation on it"
+
+        # run 'normal' select
         loids, fields = self.server.db.select(op['md'], None, op['additional'])
-        proc = op['proc']  # the module in procs
-        arg = op['arg']  # an additional argument, could be a constant
-        target = op['target']  # not used to upsert any more, but rather to
-        # return results in a dictionary with the targets mapped to the return
-        # values from proc_main
+
+        # name of procs module to apply
+        proc = op['proc']
+
+        # possible additional arguments ('sort_by' and 'order')
+        arg = op['arg']
+
+        # array of field names to which to apply the results
+        # note: result is only returned to user and is not upserted
+        target = op['target']
+
+        # wrap as list if necessary
+        if not isinstance(target, list):
+            target = [target]
+
         mod = import_module('procs.'+proc)
         storedproc = getattr(mod, 'proc_main')
         results = []
@@ -92,7 +105,7 @@ class TSDBProtocol(asyncio.Protocol):
 
     def _run_trigger(self, opname, rowmatch):
         lot = self.server.triggers[opname]
-        print("S> list of triggers to run", lot)
+        if self.verbose: print("S> list of triggers to run", lot)
         for tname, t, arg, target in lot:
             for pk in rowmatch:
                 row = self.server.db.rows[pk]
@@ -103,11 +116,10 @@ class TSDBProtocol(asyncio.Protocol):
                                            self.server.db.upsert_meta))
 
     def connection_made(self, conn):
-        print('S> connection made')
+        if self.verbose: print('S> connection made')
         self.conn = conn
 
     def data_received(self, data):
-        #print('S> data received ['+str(len(data))+']: '+str(data))
         self.deserializer.append(data)
         if self.deserializer.ready():
             msg = self.deserializer.deserialize()
@@ -115,7 +127,7 @@ class TSDBProtocol(asyncio.Protocol):
             response = TSDBOp_Return(status, None)  # until proven otherwise.
             try:
                 op = TSDBOp.from_json(msg)
-            except TypeError as e:
+            except TypeError:
                 response = TSDBOp_Return(TSDBStatus.INVALID_OPERATION, None)
             if status is TSDBStatus.OK:
                 if isinstance(op, TSDBOp_InsertTS):
@@ -138,20 +150,21 @@ class TSDBProtocol(asyncio.Protocol):
             self.conn.close()
 
     def connection_lost(self, transport):
-        print('S> connection lost')
+        if self.verbose: print('S> connection lost')
 
 
 class TSDBServer(object):
 
-    def __init__(self, db, port=9999):
+    def __init__(self, db, port=9999, verbose=False):
         self.port = port
         self.db = db
         self.triggers = defaultdict(list)
         self.trigger_arg_cache = defaultdict(dict)
         self.autokeys = {}
+        self.verbose = verbose
 
     def exception_handler(self, loop, context):
-        print('S> EXCEPTION:', str(context))
+        if self.verbose: print('S> EXCEPTION:', str(context))
         loop.stop()
 
     def run(self):
@@ -162,14 +175,14 @@ class TSDBServer(object):
         # loop.set_exception_handler(self.exception_handler)
         self.listener = loop.create_server(
             lambda: TSDBProtocol(self), '127.0.0.1', self.port)
-        print('S> Starting TSDB server on port', self.port)
+        if self.verbose: print('S> Starting TSDB server on port', self.port)
         listener = loop.run_until_complete(self.listener)
         try:
             loop.run_forever()
         except KeyboardInterrupt:
-            print('S> Exiting.')
+            if self.verbose: print('S> Exiting.')
         except Exception as e:
-            print('S> Exception:', e)
+            if self.verbose: print('S> Exception:', e)
         finally:
             listener.close()
             loop.close()

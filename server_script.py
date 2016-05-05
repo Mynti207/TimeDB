@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from tsdb import *
-import timeseries as ts
+from timeseries import TimeSeries
 import numpy as np
 import asyncio
 import requests
@@ -68,7 +68,7 @@ def tsmaker(m, s, j):
     meta['blarg'] = int(np.random.choice([1, 2]))
     t = np.arange(0.0, 1.0, 0.01)
     v = norm.pdf(t, m, s) + j*np.random.randn(100)
-    return meta, ts.TimeSeries(t, v)
+    return meta, TimeSeries(t, v)
 
 
 def main():

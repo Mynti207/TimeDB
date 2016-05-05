@@ -9,9 +9,6 @@ __author__ = "Mynti207"
 __copyright__ = "Mynti207"
 
 
-def identity(x): return x
-
-
 def test_tsdb_dictdb():
 
     # synthetic data
@@ -20,6 +17,8 @@ def test_tsdb_dictdb():
     v2 = np.array([8, 12, -11, 1.5, 10, 13, 17])
     a1 = TimeSeries(t, v1)
     a2 = TimeSeries(t, v2)
+
+    identity = lambda x: x
 
     schema = {
       'pk':         {'convert': identity,   'index': None},

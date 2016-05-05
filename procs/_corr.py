@@ -1,37 +1,24 @@
 import numpy.fft as nfft
 import numpy as np
-import timeseries as ts
-from scipy.stats import norm
-from collections import deque
-
-
-def tsmaker(m, s, j):
-    '''
-    Creates a random time series with some metadata.
-    '''
-    meta = {}
-    meta['order'] = int(np.random.choice([-5, -4, -3, -2, -1, 0,
-                                          1, 2, 3, 4, 5]))
-    meta['blarg'] = int(np.random.choice([1, 2]))
-    t = np.arange(0.0, 1.0, 0.01)
-    v = norm.pdf(t, m, s) + j * np.random.randn(100)
-    return meta, ts.TimeSeries(t, v)
-
-
-def random_ts(a):
-    '''
-    Creates a random time series, where the times are equally spaced between
-    0.0 and 1.0, and the values are random variables uniformly distributed
-    between 0 and the input a.
-    '''
-    t = np.arange(0.0, 1.0, 0.01)
-    v = (a * np.random.random(100))
-    return ts.TimeSeries(t, v)
+from timeseries import TimeSeries
 
 
 def stand(x, m, s):
     '''
     Standardizes a variable x, using its mean m and its standard deviation s.
+
+    Parameters
+    ----------
+    x : float
+        The variable to standardize
+    m : float
+        The variable's mean
+    s : float
+        The variable's standard deviation
+
+    Returns
+    -------
+    The standardized variable.
     '''
     return (x - m) / s
 
@@ -39,33 +26,98 @@ def stand(x, m, s):
 def ccor(ts1, ts2):
     '''
     Given two standardized time series, computes their cross-correlation using
-    fast fourier transform.
+    fast fourier transform. Assume that the two time series are of the same
+    length.
+
+    Parameters
+    ----------
+    ts1 : TimeSeries
+        A standardized time series
+    ts2 : TimeSeries
+        Another standardized time series
+
+    Returns
+    -------
+    The two time series' cross-correlation.
     '''
+    # calculate fast fourier transform of the two time series
     fft_ts1 = nfft.fft(ts1.valuesseq)
     fft_ts2 = nfft.fft(ts2.valuesseq)
-    return (1/(1.*len(ts1))) * nfft.ifft(fft_ts1 * np.conjugate(fft_ts2)).real
+
+    # return cross-correlation, i.e. the convolution of the first fft
+    # and the conjugate of the second
+    return ((1 / (1. * len(ts1))) *
+            nfft.ifft(fft_ts1 * np.conjugate(fft_ts2)).real)
 
 
 def max_corr_at_phase(ts1, ts2):
     '''
     Given two standardized time series, determines the time at which their
-    cross-correlation is maximized, as well as the cross-correlation itself.
+    cross-correlation is maximized, as well as the cross-correlation itself
+    at that point.
+
+    Parameters
+    ----------
+    ts1 : TimeSeries
+        A standardized time series
+    ts2 : TimeSeries
+        Another standardized time series
+
+    Returns
+    -------
+    idx, maxcorr : int, float
+        Tuple of the time at which cross-correlation is maximized, and the
+        cross-correlation at that point.
     '''
+
+    # calculate cross-correlation between the two time series
     ccorts = ccor(ts1, ts2)
+
+    # determine the time at which cross-correlation is maximized
     idx = np.argmax(ccorts)
+
+    # determine the value of cross-correlation at that time
     maxcorr = ccorts[idx]
+
+    # return the time, cross-correlation tuple
     return idx, maxcorr
 
 
 def kernel_corr(ts1, ts2, mult=1):
     '''
-    Computes a kernelized correlation, so that we can get a real distance.
-    We normalize the kernel by np.sqrt(K(x,x)K(y,y)), so that the correlation
-    of a time series with itself is 1.
+    Given two standardized time series, calculates the distance between them
+    based on the kernelized cross-correlation. The kernel is normalized so that
+    the cross-correlation of a time series with itself equals one.
+
     Reference: http://www.cs.tufts.edu/~roni/PUB/ecml09-tskernels.pdf
+
+    Parameters
+    ----------
+    ts1 : TimeSeries
+        A standardized time series
+    ts2 : TimeSeries
+        Another standardized time series
+    mult : int
+        Multiplicative constant in kernel function (gamma)
+
+    Returns
+    -------
+    float
+        Distance between two time series.
     '''
+
+    # calculate cross-correlation
     cross_correlation = ccor(ts1, ts2)
+
+    # calculate kernel
     num = np.sum(np.exp(mult * cross_correlation))
+
+    # calculate kernel normalization
     denom = np.sqrt(np.sum(np.exp(mult * ccor(ts1, ts1))) *
                     np.sum(np.exp(mult * ccor(ts2, ts2))))
-    return num/denom
+
+    # return normalized kernel
+    if denom == 0:
+        return 0
+    else:
+        return num/denom

@@ -61,7 +61,7 @@ class DictDB:
     In-memory, dictionary based database.
     '''
 
-    def __init__(self, schema, pkfield):
+    def __init__(self, schema, pkfield, verbose=False):
         '''
         Initializes the DictDB class.
 
@@ -72,6 +72,8 @@ class DictDB:
             formats
         pkfield : string
             Specifies the name of the primary key field
+        verbose : boolean
+            Determines whether status updates are printed.
 
         Returns
         -------
@@ -101,6 +103,9 @@ class DictDB:
             # if the field is an index field, add in to the index dictionary
             if schema[s]['index'] is not None:
                 self.indexes[s] = defaultdict(set)
+
+        # whether status updates are printed
+        self.verbose = verbose
 
         # TODO: use binary search trees for highcard/numeric
         # bitmaps for lowcard/str_or_factor
@@ -343,15 +348,15 @@ class DictDB:
 
         # extract the relevant sub-set of fields
         if fields is None:  # no sub-set is specified
-            print('S> D> NO FIELDS')
+            if self.verbose: print('S> D> NO FIELDS')
             matchedfielddicts = [{} for pk in pks]
         else:
             if not len(fields):
-                print('S> D> ALL FIELDS')
+                if self.verbose: print('S> D> ALL FIELDS')
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k != 'ts'} for pk in pks]  # remove ts
             else:
-                print('S> D> FIELDS {} {}'.format(fields, pks))
+                if self.verbose: print('S> D> FIELDS {}'.format(fields))
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k in fields} for pk in pks]
 

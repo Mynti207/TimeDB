@@ -3,7 +3,7 @@ import enum
 
 class TSDBStatus(enum.IntEnum):
     '''
-    Provides error and status handling.
+    Enumerates the possible database status/response codes.
     '''
 
     # status/error codes

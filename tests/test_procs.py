@@ -1,6 +1,36 @@
-from timeseries import *
+from timeseries import TimeSeries
 from procs import *
 import numpy as np
+from scipy.stats import norm
+
+
+def tsmaker(m, s, j):
+    '''
+    Helper function #1: randomly generates a time series for testing.
+    '''
+
+    # generate metadata
+    meta = {}
+    meta['order'] = int(np.random.choice([-5, -4, -3, -2, -1, 0,
+                                          1, 2, 3, 4, 5]))
+    meta['blarg'] = int(np.random.choice([1, 2]))
+    meta['vp'] = False  # initialize vantage point indicator as negative
+
+    # generate time series data
+    t = np.arange(0.0, 1.0, 0.01)
+    v = norm.pdf(t, m, s) + j * np.random.randn(100)
+
+    # return time series and metadata
+    return meta, TimeSeries(t, v)
+
+
+def random_ts(a):
+    '''
+    Helper function #2: randomly generates a time series for testing.
+    '''
+    t = np.arange(0.0, 1.0, 0.01)
+    v = (a * np.random.random(100))
+    return TimeSeries(t, v)
 
 
 # adapted from tests in _corr.py

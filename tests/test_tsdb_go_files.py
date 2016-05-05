@@ -1,0 +1,204 @@
+import unittest  # use unit tests instead of pytests, makes tsdb testing easier
+import asynctest
+import asyncio
+from timeseries import TimeSeries
+import numpy as np
+from scipy.stats import norm
+from tsdb import *
+import sys
+import time
+import subprocess
+
+
+identity = lambda x: x
+
+schema = {
+  'pk':         {'convert': identity,   'index': None},
+  'ts':         {'convert': identity,   'index': None},
+  'order':      {'convert': int,        'index': 1},
+  'blarg':      {'convert': int,        'index': 1},
+  'useless':    {'convert': identity,   'index': None},
+  'mean':       {'convert': float,      'index': 1},
+  'std':        {'convert': float,      'index': 1},
+  'vp':         {'convert': bool,       'index': 1}
+}
+
+
+def tsmaker(m, s, j):
+    '''
+    Helper function: randomly generates a time series for testing.
+
+    Parameters
+    ----------
+    m : float
+        Mean value for generating time series data
+    s : float
+        Standard deviation value for generating time series data
+    j : float
+        Quantifies the "jitter" to add to the time series data
+
+    Returns
+    -------
+    A time series and associated meta data.
+    '''
+
+    # generate metadata
+    meta = {}
+    meta['order'] = int(np.random.choice(
+        [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]))
+    meta['blarg'] = int(np.random.choice([1, 2]))
+    meta['vp'] = False  # initialize vantage point indicator as negative
+
+    # generate time series data
+    t = np.arange(0.0, 1.0, 0.01)
+    v = norm.pdf(t, m, s) + j * np.random.randn(100)
+
+    # return time series and metadata
+    return meta, TimeSeries(t, v)
+
+
+# adapted from go_server.py and go_client.py
+# subprocess reference: https://docs.python.org/2/library/subprocess.html
+class test_go_files(asynctest.TestCase):
+
+    def setUp(self):
+
+        # augment the schema by adding column for one vantage point
+        schema['d_vp-1'] = {'convert': float, 'index': 1}
+
+        # initialize the database
+        self.db = DictDB(schema, 'pk')
+
+        # initialize & run the server
+        self.server = subprocess.Popen(['python', 'go_server.py'])
+        time.sleep(5)
+
+        # initialize the protocol
+        self.protocol = TSDBProtocol(self.server)
+
+        # intialize the deserializer
+        self.deserializer = Deserializer()
+
+    # avoids the server hanging
+    def tearDown(self):
+        self.server.terminate()
+        time.sleep(5)
+
+    # to test specific return values
+    async def test_specific_data(self):
+
+        # initialize database client
+        self.client = TSDBClient()
+
+        # a manageable number of test time series
+        num_ts = 50
+        mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
+        sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
+        jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
+
+        # initialize dictionaries for time series and their metadata
+        tsdict = {}
+        metadict = {}
+
+        # fill dictionaries with randomly generated entries for database
+        for i, m, s, j in zip(range(num_ts), mus, sigs, jits):
+            meta, tsrs = tsmaker(m, s, j)  # generate data
+            pk = "ts-{}".format(i)  # generate primary key
+            tsdict[pk] = tsrs  # store time series data
+            metadict[pk] = meta  # store metadata
+
+        # for testing later on
+        ts_keys = sorted(tsdict.keys())
+
+        # randomly choose one time series as the vantage point
+        random_vp = np.random.choice(range(num_ts))
+        vpkey = "ts-{}".format(random_vp)
+
+        # add trigger to calculate the distances to the vantage point
+        await self.client.add_trigger(
+            'corr', 'insert_ts', ['d_vp-1'], tsdict["ts-{}".format(random_vp)])
+        metadict["ts-{}".format(random_vp)]['vp'] = True
+
+        # add more triggers
+        await self.client.add_trigger(
+            'junk', 'insert_ts', None, 'db:one:ts')
+        await self.client.add_trigger(
+            'stats', 'insert_ts', ['mean', 'std'], None)
+
+        # insert the time series and upsert the metadata
+        for k in tsdict:
+            await self.client.insert_ts(k, tsdict[k])
+            await self.client.upsert_meta(k, metadict[k])
+
+        # select all database entries; no metadata fields
+        status, payload = await self.client.select()
+        assert status == 0  # status ok
+        if len(payload) > 0:
+            assert list(payload[list(payload.keys())[0]].keys()) == []
+            assert sorted(payload.keys()) == ts_keys
+
+        # select all database entries; all metadata fields
+        status, payload = await self.client.select(fields=[])
+        assert status == 0  # status ok
+        if len(payload) > 0:
+            assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
+                    ['blarg', 'd_vp-1', 'mean', 'order', 'pk', 'std', 'vp'])
+            assert sorted(payload.keys()) == ts_keys
+
+        # select all database entries; all invalid metadata fields
+        status, payload = await self.client.select(
+            fields=['wrong', 'oops'])
+        assert status == 0  # status ok
+        if len(payload) > 0:
+            assert sorted(list(payload[list(payload.keys())[0]].keys())) == []
+            assert sorted(payload.keys()) == ts_keys
+
+        # select all database entries; some invalid metadata fields
+        status, payload = await self.client.select(fields=['not_there', 'std'])
+        assert status == 0  # status ok
+        if len(payload) > 0:
+            assert list(payload[list(payload.keys())[0]].keys()) == ['std']
+            assert sorted(payload.keys()) == ts_keys
+
+        # select all database entries; specific metadata fields
+        status, payload = await self.client.select(fields=['blarg', 'mean'])
+        assert status == 0  # status ok
+        if len(payload) > 0:
+            assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
+                    ['blarg', 'mean'])
+            assert sorted(payload.keys()) == ts_keys
+
+        # not present based on how time series were generated
+        status, payload = await self.client.select({'order': 10})
+        assert status == 0  # status ok
+        assert len(payload) == 0
+
+        # not present based on how time series were generated
+        status, payload = await self.client.select({'blarg': 0})
+        assert status == 0  # status ok
+        assert len(payload) == 0
+
+        # remove trigger
+        await self.client.remove_trigger('stats', 'insert_ts')
+
+        # add a new time series (without trigger)
+        await self.client.insert_ts('test', tsdict['ts-1'])
+
+        # check that mean and std haven't been added
+        status, payload = await self.client.select(
+            {'pk': 'test'}, fields=[])
+        assert status == 0  # status ok
+        assert len(payload) == 1
+        payload_fields = list(payload[list(payload.keys())[0]].keys())
+        assert 'mean' not in payload_fields
+        assert 'std' not in payload_fields
+
+        # now let's add mean and std back
+        status, payload = await self.client.augmented_select(
+            'stats', ['mean', 'std'], metadata_dict={'pk': 'test'})
+        assert len(payload) == 1
+        payload_fields = list(payload[list(payload.keys())[0]].keys())
+        assert 'mean' in payload_fields
+        assert 'std' in payload_fields
+
+        assert status == 0  # status ok

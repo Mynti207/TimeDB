@@ -31,16 +31,30 @@ class TSDBOp(dict):
         Recursively converts elements in a hierarchical data structure into
         a json-encodable form. Only handles class instances if they have a
         to_json method.
-        '''
-        # TODO: document
 
+        Parameters
+        ----------
+        obj : iterator or other hierarchical data structure
+            Collection of elements to recursively convert into JSON-encodable
+            format.
+
+        Returns
+        -------
+        Dictionary of json-encoded elements
+        '''
+
+        # apply to self if not specified
         if obj is None:
             obj = self
+
+        # initialize return dictionary
         json_dict = {}
 
+        # return object if we are at the bottom of the recursion
         if isinstance(obj, str) or not hasattr(obj, '__len__') or obj is None:
             return obj
 
+        # recursively convert into json format, based on object type
         for k, v in obj.items():
             if isinstance(v, str) or not hasattr(v, '__len__') or v is None:
                 json_dict[k] = v
@@ -54,15 +68,37 @@ class TSDBOp(dict):
                 json_dict[k] = v.to_json()
             else:
                 raise TypeError('Cannot convert object to JSON: '+str(v))
+
+        # return overall result
         return json_dict
 
     @classmethod
     def from_json(cls, json_dict):
-        # TODO: document
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+
+        # check that the operation is present in the dictionary to covert
         if 'op' not in json_dict:
             raise TypeError('Not a TSDB Operation: ' + str(json_dict))
+
+        # check that the operation is present in the dictionary of tsdb
+        # network operations
         if json_dict['op'] not in typemap:
             raise TypeError('Invalid TSDB Operation: ' + str(json_dict['op']))
+
+        # apply relevant class method
         return typemap[json_dict['op']].from_json(json_dict)
 
 
@@ -86,13 +122,26 @@ class TSDBOp_InsertTS(TSDBOp):
         -------
         Nothing, modifies in-place.
         '''
-        print('-----------')
         super().__init__('insert_ts')
         self['pk'], self['ts'] = pk, ts
 
     @classmethod
     def from_json(cls, json_dict):
-        # TODO: document
+        '''
+        Recover database operation from json-encoded dictionary.
+        Note: should not be used for return operation.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
         return cls(json_dict['pk'], TimeSeries(*(json_dict['ts'])))
 
 
@@ -102,13 +151,40 @@ class TSDBOp_Return(TSDBOp):
     '''
 
     def __init__(self, status, op, payload=None):
-        # TODO: document
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        status : int
+            One of four database status codes (see tsdb_ops)
+        payload : dictionary
+            Result of database operation.
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
         super().__init__(op)
         self['status'], self['payload'] = status, payload
 
     @classmethod
-    def from_json(cls, json_dict):  # should not be used
-        # TODO: document
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+        Note: should not be used for return operation.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
         return cls(json_dict['status'], json_dict['payload'])
 
 
@@ -137,7 +213,20 @@ class TSDBOp_UpsertMeta(TSDBOp):
 
     @classmethod
     def from_json(cls, json_dict):
-        # TODO: document
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
         return cls(json_dict['pk'], json_dict['md'])
 
 
@@ -171,15 +260,126 @@ class TSDBOp_Select(TSDBOp):
 
     @classmethod
     def from_json(cls, json_dict):
-        # TODO: document
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
         return cls(json_dict['md'],
                    json_dict['fields'],
                    json_dict['additional'])
 
 
+class TSDBOp_AddTrigger(TSDBOp):
+    '''
+    TSDB network operation: adds a trigger (similar to an event loop in
+    asynchronous programming - i.e. will take some action when a certain
+    event occurs.)
+    '''
+
+    def __init__(self, proc, onwhat, target, arg):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        onwhat : string
+            Operation that triggers the coroutine (e.g. 'insert_ts')
+        target : string
+            Array of field names to which to apply the results of the coroutine
+        arg : string
+            Possible additional arguments ('sort_by' and 'order')
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('add_trigger')
+        self['proc'] = proc
+        self['onwhat'] = onwhat
+        self['target'] = target
+        self['arg'] = arg
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['proc'], json_dict['onwhat'], json_dict['target'],
+                   json_dict['arg'])
+
+
+class TSDBOp_RemoveTrigger(TSDBOp):
+    '''
+    TSDB network operation: removes a previously-set trigger
+    '''
+
+    def __init__(self, proc, onwhat):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs that defines the trigger action
+        onwhat : string
+            Operation that triggers the coroutine (e.g. 'insert_ts')
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('remove_trigger')
+        self['proc'] = proc
+        self['onwhat'] = onwhat
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['proc'], json_dict['onwhat'])
+
+
 class TSDBOp_AugmentedSelect(TSDBOp):
     '''
-    TSDB network operation: combination of select and add trigger operations.
+    TSDB network operation: selects database entries based on specified
+    criteria, then runs a coroutine.
+    Note: result of coroutine is returned to user and is not upserted.
     '''
 
     """
@@ -191,7 +391,30 @@ class TSDBOp_AugmentedSelect(TSDBOp):
     """
 
     def __init__(self, proc, target, arg, md, additional):
-        # TODO: document
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        target : string
+            Array of field names to which to apply the results of the
+            coroutine, and to return.
+        arg : string
+            Possible additional arguments ('sort_by' and 'order')
+        metadata_dict : dictionary
+            Criteria to apply to metadata
+        additional : dictionary
+            Additional criteria, e.g. apply sorting (default=None)
+        verbose : boolean
+            Determines whether status updates are displayed
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
         super().__init__('augmented_select')
         self['md'] = md
         self['additional'] = additional
@@ -201,47 +424,22 @@ class TSDBOp_AugmentedSelect(TSDBOp):
 
     @classmethod
     def from_json(cls, json_dict):
-        # TODO: document
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
         return cls(json_dict['proc'], json_dict['target'], json_dict['arg'],
                    json_dict['md'], json_dict['additional'])
-
-
-class TSDBOp_AddTrigger(TSDBOp):
-    '''
-    TSDB network operation: TODO
-    '''
-
-    def __init__(self, proc, onwhat, target, arg):
-        # TODO: document
-        super().__init__('add_trigger')
-        self['proc'] = proc
-        self['onwhat'] = onwhat
-        self['target'] = target
-        self['arg'] = arg
-
-    @classmethod
-    def from_json(cls, json_dict):
-        # TODO: document
-        return cls(json_dict['proc'], json_dict['onwhat'], json_dict['target'],
-                   json_dict['arg'])
-
-
-class TSDBOp_RemoveTrigger(TSDBOp):
-    '''
-    TSDB network operation: TODO
-    '''
-
-    def __init__(self, proc, onwhat):
-        # TODO: document
-        print('-----------')
-        super().__init__('remove_trigger')
-        self['proc'] = proc
-        self['onwhat'] = onwhat
-
-    @classmethod
-    def from_json(cls, json_dict):
-        # TODO: document
-        return cls(json_dict['proc'], json_dict['onwhat'])
 
 
 # dictionary of tsdb network operations
