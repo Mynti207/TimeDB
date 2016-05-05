@@ -193,7 +193,8 @@ class InlineComponents(TopologicalFlowgraphOptimization):
 
             target = self.component_cache[cnode.ref]
 
-            id_map = {}  # maps node ids in target to node id's in flowgraph
+            # maps node ids in target to node id's in flowgraph
+            id_map = {}
 
             # add a copy of every node in target flowgraph
             for tnode in target.nodes.values():

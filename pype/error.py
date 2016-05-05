@@ -10,4 +10,4 @@ class PypeTypeError(Exception):
 
 
 def Warn(msg):
-    sys.stderr.write('PypeWarning: '+str(msg)+'\n')
+    sys.stderr.write('PypeWarning: ' + str(msg) + '\n')

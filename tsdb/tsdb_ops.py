@@ -43,9 +43,9 @@ class TSDBOp(dict):
     @classmethod
     def from_json(cls, json_dict):
         if 'op' not in json_dict:
-            raise TypeError('Not a TSDB Operation: '+str(json_dict))
+            raise TypeError('Not a TSDB Operation: ' + str(json_dict))
         if json_dict['op'] not in typemap:
-            raise TypeError('Invalid TSDB Operation: '+str(json_dict['op']))
+            raise TypeError('Invalid TSDB Operation: ' + str(json_dict['op']))
         return typemap[json_dict['op']].from_json(json_dict)
 
 
@@ -96,7 +96,9 @@ class TSDBOp_Select(TSDBOp):
 
     @classmethod
     def from_json(cls, json_dict):
-        return cls(json_dict['md'], json_dict['fields'], json_dict['additional'])
+        return cls(json_dict['md'],
+                   json_dict['fields'],
+                   json_dict['additional'])
 
 
 class TSDBOp_AugmentedSelect(TSDBOp):

@@ -5,22 +5,27 @@ LENGTH_FIELD_LENGTH = 4
 
 
 def serialize(json_obj):
-    '''Turn a JSON object into bytes suitable for writing out to the network.
+    '''
+    Turn a JSON object into bytes suitable for writing out to the network.
 
     Includes a fixed-width length field to simplify reconstruction on the other
-    end of the wire.'''
+    end of the wire.
+    '''
     # your code here. Returns the bytes on the wire
     obj_serialized = bytearray(json.dumps(json_obj), 'utf-8')
 
     # Starting the buffer with the length of the buffer
-    buf = (len(obj_serialized) + LENGTH_FIELD_LENGTH).to_bytes(LENGTH_FIELD_LENGTH, byteorder="little")
+    buf = (len(obj_serialized) +
+           LENGTH_FIELD_LENGTH).to_bytes(LENGTH_FIELD_LENGTH,
+                                         byteorder="little")
     buf += obj_serialized
 
     return buf
 
 
 class Deserializer(object):
-    '''A buffering and bytes-to-json engine.
+    '''
+    A buffering and bytes-to-json engine.
 
     Data can be received in arbitrary chunks of bytes, and we need a way to
     reconstruct variable-length JSON objects from that interface. This class
@@ -28,7 +33,8 @@ class Deserializer(object):
     a length field pulled off the wire). To use this, shove bytes in with the
     append() function and call ready() to check if we've reconstructed a JSON
     object. If True, then call deserialize to return it. That object will be
-    removed from this buffer after it is returned.'''
+    removed from this buffer after it is returned.
+    '''
 
     def __init__(self):
         self.buf = b''
@@ -53,9 +59,9 @@ class Deserializer(object):
         # There may be more data in the buffer already, so preserve it
         self._maybe_set_length()
         try:
-            #Note how now everything is assumed to be an OrderedDict
+            # Note how now everything is assumed to be an OrderedDict
             obj = json.loads(json_str, object_pairs_hook=OrderedDict)
-            #print("OBJ", obj)
+            # print("OBJ", obj)
             return obj
         except json.JSONDecodeError:
             print('Invalid JSON object received:\n'+str(json_str))

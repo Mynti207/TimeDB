@@ -15,7 +15,10 @@ def check_arguments(request_type, request_json, *required_args):
     '''
     for arg in required_args:
         if arg not in request_json:
-            return bytes('Bad format of data with request {}. Parameters expected are: {}'.format(request_type, ', '.join(required_args)), 'utf-8')
+            return bytes('Bad format of data with request {}. Parameters ',
+                         'expected are: {}'.
+                         format(request_type, ', '.join(required_args)),
+                         'utf-8')
     return None
 
 
@@ -39,7 +42,8 @@ class Handler(object):
         self.client = TSDBClient()
 
     async def handle_intro(self, request):
-        return aiohttp.web.Response(body=b"REST API for TimeSeries Implementation")
+        return aiohttp.web.Response(body='REST API for '
+                                    'TimeSeries Implementation')
 
     async def handle_insert_ts(self, request):
         request_json = await request.json()
@@ -79,7 +83,8 @@ class Handler(object):
         # No required argument
         md = request_json['md'] if 'md' in request_json else {}
         fields = request_json['fields'] if 'fields' in request_json else None
-        additional = request_json['additional'] if 'additional' in request_json else None
+        additional = (request_json['additional']
+                      if 'additional' in request_json else None)
 
         status, payload = await self.client.select(metadata_dict=md,
                                                    fields=fields,
@@ -92,16 +97,20 @@ class Handler(object):
 
         # Checking format
         required_args = ['proc', 'target']
-        check = check_arguments('augmented_select', request_json, *required_args)
+        check = check_arguments('augmented_select',
+                                request_json, *required_args)
         if check is not None:
             return aiohttp.web.Response(body=check)
 
         proc = request_json['proc']
         target = request_json['target']
         md = request_json['md'] if 'md' in request_json else {}
-        arg = ts.TimeSeries(*request_json['arg']) if 'arg' in request_json else None
-        additional = request_json['additional'] if 'additional' in request_json else None
-        status, payload = await self.client.augmented_select(proc, target,
+        arg = (ts.TimeSeries(*request_json['arg'])
+               if 'arg' in request_json else None)
+        additional = (request_json['additional']
+                      if 'additional' in request_json else None)
+        status, payload = await self.client.augmented_select(proc,
+                                                             target,
                                                              arg=arg,
                                                              metadata_dict=md,
                                                              additional=additional)
@@ -120,9 +129,12 @@ class Handler(object):
         proc = request_json['proc']
         onwhat = request_json['onwhat']
         target = request_json['target']
-        arg = ts.TimeSeries(*request_json['arg']) if 'arg' in request_json else None
+        arg = (ts.TimeSeries(*request_json['arg'])
+               if 'arg' in request_json else None)
 
-        status, payload = await self.client.add_trigger(proc, onwhat, target,
+        status, payload = await self.client.add_trigger(proc,
+                                                        onwhat,
+                                                        target,
                                                         arg)
 
         return aiohttp.web.Response(body=get_body(status, payload))
@@ -156,7 +168,8 @@ class Handler(object):
         top = int(request_json['top']) if 'top' in request_json else 1
 
         # Computing the distance to the query timeseries
-        status, results = await self.client.augmented_select('corr', ['d'],
+        status, results = await self.client.augmented_select('corr',
+                                                             ['d'],
                                                              query)
         # Retrieving the closest ts with associated distance
         nearestwanted = [(k, results[k]['d']) for k in results.keys()]

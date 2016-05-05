@@ -6,12 +6,14 @@ import asyncio
 
 from scipy.stats import norm
 
+
 # m is the mean, s is the standard deviation, and j is the jitter
 # the meta just fills in values for order and blarg from the schema
 def tsmaker(m, s, j):
     "returns metadata and a time series in the shape of a jittered normal"
-    meta={}
-    meta['order'] = int(np.random.choice([-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]))
+    meta = {}
+    meta['order'] = int(np.random.choice([-5, -4, -3, -2, -1, 0,
+                                          1, 2, 3, 4, 5]))
     meta['blarg'] = int(np.random.choice([1, 2]))
     t = np.arange(0.0, 1.0, 0.01)
     v = norm.pdf(t, m, s) + j*np.random.randn(100)
@@ -89,7 +91,8 @@ async def main():
     _, bla = await client.select({'order': 1, 'blarg': 2})
     print(bla)
 
-    print('------------order >= 4  order, blarg and mean sent back, also sorted---------')
+    print('------------order >= 4  order, blarg and mean sent back,'
+          'also sorted---------')
     _, results = await client.select({'order': {'>=': 4}},
                                      fields=['order', 'blarg', 'mean'],
                                      additional={'sort_by': '-order'})
@@ -113,26 +116,34 @@ async def main():
     # Step 1: in the vpdist key, get  distances from query to vantage points
     # this is an augmented select
     vpdist = {}
-    _, result_distance = await client.augmented_select('corr', ['vpdist'], query, {'vp':{'==':True}})
-    vpdist = {v:result_distance[v]['vpdist'] for v in vpkeys}
+    _, result_distance = await client.augmented_select('corr',
+                                                       ['vpdist'],
+                                                       query,
+                                                       {'vp': {'==': True}})
+    vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
     print(vpdist)
     # 1b: choose the lowest distance vantage point
     # you can do this in local code
-    nearest_vp_to_query = min(vpkeys, key=lambda v:vpdist[v])
+    nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
 
     # Step 2: find all time series within 2*d(query, nearest_vp_to_query)
     # this is an augmented select to the same proc in correlation
-    radius = 2*vpdist[nearest_vp_to_query]
+    radius = 2 * vpdist[nearest_vp_to_query]
     print('Radius is {}'.format(radius))
     # Find the reative index of the nearest_vp_to_query
     relative_index_vp = vpkeys.index(nearest_vp_to_query)
-    _, results = await client.augmented_select('corr', ['towantedvp'], query,
-                                               {'d_vp-{}'.format(relative_index_vp):{'<=': radius}})
+    _, results = await client.augmented_select('corr',
+                                               ['towantedvp'],
+                                               query,
+                                               {'d_vp-{}'.format(
+                                                relative_index_vp):
+                                                {'<=': radius}})
 
-    #2b: find the smallest distance amongst this ( or k smallest)
-    #you can do this in local code
-    nearestwanted = min(results.keys(), key=lambda k:results[k]['towantedvp'])
-    print('nearest is {} distance is {}'.format(nearestwanted, results[nearestwanted]['towantedvp']))
+    # 2b: find the smallest distance amongst this ( or k smallest)
+    # you can do this in local code
+    nearestwanted = min(results.keys(), key=lambda k: results[k]['towantedvp'])
+    print('nearest is {} distance is {}'.
+          format(nearestwanted, results[nearestwanted]['towantedvp']))
     # your code here ends
     # plot the timeseries to see visually how we did.
     import matplotlib.pyplot as plt
@@ -140,7 +151,7 @@ async def main():
     plt.plot(tsdict[nearestwanted])
     plt.show()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     # Run the coroutine main
     loop = asyncio.get_event_loop()
     coro = asyncio.ensure_future(main())

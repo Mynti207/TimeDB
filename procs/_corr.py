@@ -4,10 +4,6 @@ import timeseries as ts
 from scipy.stats import norm
 from collections import deque
 
-# for debugging purposes
-# import sys
-# sys.path.append('/Users/nicolasdrizard/Documents/Course CSE/CS207/TimeDB/procs')
-
 
 def tsmaker(m, s, j):
     '''
@@ -73,36 +69,3 @@ def kernel_corr(ts1, ts2, mult=1):
     denom = np.sqrt(np.sum(np.exp(mult * ccor(ts1, ts1))) *
                     np.sum(np.exp(mult * ccor(ts2, ts2))))
     return num/denom
-
-
-# adapted and move to test suite
-# if __name__ == "__main__":
-#     '''
-#     Used to test the above functions.
-#     '''
-#     print("HI")
-#     _, t1 = tsmaker(0.5, 0.1, 0.01)
-#     _, t2 = tsmaker(0.5, 0.1, 0.01)
-#     print(t1.mean(), t1.std(), t2.mean(), t2.std())
-#     import matplotlib.pyplot as plt
-#     plt.plot(t1)
-#     plt.plot(t2)
-#     plt.show()
-#     standts1 = stand(t1, t1.mean(), t1.std())
-#     standts2 = stand(t2, t2.mean(), t2.std())
-#
-#     idx, mcorr = max_corr_at_phase(standts1, standts2)
-#     print(idx, mcorr)
-#     sumcorr = kernel_corr(standts1, standts2, mult=10)
-#     print(sumcorr)
-#     t3 = random_ts(2)
-#     t4 = random_ts(3)
-#     plt.plot(t3)
-#     plt.plot(t4)
-#     plt.show()
-#     standts3 = stand(t3, t3.mean(), t3.std())
-#     standts4 = stand(t4, t4.mean(), t4.std())
-#     idx, mcorr = max_corr_at_phase(standts3, standts4)
-#     print(idx, mcorr)
-#     sumcorr = kernel_corr(standts3, standts4, mult=10)
-#     print(sumcorr)
