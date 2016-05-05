@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-# and_(a, b) is the bitwise and of a and b
 import operator
 
 # dictionary that maps operator functions, useful for select operations

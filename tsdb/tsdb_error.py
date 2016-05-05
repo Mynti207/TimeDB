@@ -2,6 +2,11 @@ import enum
 
 
 class TSDBStatus(enum.IntEnum):
+    '''
+    Provides error and status handling.
+    '''
+
+    # status/error codes
     OK = 0
     UNKNOWN_ERROR = 1
     INVALID_OPERATION = 2
