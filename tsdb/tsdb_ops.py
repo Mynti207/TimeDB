@@ -102,49 +102,6 @@ class TSDBOp(dict):
         return typemap[json_dict['op']].from_json(json_dict)
 
 
-class TSDBOp_InsertTS(TSDBOp):
-    '''
-    TSDB network operation: inserts a time series into the database.
-    '''
-
-    def __init__(self, pk, ts):
-        '''
-        Initializes the class.
-
-        Parameters
-        ----------
-        pk : any hashable type
-            Primary key for the new database entry
-        ts : TimeSeries
-            Time series to be inserted into the database.
-
-        Returns
-        -------
-        Nothing, modifies in-place.
-        '''
-        super().__init__('insert_ts')
-        self['pk'], self['ts'] = pk, ts
-
-    @classmethod
-    def from_json(cls, json_dict):
-        '''
-        Recover database operation from json-encoded dictionary.
-        Note: should not be used for return operation.
-
-        Parameters
-        ----------
-        cls : class
-            TSDB network operation type
-        json_dict : dictionary
-            Dictionary for conversion from json format.
-
-        Returns
-        -------
-        Unencoded database network operation
-        '''
-        return cls(json_dict['pk'], TimeSeries(*(json_dict['ts'])))
-
-
 class TSDBOp_Return(TSDBOp):
     '''
     TSDB network operation: returns the result of running a database operation.
@@ -186,6 +143,49 @@ class TSDBOp_Return(TSDBOp):
         Unencoded database network operation
         '''
         return cls(json_dict['status'], json_dict['payload'])
+
+
+class TSDBOp_InsertTS(TSDBOp):
+    '''
+    TSDB network operation: inserts a time series into the database.
+    '''
+
+    def __init__(self, pk, ts):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the new database entry
+        ts : TimeSeries
+            Time series to be inserted into the database.
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('insert_ts')
+        self['pk'], self['ts'] = pk, ts
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+        Note: should not be used for return operation.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['pk'], TimeSeries(*(json_dict['ts'])))
 
 
 class TSDBOp_UpsertMeta(TSDBOp):
@@ -277,6 +277,139 @@ class TSDBOp_Select(TSDBOp):
         return cls(json_dict['md'],
                    json_dict['fields'],
                    json_dict['additional'])
+
+
+class TSDBOp_AugmentedSelect(TSDBOp):
+    '''
+    TSDB network operation: selects database entries based on specified
+    criteria, then runs a coroutine.
+    Note: result of coroutine is returned to user and is not upserted.
+    '''
+
+    """
+    A hybrid of select, and add trigger, we only miss the onwhat key as this op
+    is used as an add on to selects. We remove the fields arg from select, as
+    the only fields sent back are the ones in target, which is used as in
+    add_trigger, except that instead of upserting meta with the targets, that
+    data is sent back to the user.
+    """
+
+    def __init__(self, proc, target, arg, md, additional):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        target : string
+            Array of field names to which to apply the results of the
+            coroutine, and to return.
+        arg : string
+            Possible additional arguments ('sort_by' and 'order')
+        metadata_dict : dictionary
+            Criteria to apply to metadata
+        additional : dictionary
+            Additional criteria, e.g. apply sorting (default=None)
+        verbose : boolean
+            Determines whether status updates are displayed
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('augmented_select')
+        self['md'] = md
+        self['additional'] = additional
+        self['proc'] = proc
+        self['arg'] = arg
+        self['target'] = target
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['proc'], json_dict['target'], json_dict['arg'],
+                   json_dict['md'], json_dict['additional'])
+
+class TSDBOp_AugmentedSelect(TSDBOp):
+    '''
+    TSDB network operation: selects database entries based on specified
+    criteria, then runs a coroutine.
+    Note: result of coroutine is returned to user and is not upserted.
+    '''
+
+    """
+    A hybrid of select, and add trigger, we only miss the onwhat key as this op
+    is used as an add on to selects. We remove the fields arg from select, as
+    the only fields sent back are the ones in target, which is used as in
+    add_trigger, except that instead of upserting meta with the targets, that
+    data is sent back to the user.
+    """
+
+    def __init__(self, proc, target, arg, md, additional):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        target : string
+            Array of field names to which to apply the results of the
+            coroutine, and to return.
+        arg : string
+            Possible additional arguments ('sort_by' and 'order')
+        metadata_dict : dictionary
+            Criteria to apply to metadata
+        additional : dictionary
+            Additional criteria, e.g. apply sorting (default=None)
+        verbose : boolean
+            Determines whether status updates are displayed
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('augmented_select')
+        self['md'] = md
+        self['additional'] = additional
+        self['proc'] = proc
+        self['arg'] = arg
+        self['target'] = target
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['proc'], json_dict['target'], json_dict['arg'],
+                   json_dict['md'], json_dict['additional'])
 
 
 class TSDBOp_AddTrigger(TSDBOp):
@@ -373,73 +506,6 @@ class TSDBOp_RemoveTrigger(TSDBOp):
         Unencoded database network operation
         '''
         return cls(json_dict['proc'], json_dict['onwhat'])
-
-
-class TSDBOp_AugmentedSelect(TSDBOp):
-    '''
-    TSDB network operation: selects database entries based on specified
-    criteria, then runs a coroutine.
-    Note: result of coroutine is returned to user and is not upserted.
-    '''
-
-    """
-    A hybrid of select, and add trigger, we only miss the onwhat key as this op
-    is used as an add on to selects. We remove the fields arg from select, as
-    the only fields sent back are the ones in target, which is used as in
-    add_trigger, except that instead of upserting meta with the targets, that
-    data is sent back to the user.
-    """
-
-    def __init__(self, proc, target, arg, md, additional):
-        '''
-        Initializes the class.
-
-        Parameters
-        ----------
-        proc : string
-            Name of the module in procs with a coroutine that defines the
-            action to take when the trigger is met
-        target : string
-            Array of field names to which to apply the results of the
-            coroutine, and to return.
-        arg : string
-            Possible additional arguments ('sort_by' and 'order')
-        metadata_dict : dictionary
-            Criteria to apply to metadata
-        additional : dictionary
-            Additional criteria, e.g. apply sorting (default=None)
-        verbose : boolean
-            Determines whether status updates are displayed
-
-        Returns
-        -------
-        Nothing, modifies in-place.
-        '''
-        super().__init__('augmented_select')
-        self['md'] = md
-        self['additional'] = additional
-        self['proc'] = proc
-        self['arg'] = arg
-        self['target'] = target
-
-    @classmethod
-    def from_json(cls, json_dict):
-        '''
-        Recover database operation from json-encoded dictionary.
-
-        Parameters
-        ----------
-        cls : class
-            TSDB network operation type
-        json_dict : dictionary
-            Dictionary for conversion from json format.
-
-        Returns
-        -------
-        Unencoded database network operation
-        '''
-        return cls(json_dict['proc'], json_dict['target'], json_dict['arg'],
-                   json_dict['md'], json_dict['additional'])
 
 
 # dictionary of tsdb network operations

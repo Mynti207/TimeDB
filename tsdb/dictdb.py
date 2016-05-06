@@ -5,7 +5,7 @@ import operator
 # dictionary that maps operator functions, useful for select operations
 OPMAP = {
     '<': operator.lt,
-    '>': operator.le,
+    '>': operator.gt,
     '==': operator.eq,
     '!=': operator.ne,
     '<=': operator.le,

@@ -116,6 +116,44 @@ class TSDBClient(object):
         # return the result of sending the message
         return status, payload
 
+    async def augmented_select(self, proc, target, arg=None, metadata_dict={},
+                               additional=None):
+        '''
+        Select database entries based on specified criteria, then run a
+        coroutine.
+        Note: result of coroutine is returned to user and is not upserted.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        target : string
+            Array of field names to which to apply the results of the
+            coroutine, and to return.
+        arg : string
+            Possible additional arguments ('sort_by' and 'order')
+        metadata_dict : dictionary
+            Criteria to apply to metadata
+        additional : dictionary
+            Additional criteria, e.g. apply sorting (default=None)
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
+                                     additional).to_json()
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+        # return the result of sending the message
+        return status, payload
+
     async def add_trigger(self, proc, onwhat, target, arg):
         '''
         Adds a trigger - similar to an event in asynchronous programming,
@@ -175,44 +213,6 @@ class TSDBClient(object):
         # send message
         status, payload = await self._send(msg)
 
-        # return the result of sending the message
-        return status, payload
-
-    async def augmented_select(self, proc, target, arg=None, metadata_dict={},
-                               additional=None):
-        '''
-        Select database entries based on specified criteria, then run a
-        coroutine.
-        Note: result of coroutine is returned to user and is not upserted.
-
-        Parameters
-        ----------
-        proc : string
-            Name of the module in procs with a coroutine that defines the
-            action to take when the trigger is met
-        target : string
-            Array of field names to which to apply the results of the
-            coroutine, and to return.
-        arg : string
-            Possible additional arguments ('sort_by' and 'order')
-        metadata_dict : dictionary
-            Criteria to apply to metadata
-        additional : dictionary
-            Additional criteria, e.g. apply sorting (default=None)
-
-        Returns
-        -------
-        Result of sending the message with the TSDB operation.
-        '''
-
-        # convert operation into message in json form
-        msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
-                                     additional).to_json()
-        # status update
-        if self.verbose: print('C> msg', msg)
-
-        # send message
-        status, payload = await self._send(msg)
         # return the result of sending the message
         return status, payload
 
