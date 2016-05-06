@@ -36,7 +36,7 @@ class DictDB:
         self.pkfield = pkfield
         
         # set up indexes
-        #self.pks = PKIndex(self.dbname)
+        self.pks = PKIndex(self.dbname)
         for field, value in self.schema.items():
             if (len(value['values'] <= CARD_THRESHOLD):
                 self.indexes[field] = BMaskIndex(field)
@@ -48,8 +48,8 @@ class DictDB:
             os.makedirs(data_dir)
         
         # open files for reading meta data and ts data
-        #self.meta_heap = MeatHeapFile(self.data_dir, schema)
-        self.ts_heap = TSHeapFile(self.data_dir, self.ts_length)
+        self.meta_heap = MeatHeap(self.data_dir, schema)
+        self.ts_heap = TSHeap(self.data_dir, self.ts_length)
 
     def insert_ts(self, pk, ts):
         '''
