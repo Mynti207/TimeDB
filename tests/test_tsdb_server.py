@@ -57,7 +57,7 @@ def test_server():
 
     ########################################
     #
-    # database initializations
+    # set up
     #
     ########################################
 
@@ -105,7 +105,7 @@ def test_server():
     # randomly choose one time series as the vantage point
     random_vp = np.random.choice(range(num_ts))
     vpkey = "ts-{}".format(random_vp)
-    metadict["ts-{}".format(random_vp)]['vp'] = True
+    metadict[vpkey]['vp'] = True
 
     ########################################
     #
@@ -335,10 +335,10 @@ def test_server():
 
     # package the operation
     op = {'op': 'add_trigger', 'proc': 'corr', 'onwhat': 'insert_ts',
-          'target': ['d_vp-1'], 'arg': tsdict["ts-{}".format(random_vp)]}
+          'target': ['d_vp-1'], 'arg': tsdict[vpkey]}
     # test that this is packaged as expected
     assert op == TSDBOp_AddTrigger('corr', 'insert_ts', ['d_vp-1'],
-                                   tsdict["ts-{}".format(random_vp)])
+                                   tsdict[vpkey])
     # run operation
     result = protocol._add_trigger(op)
     # unpack results
@@ -496,6 +496,12 @@ def test_server():
     payload_fields = list(payload[list(payload.keys())[0]].keys())
     assert 'mean' in payload_fields
     assert 'std' in payload_fields
+
+    ########################################
+    #
+    # tear down
+    #
+    ########################################
 
     db = None
     server = None

@@ -25,10 +25,10 @@ def main():
         schema["d_vp-{}".format(i)] = {'convert': float, 'index': 1}
 
     # initialize the database
-    db = DictDB(schema, 'pk')
+    db = DictDB(schema, 'pk', verbose=False)
 
     # initialize & run the server
-    server = TSDBServer(db)
+    server = TSDBServer(db, verbose=False)
     server.run()
 
 if __name__ == '__main__':

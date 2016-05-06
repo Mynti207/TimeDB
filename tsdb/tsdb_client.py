@@ -28,7 +28,7 @@ class TSDBClient(object):
         An initialized TSDB client object
         '''
         self.port = port
-        self.verbose = False
+        self.verbose = verbose
 
     async def insert_ts(self, primary_key, ts):
         '''

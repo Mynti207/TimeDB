@@ -4,6 +4,7 @@ import timeseries as ts
 import numpy as np
 import asyncio
 import matplotlib.pyplot as plt
+import sys
 
 from scipy.stats import norm
 
@@ -44,25 +45,24 @@ def tsmaker(m, s, j):
     return meta, ts.TimeSeries(t, v)
 
 
-async def main(plot_graph):
+async def main():
 
     print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
 
     # initialize database client
-    client = TSDBClient()
+    client = TSDBClient(verbose=False)
 
-    # add a trigger - note: does not do anything
-    await client.add_trigger('junk', 'insert_ts', None, 'db:one:ts')
+    ########################################
+    #
+    # create dummy data
+    #
+    ########################################
 
-    # add stats trigger to calculate mean and standard deviation of
-    # every time series that is added
-    await client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
-
-    # randomly generate mean, standard deviation and jitter parameters for
-    # 50 time series
-    mus = np.random.uniform(low=0.0, high=1.0, size=50)
-    sigs = np.random.uniform(low=0.05, high=0.4, size=50)
-    jits = np.random.uniform(low=0.05, high=0.2, size=50)
+    # time series parameters
+    num_ts = 50
+    mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
+    sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
+    jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
 
     # initialize dictionaries for time series and their metadata
     tsdict = {}
@@ -79,13 +79,36 @@ async def main(plot_graph):
     random_vps = np.random.choice(range(50), size=NUMVPS, replace=False)
     vpkeys = ["ts-{}".format(i) for i in random_vps]
 
+    # change the metadata for the vantage points to have meta['vp']=True
+    for i in range(NUMVPS):
+        metadict[vpkeys[i]]['vp'] = True
+
+    ########################################
+    #
+    # trigger operations
+    #
+    ########################################
+
+    # add a trigger - note: does not do anything
+    await client.add_trigger('junk', 'insert_ts', None, 'db:one:ts')
+
+    # add stats trigger to calculate mean and standard deviation of
+    # every time series that is added
+    await client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
+
     # add triggers to calculate the distances to the five vantage points
     for i in range(NUMVPS):
-        # add 5 triggers to upsert distances to these vantage points
         await client.add_trigger('corr', 'insert_ts',
                                  ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
-        # change the metadata for the vantage points to have meta['vp']=True
-        metadict[vpkeys[i]]['vp'] = True
+
+    ########################################
+    #
+    # time series insertion & metadata upsertion
+    #
+    ########################################
+
+    print("\nSTARTING UPSERTS")
+    print('\n---------------------')
 
     # insert the time series and upsert the metadata
     for k in tsdict:
@@ -94,7 +117,15 @@ async def main(plot_graph):
 
     print("\nUPSERTS FINISHED")
     print('\n---------------------')
+
+    ########################################
+    #
+    # selects
+    #
+    ########################################
+
     print("\nSTARTING SELECTS")
+    print('\n---------------------')
 
     # select all database entries; no metadata fields
     print('\n---------DEFAULT------------')
@@ -165,54 +196,59 @@ async def main(plot_graph):
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
-    # TODO: what does this do??
-    print('\n------now computing vantage point stuff---------------------')
+    print("\nSELECTS FINISHED")
+    print('\n---------------------')
+
+    ########################################
+    #
+    # time series similarity search
+    #
+    ########################################
+
+    print("\nSTARTING TIME SERIES SIMILARITY SEARCH")
+    print('\n---------------------')
+
+    # primary keys of vantage points
     print("VPS", vpkeys)
 
-    # we first create a query time series.
+    # first create a query time series
     _, query = tsmaker(0.5, 0.2, 0.1)
 
-    # your code here begins
-
-    # Step 1: in the vpdist key, get  distances from query to vantage points
-    # this is an augmented select
-    vpdist = {}
-    _, result_distance = await client.augmented_select('corr',
-                                                       ['vpdist'],
-                                                       query,
-                                                       {'vp': {'==': True}})
+    # get distances from query time series to all the vantage points
+    _, result_distance = await client.augmented_select(
+        'corr', ['vpdist'], query, {'vp': {'==': True}})
     vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
     print(vpdist)
-    # 1b: choose the lowest distance vantage point
-    # you can do this in local code
+
+    # pick the closest vantage point
     nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
 
-    # Step 2: find all time series within 2*d(query, nearest_vp_to_query)
-    # this is an augmented select to the same proc in correlation
+    # define circle radius as 2 x distance to closest vantage point
     radius = 2 * vpdist[nearest_vp_to_query]
     print('Radius: {:.2f}'.format(radius))
-    # Find the reative index of the nearest_vp_to_query
-    relative_index_vp = vpkeys.index(nearest_vp_to_query)
-    _, results = await client.augmented_select('corr',
-                                               ['towantedvp'],
-                                               query,
-                                               {'d_vp-{}'.format(
-                                                relative_index_vp):
-                                                {'<=': radius}})
 
-    # 2b: find the smallest distance amongst this ( or k smallest)
-    # you can do this in local code
+    # find relative index of nearest vantage point
+    relative_index_vp = vpkeys.index(nearest_vp_to_query)
+
+    # calculate distance to all time series within the circle radius
+    _, results = await client.augmented_select(
+        'corr', ['towantedvp'], query, {'d_vp-{}'.format(relative_index_vp):
+                                        {'<=': radius}})
+
+    # find the closest time series
     nearestwanted = min(results.keys(), key=lambda k: results[k]['towantedvp'])
     print('Nearest time series: {}; distance: {:.2f}'.
           format(nearestwanted, results[nearestwanted]['towantedvp']))
 
-    # plot the timeseries to see visually how we did.
-    if plot_graph:
-        plt.plot(query)
-        plt.plot(tsdict[nearestwanted])
-        plt.show()
+    # visualize results
+    plt.plot(query)
+    plt.plot(tsdict[nearestwanted])
+    plt.show()
+
+    print("\nTIME SERIES SIMILARITY SEARCH FINISHED")
+    print('\n---------------------')
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    coro = asyncio.ensure_future(main(plot_graph=False))
+    coro = asyncio.ensure_future(main())
     loop.run_until_complete(coro)

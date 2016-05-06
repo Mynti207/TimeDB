@@ -144,5 +144,6 @@ class Deserializer(object):
             return json.loads(json_str, object_pairs_hook=OrderedDict)
         except json.JSONDecodeError:
             # otherwise it is not valid json data, so don't return it
-            if self.verbose: print('Invalid JSON object received:\n' + str(json_str))
+            if self.verbose: print('Invalid JSON object received:\n' +
+                                   str(json_str))
             return None

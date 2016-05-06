@@ -56,7 +56,7 @@ class TSDBProtocol(asyncio.Protocol):
         An initialized TSDB protocol object
         '''
         self.server = server
-        self.deserializer = Deserializer()
+        self.deserializer = Deserializer(verbose=verbose)
         self.futures = []
         self.verbose = verbose
 

@@ -9,20 +9,6 @@ import time
 import subprocess
 
 
-identity = lambda x: x
-
-schema = {
-  'pk':         {'convert': identity,   'index': None},
-  'ts':         {'convert': identity,   'index': None},
-  'order':      {'convert': int,        'index': 1},
-  'blarg':      {'convert': int,        'index': 1},
-  'useless':    {'convert': identity,   'index': None},
-  'mean':       {'convert': float,      'index': 1},
-  'std':        {'convert': float,      'index': 1},
-  'vp':         {'convert': bool,       'index': 1}
-}
-
-
 def tsmaker(m, s, j):
     '''
     Helper function: randomly generates a time series for testing.
@@ -63,18 +49,15 @@ def tsmaker(m, s, j):
 # adapted from go_server.py and go_client.py
 # subprocess reference: https://docs.python.org/2/library/subprocess.html
 #
+# note: server code run through the subprocess is not reflected in coverage
+#
 ########################################
+
 
 class test_client(asynctest.TestCase):
 
     # database initializations
     def setUp(self):
-
-        # augment the schema by adding column for one vantage point
-        schema['d_vp-1'] = {'convert': float, 'index': 1}
-
-        # initialize the database
-        self.db = DictDB(schema, 'pk')
 
         # initialize & run the server
         self.server = subprocess.Popen(['python', 'go_server.py'])
@@ -117,10 +100,15 @@ class test_client(asynctest.TestCase):
         # for testing later on
         ts_keys = sorted(tsdict.keys())
 
-        # randomly choose one time series as the vantage point
-        random_vp = np.random.choice(range(num_ts))
-        vpkey = "ts-{}".format(random_vp)
-        metadict["ts-{}".format(random_vp)]['vp'] = True
+        # randomly choose two time series as the vantage points
+        num_vps = 2
+        random_vps = np.random.choice(range(num_ts), size=num_vps,
+                                      replace=False)
+        vpkeys = ["ts-{}".format(i) for i in random_vps]
+
+        # change the metadata for the vantage points to have meta['vp']=True
+        for i in range(num_vps):
+            metadict[vpkeys[i]]['vp'] = True
 
         ########################################
         #
@@ -129,10 +117,11 @@ class test_client(asynctest.TestCase):
         ########################################
 
         # add trigger to calculate the distances to the vantage point
-        status, payload = await self.client.add_trigger(
-            'corr', 'insert_ts', ['d_vp-1'], tsdict["ts-{}".format(random_vp)])
-        assert status == TSDBStatus.OK
-        assert payload is None
+        for i in range(num_vps):
+            status, payload = await self.client.add_trigger(
+                'corr', 'insert_ts', ['d_vp-{}'.format(i)], tsdict[vpkeys[i]])
+            assert status == TSDBStatus.OK
+            assert payload is None
 
         # add dummy trigger
         status, payload = await self.client.add_trigger(
@@ -183,7 +172,8 @@ class test_client(asynctest.TestCase):
             assert payload is None
 
         # try to add duplicate primary key
-        status, payload = await self.client.insert_ts(vpkey, tsdict[vpkey])
+        status, payload = await self.client.insert_ts(
+            vpkeys[0], tsdict[vpkeys[0]])
         assert status == TSDBStatus.INVALID_KEY
         assert payload is None
 
@@ -217,7 +207,8 @@ class test_client(asynctest.TestCase):
         assert status == TSDBStatus.OK
         if len(payload) > 0:
             assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
-                    ['blarg', 'd_vp-1', 'mean', 'order', 'pk', 'std', 'vp'])
+                    ['blarg', 'd_vp-0', 'd_vp-1', 'mean', 'order', 'pk', 'std',
+                     'vp'])
             assert sorted(payload.keys()) == ts_keys
 
         # select all database entries; all invalid metadata fields
@@ -306,3 +297,42 @@ class test_client(asynctest.TestCase):
         payload_fields = list(payload[list(payload.keys())[0]].keys())
         assert 'mean' in payload_fields
         assert 'std' in payload_fields
+
+        ########################################
+        #
+        # test time series similarity search
+        #
+        ########################################
+
+        # first create a query time series
+        _, query = tsmaker(np.random.uniform(low=0.0, high=1.0),
+                           np.random.uniform(low=0.05, high=0.4),
+                           np.random.uniform(low=0.05, high=0.2))
+
+        # get distance from query time series to the vantage point
+        status, payload = await self.client.augmented_select(
+            'corr', ['vpdist'], query, {'vp': {'==': True}})
+        assert status == TSDBStatus.OK
+        vpdist = {v: payload[v]['vpdist'] for v in vpkeys}
+        assert len(vpdist) == num_vps
+
+        # pick the closest vantage point
+        nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
+
+        # define circle radius as 2 x distance to closest vantage point
+        radius = 2 * vpdist[nearest_vp_to_query]
+
+        # find relative index of nearest vantage point
+        relative_index_vp = vpkeys.index(nearest_vp_to_query)
+
+        # calculate distance to all time series within the circle radius
+        status, payload = await self.client.augmented_select(
+            'corr', ['towantedvp'], query,
+            {'d_vp-{}'.format(relative_index_vp): {'<=': radius}})
+        assert status == TSDBStatus.OK
+        for ts in payload:
+            assert payload[ts]['towantedvp'] <= radius
+
+        # find the closest time series
+        nearestwanted = min(payload.keys(),
+                            key=lambda k: payload[k]['towantedvp'])
