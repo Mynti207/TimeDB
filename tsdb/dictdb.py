@@ -297,7 +297,7 @@ class DictDB:
                     pks = pks.intersection(selected)
 
                 # case 3: the metadata criterion is a precise value
-                else:
+                elif isinstance(value, (int, float, str)):
 
                     # if the index is present
                     if field in self.indexes:
@@ -313,6 +313,10 @@ class DictDB:
                     # update the set of primary keys by applying an
                     # AND with the selected primary keys
                     pks = pks.intersection(selected)
+
+                # case 4: some other incorrect type - return nothing
+                else:
+                    pks = set()
 
         # convert the remaining (selected) primary key ids to a list
         pks = list(pks)

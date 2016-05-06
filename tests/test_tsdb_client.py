@@ -1,11 +1,10 @@
-import unittest  # unit tests make server testing easier (vs pytests)
+import unittest
 import asynctest
 import asyncio
 from timeseries import TimeSeries
 import numpy as np
 from scipy.stats import norm
 from tsdb import *
-import sys
 import time
 import subprocess
 
@@ -56,11 +55,19 @@ def tsmaker(m, s, j):
     # return time series and metadata
     return meta, TimeSeries(t, v)
 
-
+########################################
+#
+# we use unit tests instead of pytests, because they facilitate the build-up
+# and tear-down of the server (and avoid the tests hanging)
+#
 # adapted from go_server.py and go_client.py
 # subprocess reference: https://docs.python.org/2/library/subprocess.html
-class test_go_files(asynctest.TestCase):
+#
+########################################
 
+class test_client(asynctest.TestCase):
+
+    # database initializations
     def setUp(self):
 
         # augment the schema by adding column for one vantage point
@@ -73,19 +80,25 @@ class test_go_files(asynctest.TestCase):
         self.server = subprocess.Popen(['python', 'go_server.py'])
         time.sleep(5)
 
+        # initialize database client
+        self.client = TSDBClient()
+
     # avoids the server hanging
     def tearDown(self):
         self.server.terminate()
         time.sleep(5)
 
-    # to test specific return values
-    async def test_client(self):
+    # run client tests
+    async def test_client_ops(self):
 
-        # initialize database client
-        self.client = TSDBClient()
+        ########################################
+        #
+        # create dummy data for testing
+        #
+        ########################################
 
         # a manageable number of test time series
-        num_ts = 50
+        num_ts = 25
         mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
         sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
         jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
@@ -107,50 +120,90 @@ class test_go_files(asynctest.TestCase):
         # randomly choose one time series as the vantage point
         random_vp = np.random.choice(range(num_ts))
         vpkey = "ts-{}".format(random_vp)
+        metadict["ts-{}".format(random_vp)]['vp'] = True
 
-        # TEST TRIGGERS -->
+        ########################################
+        #
+        # test trigger operations
+        #
+        ########################################
 
         # add trigger to calculate the distances to the vantage point
         status, payload = await self.client.add_trigger(
             'corr', 'insert_ts', ['d_vp-1'], tsdict["ts-{}".format(random_vp)])
         assert status == TSDBStatus.OK
-        metadict["ts-{}".format(random_vp)]['vp'] = True
+        assert payload is None
 
-        # add more triggers
+        # add dummy trigger
         status, payload = await self.client.add_trigger(
             'junk', 'insert_ts', None, 'db:one:ts')
         assert status == TSDBStatus.OK
+        assert payload is None
 
+        # add stats trigger
         status, payload = await self.client.add_trigger(
             'stats', 'insert_ts', ['mean', 'std'], None)
         assert status == TSDBStatus.OK
+        assert payload is None
 
         # try to add a trigger on an invalid event
         status, payload = await self.client.add_trigger(
             'junk', 'stuff_happening', None, 'db:one:ts')
         assert status == TSDBStatus.INVALID_OPERATION
+        assert payload is None
 
         # try to add a trigger to an invalid field
         status, payload = await self.client.add_trigger(
             'stats', 'insert_ts', ['mean', 'wrong_one'], None)
         assert status == TSDBStatus.INVALID_OPERATION
+        assert payload is None
 
         # try to remove a trigger that doesn't exist
-        await self.client.remove_trigger('not_here', 'insert_ts')
+        status, payload = await self.client.remove_trigger(
+            'not_here', 'insert_ts')
         assert status == TSDBStatus.INVALID_OPERATION
+        assert payload is None
 
         # try to remove a trigger on an invalid event
-        await self.client.remove_trigger('stats', 'stuff_happening')
+        status, payload = await self.client.remove_trigger(
+            'stats', 'stuff_happening')
         assert status == TSDBStatus.INVALID_OPERATION
+        assert payload is None
 
-        # TEST TIME SERIES AND METADATA INSERT -->
+        ########################################
+        #
+        # test time series insertion
+        #
+        ########################################
 
         # insert the time series and upsert the metadata
         for k in tsdict:
-            await self.client.insert_ts(k, tsdict[k])
-            await self.client.upsert_meta(k, metadict[k])
+            status, payload = await self.client.insert_ts(k, tsdict[k])
+            assert status == TSDBStatus.OK
+            assert payload is None
 
-        # TEST SELECT -->
+        # try to add duplicate primary key
+        status, payload = await self.client.insert_ts(vpkey, tsdict[vpkey])
+        assert status == TSDBStatus.INVALID_KEY
+        assert payload is None
+
+        ########################################
+        #
+        # test metadata upsertion
+        #
+        ########################################
+
+        # insert the time series and upsert the metadata
+        for k in tsdict:
+            status, payload = await self.client.upsert_meta(k, metadict[k])
+            assert status == TSDBStatus.OK
+            assert payload is None
+
+        ########################################
+        #
+        # test select operations
+        #
+        ########################################
 
         # select all database entries; no metadata fields
         status, payload = await self.client.select()
@@ -218,11 +271,23 @@ class test_go_files(asynctest.TestCase):
         assert status == TSDBStatus.OK
         assert len(payload) > 0
 
+        ########################################
+        #
+        # test augmented select operations
+        #
+        ########################################
+
         # remove trigger
-        await self.client.remove_trigger('stats', 'insert_ts')
+        status, payload = await self.client.remove_trigger(
+            'stats', 'insert_ts')
+        assert status == TSDBStatus.OK
+        assert payload is None
 
         # add a new time series (without trigger)
-        await self.client.insert_ts('test', tsdict['ts-1'])
+        status, payload = await self.client.insert_ts(
+            'test', tsdict['ts-1'])
+        assert status == TSDBStatus.OK
+        assert payload is None
 
         # check that mean and std haven't been added
         status, payload = await self.client.select(

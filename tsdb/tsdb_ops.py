@@ -312,19 +312,17 @@ class TSDBOp_AugmentedSelect(TSDBOp):
             Criteria to apply to metadata
         additional : dictionary
             Additional criteria, e.g. apply sorting (default=None)
-        verbose : boolean
-            Determines whether status updates are displayed
 
         Returns
         -------
         Nothing, modifies in-place.
         '''
         super().__init__('augmented_select')
+        self['proc'] = proc
+        self['target'] = target
+        self['arg'] = arg
         self['md'] = md
         self['additional'] = additional
-        self['proc'] = proc
-        self['arg'] = arg
-        self['target'] = target
 
     @classmethod
     def from_json(cls, json_dict):

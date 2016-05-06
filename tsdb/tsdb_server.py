@@ -73,6 +73,7 @@ class TSDBProtocol(asyncio.Protocol):
         -------
         TSDBOp_Return: status and payload; result of running the TSDB operation
         '''
+
         # try to insert the time series, raise value error if the
         # primary key is invalid
         try:
@@ -228,8 +229,8 @@ class TSDBProtocol(asyncio.Protocol):
         if trigger_target is not None:
             for t in trigger_target:
                 if t not in self.server.db.schema:
-                    return TSDBOp_Return(TSDBStatus.INVALID_OPERATION,
-                                         op['op'])
+                    return TSDBOp_Return(
+                        TSDBStatus.INVALID_OPERATION, op['op'])
 
         # possible additional arguments ('sort_by' and 'order')
         trigger_arg = op['arg']
@@ -269,11 +270,19 @@ class TSDBProtocol(asyncio.Protocol):
         # look up all triggers associated with that operation
         trigs = self.server.triggers[trigger_onwhat]
 
+        # keep track of number of triggers removed
+        removed = 0
+
         # remove all instances of the particular coroutine associated
         # with that operation
         for t in trigs:
             if t[0] == trigger_proc:
                 trigs.remove(t)
+                removed += 1
+
+        # confirm that at least one trigger has been removed
+        if removed == 0:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
         # return status and payload
         return TSDBOp_Return(TSDBStatus.OK, op['op'])
