@@ -107,9 +107,6 @@ class DictDB:
         # whether status updates are printed
         self.verbose = verbose
 
-        # TODO: use binary search trees for highcard/numeric
-        # bitmaps for lowcard/str_or_factor
-
     def insert_ts(self, pk, ts):
         '''
         Inserts a time series into the database.

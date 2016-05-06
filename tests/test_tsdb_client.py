@@ -1,4 +1,4 @@
-import unittest  # use unit tests instead of pytests, makes tsdb testing easier
+import unittest  # unit tests make server testing easier (vs pytests)
 import asynctest
 import asyncio
 from timeseries import TimeSeries
@@ -79,7 +79,7 @@ class test_go_files(asynctest.TestCase):
         time.sleep(5)
 
     # to test specific return values
-    async def test_specific_data(self):
+    async def test_client(self):
 
         # initialize database client
         self.client = TSDBClient()
