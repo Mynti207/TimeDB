@@ -165,6 +165,33 @@ class test_webserver(asynctest.TestCase):
 
         ########################################
         #
+        # test time series deletion
+        #
+        ########################################
+
+        # check that the time series is there now
+        results = self.web_interface.select({'pk': vpkeys[0]})
+        assert len(results) == 1
+
+        # delete an existing time series
+        results = self.web_interface.delete_ts(vpkeys[0])
+
+        # check that the time series is no longer there
+        results = self.web_interface.select({'pk': vpkeys[0]})
+        assert len(results) == 0
+
+        # add the time series back in
+        self.web_interface.insert_ts(vpkeys[0], tsdict[vpkeys[0]])
+
+        # check that the time series is there now
+        results = self.web_interface.select({'pk': vpkeys[0]})
+        assert len(results) == 1
+
+        # delete an invalid time series
+        results = self.web_interface.select({'pk': 'mistake'})
+
+        ########################################
+        #
         # test metadata upsertion
         #
         ########################################

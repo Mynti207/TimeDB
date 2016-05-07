@@ -117,9 +117,12 @@ async def main():
     print("\nSTARTING UPSERTS")
     print('\n---------------------')
 
-    # insert the time series and upsert the metadata
+    # insert the time series
     for k in tsdict:
         await client.insert_ts(k, tsdict[k])
+
+    # upsert the metadata
+    for k in tsdict:
         await client.upsert_meta(k, metadict[k])
 
     print("\nUPSERTS FINISHED")

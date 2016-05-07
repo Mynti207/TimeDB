@@ -107,6 +107,23 @@ class Handler(object):
 
         return web.Response(body=body)
 
+    async def handle_delete_ts(self, request):
+
+        request_json = await request.json()
+
+        # Checking format
+        required_args = ['pk']
+        check = check_arguments('delete_ts', request_json, *required_args)
+        if check is not None:
+            return aiohttp.web.Response(body=check)
+
+        pk = request_json['pk']
+
+        status, payload = await self.client.delete_ts(pk)
+        body = get_body(status, payload)
+
+        return web.Response(body=body)
+
     async def handle_upsert_meta(self, request):
         request_json = await request.json()
         # Checking format
@@ -243,26 +260,15 @@ class WebServer(object):
         self.handler = Handler()
 
         # add routes for supported operations
-        self.app.router.add_route(
-            'GET', '/tsdb', self.handler.handle_intro)
-        self.app.router.add_route(
-            'POST', '/tsdb/insert_ts', self.handler.handle_insert_ts)
-        self.app.router.add_route(
-            'POST', '/tsdb/upsert_meta', self.handler.handle_upsert_meta)
-        self.app.router.add_route(
-            'GET', '/tsdb/select', self.handler.handle_select)
-        self.app.router.add_route(
-            'GET', '/tsdb/augmented_select',
-            self.handler.handle_augmented_select)
-        self.app.router.add_route(
-            'POST', '/tsdb/add_trigger',
-            self.handler.handle_add_trigger)
-        self.app.router.add_route(
-            'POST', '/tsdb/remove_trigger',
-            self.handler.handle_remove_trigger)
-        self.app.router.add_route(
-            'GET', '/tsdb/similarity_search',
-            self.handler.handle_similarity_search)
+        self.app.router.add_route('GET', '/tsdb', self.handler.handle_intro)
+        self.app.router.add_route('POST', '/tsdb/insert_ts', self.handler.handle_insert_ts)
+        self.app.router.add_route('POST', '/tsdb/delete_ts', self.handler.handle_delete_ts)
+        self.app.router.add_route('POST', '/tsdb/upsert_meta', self.handler.handle_upsert_meta)
+        self.app.router.add_route('GET', '/tsdb/select', self.handler.handle_select)
+        self.app.router.add_route('GET', '/tsdb/augmented_select', self.handler.handle_augmented_select)
+        self.app.router.add_route('POST', '/tsdb/add_trigger', self.handler.handle_add_trigger)
+        self.app.router.add_route('POST', '/tsdb/remove_trigger', self.handler.handle_remove_trigger)
+        self.app.router.add_route('GET', '/tsdb/similarity_search', self.handler.handle_similarity_search)
 
     def run(self):
         '''

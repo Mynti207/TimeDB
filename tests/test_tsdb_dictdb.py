@@ -34,17 +34,38 @@ def test_tsdb_dictdb():
     # create dictionary
     ddb = DictDB(schema, 'pk')
 
-    # CHECK INSERTION/UPSERTION -->
+    # CHECK INSERTION/UPSERTION/DELETION -->
 
     # insert two new time series and metadata
     ddb.insert_ts('pk1', a1)
-    ddb.insert_ts('pk2', a2)
     ddb.upsert_meta('pk1', {'order': 1, 'blarg': 2})
+    ddb.insert_ts('pk2', a2)
     ddb.upsert_meta('pk2', {'order': 2, 'blarg': 2})
 
     # try to insert a duplicate primary key
     with pytest.raises(ValueError):
         ddb.insert_ts('pk2', a2)
+
+    # delete a valid time series
+    ddb.delete_ts('pk1')
+
+    # check that it isn't present any more
+    pk, selected = ddb.select({'pk': 'pk1'}, [], None)
+    assert pk == []
+    assert len(selected) == 0
+
+    # add the time series back in
+    ddb.insert_ts('pk1', a1)
+    ddb.upsert_meta('pk1', {'order': 1, 'blarg': 2})
+
+    # check that it's present now
+    pk, selected = ddb.select({'pk': 'pk1'}, [], None)
+    assert pk == ['pk1']
+    assert len(selected) == 1
+
+    # delete an invalid time series
+    with pytest.raises(ValueError):
+        ddb.delete_ts('not_here')
 
     # try to insert metadata for a time series that isn't present
     ddb.upsert_meta('pk3', {'order': 2, 'blarg': 2})

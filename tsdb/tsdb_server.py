@@ -87,9 +87,33 @@ class TSDBProtocol(asyncio.Protocol):
         # return status and payload
         return TSDBOp_Return(TSDBStatus.OK, op['op'])
 
+    def _delete_ts(self, op):
+        '''
+        Protocol for deleting a time series from the database.
+
+        Parameters
+        ----------
+        op : TSDBOp
+            TSDB network operation for deleting a time series
+
+        Returns
+        -------
+        TSDBOp_Return: status and payload; result of running the TSDB operation
+        '''
+
+        # try to delete the time series, raise value error if the
+        # primary key is invalid
+        try:
+            self.server.db.delete_ts(op['pk'])
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_KEY, op['op'])
+
+        # return status and payload
+        return TSDBOp_Return(TSDBStatus.OK, op['op'])
+
     def _upsert_meta(self, op):
         '''
-        Protocol for upsertinh (insertinh/updatinh) metadata for a database
+        Protocol for upserting (inserting/updating) metadata for a database
         entry. Requires that the metadata fields are in the schema.
 
         Parameters
@@ -367,6 +391,8 @@ class TSDBProtocol(asyncio.Protocol):
             if status is TSDBStatus.OK:
                 if isinstance(op, TSDBOp_InsertTS):
                     response = self._insert_ts(op)
+                elif isinstance(op, TSDBOp_DeleteTS):
+                    response = self._delete_ts(op)
                 elif isinstance(op, TSDBOp_UpsertMeta):
                     response = self._upsert_meta(op)
                 elif isinstance(op, TSDBOp_Select):

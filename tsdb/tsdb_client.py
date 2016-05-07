@@ -45,8 +45,35 @@ class TSDBClient(object):
         -------
         Result of sending the message with the TSDB operation.
         '''
+
         # convert operation into message in json form
         msg = TSDBOp_InsertTS(primary_key, ts).to_json()
+
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+
+        # return the result of sending the message
+        return status, payload
+
+    async def delete_ts(self, primary_key):
+        '''
+        Deletes a time series from the database.
+
+        Parameters
+        ----------
+        primary_key : any hashable type
+            Primary key for the database entry to be deleted
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_DeleteTS(primary_key).to_json()
 
         # status update
         if self.verbose: print('C> msg', msg)

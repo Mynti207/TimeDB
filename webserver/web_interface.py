@@ -16,6 +16,10 @@ class WebInterface():
         msg = TSDBOp_InsertTS(pk, ts).to_json()
         r = requests.post(self.server + 'insert_ts', data=json.dumps(msg))
 
+    def delete_ts(self, pk):
+        msg = TSDBOp_DeleteTS(pk).to_json()
+        r = requests.post(self.server + 'delete_ts', data=json.dumps(msg))
+
     def upsert_meta(self, pk, md):
         msg = TSDBOp_UpsertMeta(pk, md).to_json()
         requests.post(self.server + 'upsert_meta', data=json.dumps(msg))

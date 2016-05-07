@@ -137,6 +137,96 @@ def test_server():
         assert status == TSDBStatus.OK
         assert payload is None
 
+    # try to insert a duplicate primary key
+    op = {'op': 'insert_ts', 'pk': vpkey, 'ts': tsdict[vpkey]}
+    # test that this is packaged as expected
+    assert op == TSDBOp_InsertTS(vpkey, tsdict[vpkey])
+    # run operation
+    result = protocol._insert_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.INVALID_KEY
+    assert payload is None
+
+    ########################################
+    #
+    # test time series deletion
+    #
+    ########################################
+
+    # delete a valid time series
+
+    # package the operation
+    op = {'op': 'delete_ts', 'pk': vpkey}
+    # test that this is packaged as expected
+    assert op == TSDBOp_DeleteTS(vpkey)
+    # run operation
+    result = protocol._delete_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
+    # check that it isn't present any more
+
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': vpkey}, 'fields': None,
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': vpkey}, None, None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 0
+
+    # add it back in
+
+    # package the operation
+    op = {'op': 'insert_ts', 'pk': vpkey, 'ts': tsdict[vpkey]}
+    # test that this is packaged as expected
+    assert op == TSDBOp_InsertTS(vpkey, tsdict[vpkey])
+    # run operation
+    result = protocol._insert_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
+    # check that it's present now
+
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': vpkey}, 'fields': None,
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': vpkey}, None, None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+
+    # delete an invalid time series
+
+    # package the operation
+    op = {'op': 'delete_ts', 'pk': 'mistake'}
+    # test that this is packaged as expected
+    assert op == TSDBOp_DeleteTS('mistake')
+    # run operation
+    result = protocol._delete_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.INVALID_KEY
+    assert payload is None
+
     ########################################
     #
     # test metadata upsert

@@ -188,6 +188,47 @@ class TSDBOp_InsertTS(TSDBOp):
         return cls(json_dict['pk'], TimeSeries(*(json_dict['ts'])))
 
 
+class TSDBOp_DeleteTS(TSDBOp):
+    '''
+    TSDB network operation: deletes a time series from the database.
+    '''
+
+    def __init__(self, pk):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the database entry to be deleted
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('delete_ts')
+        self['pk'] = pk
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+        Note: should not be used for return operation.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['pk'])
+
+
 class TSDBOp_UpsertMeta(TSDBOp):
     '''
     TSDB network operation: upserts metadata for a database entry.
@@ -444,6 +485,7 @@ class TSDBOp_RemoveTrigger(TSDBOp):
 # simplifies reconstruction of tsdb operation instances from network data
 typemap = {
     'insert_ts':            TSDBOp_InsertTS,
+    'delete_ts':            TSDBOp_DeleteTS,
     'upsert_meta':          TSDBOp_UpsertMeta,
     'select':               TSDBOp_Select,
     'augmented_select':     TSDBOp_AugmentedSelect,

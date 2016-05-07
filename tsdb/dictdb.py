@@ -122,7 +122,6 @@ class DictDB:
         -------
         Nothing, modifies in-place.
         '''
-
         # check if the primary key is present in the database
         if pk not in self.rows:
             # if not present, create a new entry
@@ -136,6 +135,32 @@ class DictDB:
 
         # update inverse-lookup index dictionary
         self.update_indices(pk)
+
+    def delete_ts(self, pk):
+        '''
+        Deletes a time series (and all associated metadata) from the database.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the entry to be deleted
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        # if not present, raise an error
+        if pk not in self.rows:
+            raise ValueError('Primary key not found during insert')
+
+        # temperarily store the database entry, for use in updating the indices
+        row = self.rows[pk]
+
+        # delete the time series from the database
+        del self.rows[pk]
+
+        # update inverse-lookup index dictionary
+        self.remove_indices(pk, row)
 
     def upsert_meta(self, pk, meta):
         '''
@@ -203,7 +228,7 @@ class DictDB:
         Parameters
         ----------
         pk : any hashable type
-            Primary key for the  database entry
+            Primary key for the database entry
 
         Returns
         -------
@@ -220,6 +245,30 @@ class DictDB:
             if self.schema[field]['index'] is not None:
                 idx = self.indexes[field]
                 idx[v].add(pk)
+
+    def remove_indices(self, pk, row):
+        '''
+        Updates inverse-lookup index dictionary for a database entry deletion.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the former database entry
+        row : dictionary
+            The time series and metadata for the deleted entry
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # loop through the data fields, and remove from the inverse-lookup
+        # dictionary if the field has an index value
+        for field in row:
+            v = row[field]
+            if self.schema[field]['index'] is not None:
+                idx = self.indexes[field]
+                idx[v].remove(pk)
 
     def select(self, meta, fields, additional):
         '''

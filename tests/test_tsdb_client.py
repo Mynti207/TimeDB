@@ -110,11 +110,11 @@ class test_client(asynctest.TestCase):
         for i in range(num_vps):
             metadict[vpkeys[i]]['vp'] = True
 
-        ########################################
+        #######################################
         #
         # test trigger operations
         #
-        ########################################
+        #######################################
 
         # add trigger to calculate the distances to the vantage point
         for i in range(num_vps):
@@ -174,6 +174,43 @@ class test_client(asynctest.TestCase):
         # try to add duplicate primary key
         status, payload = await self.client.insert_ts(
             vpkeys[0], tsdict[vpkeys[0]])
+        assert status == TSDBStatus.INVALID_KEY
+        assert payload is None
+
+        ########################################
+        #
+        # test time series deletion
+        #
+        ########################################
+
+        # check that the time series is there now
+        status, payload = await self.client.select({'pk': vpkeys[0]})
+        assert status == TSDBStatus.OK
+        assert len(payload) == 1
+
+        # delete an existing time series
+        status, payload = await self.client.delete_ts(vpkeys[0])
+        assert status == TSDBStatus.OK
+        assert payload is None
+
+        # check that the time series is no longer there
+        status, payload = await self.client.select({'pk': vpkeys[0]})
+        assert status == TSDBStatus.OK
+        assert len(payload) == 0
+
+        # add the time series back in
+        status, payload = await self.client.insert_ts(
+            vpkeys[0], tsdict[vpkeys[0]])
+        assert status == TSDBStatus.OK
+        assert payload is None
+
+        # check that the time series is there now
+        status, payload = await self.client.select({'pk': vpkeys[0]})
+        assert status == TSDBStatus.OK
+        assert len(payload) == 1
+
+        # delete an invalid time series
+        status, payload = await self.client.delete_ts('mistake')
         assert status == TSDBStatus.INVALID_KEY
         assert payload is None
 
