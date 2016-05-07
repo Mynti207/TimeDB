@@ -26,7 +26,10 @@ def proc_main(pk, row, arg):
     '''
 
     # recast the argument as a time series (type is lost due to serialization)
-    argts = TimeSeries(*arg)
+    if isinstance(arg, TimeSeries):
+        argts = arg  # for server-side testing
+    else:
+        argts = TimeSeries(*arg)  # for live client-side operations
 
     # standardize the time series
     stand_argts = stand(argts, argts.mean(), argts.std())

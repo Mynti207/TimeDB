@@ -372,3 +372,16 @@ class test_client(asynctest.TestCase):
         # find the closest time series
         nearestwanted = min(payload.keys(),
                             key=lambda k: payload[k]['towantedvp'])
+
+        # compare to stored procedure
+
+        # package the operation
+        status, payload = await self.client.similarity_search(query, 1)
+        assert status == TSDBStatus.OK
+        assert len(payload) == 1
+        assert list(payload.keys())[0] == nearestwanted
+
+        # 5 closest time series
+        status, payload = await self.client.similarity_search(query, 5)
+        assert status == TSDBStatus.OK
+        assert len(payload) == 5

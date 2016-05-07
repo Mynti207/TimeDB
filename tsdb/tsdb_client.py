@@ -173,11 +173,41 @@ class TSDBClient(object):
         # convert operation into message in json form
         msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
                                      additional).to_json()
+
         # status update
         if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
+
+        # return the result of sending the message
+        return status, payload
+
+    async def similarity_search(self, query, top=1):
+        '''
+        Finds closest time series in the database to the query time series.
+
+        Parameters
+        ----------
+        query : TimeSeries
+            The time series to compare distances
+        top : int
+            Number of closest time series to return (default=1)
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_SimilaritySearch(query, top).to_json()
+
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+
         # return the result of sending the message
         return status, payload
 

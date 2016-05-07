@@ -327,14 +327,6 @@ class TSDBOp_AugmentedSelect(TSDBOp):
     Note: result of coroutine is returned to user and is not upserted.
     '''
 
-    """
-    A hybrid of select, and add trigger, we only miss the onwhat key as this op
-    is used as an add on to selects. We remove the fields arg from select, as
-    the only fields sent back are the ones in target, which is used as in
-    add_trigger, except that instead of upserting meta with the targets, that
-    data is sent back to the user.
-    """
-
     def __init__(self, proc, target, arg, md, additional):
         '''
         Initializes the class.
@@ -383,6 +375,50 @@ class TSDBOp_AugmentedSelect(TSDBOp):
         '''
         return cls(json_dict['proc'], json_dict['target'], json_dict['arg'],
                    json_dict['md'], json_dict['additional'])
+
+
+class TSDBOp_SimilaritySearch(TSDBOp):
+    '''
+    TSDB network operation: finds the time series in the database that are
+    closest to the query time series.
+    '''
+
+    def __init__(self, query, top):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        query : TimeSeries
+            The time series to compare distances
+        k : int
+            The number of closest time series to reutnr
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('similarity_search')
+        self['query'] = query
+        self['top'] = top
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['query'], json_dict['top'])
 
 
 class TSDBOp_AddTrigger(TSDBOp):
@@ -489,6 +525,7 @@ typemap = {
     'upsert_meta':          TSDBOp_UpsertMeta,
     'select':               TSDBOp_Select,
     'augmented_select':     TSDBOp_AugmentedSelect,
+    'similarity_search':    TSDBOp_SimilaritySearch,
     'add_trigger':          TSDBOp_AddTrigger,
     'remove_trigger':       TSDBOp_RemoveTrigger,
 }

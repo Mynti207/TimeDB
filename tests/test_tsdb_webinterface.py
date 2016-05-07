@@ -299,4 +299,5 @@ class test_webserver(asynctest.TestCase):
 
         # compare to database similarity search
         nearestwanted2 = self.web_interface.similarity_search(query, 1)
-        assert nearestwanted1 == nearestwanted2[0][0]  # compare primary keys
+        # compare primary keys
+        assert nearestwanted1 == list(nearestwanted2.keys())[0]

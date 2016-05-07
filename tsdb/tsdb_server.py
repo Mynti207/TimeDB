@@ -213,6 +213,57 @@ class TSDBProtocol(asyncio.Protocol):
         return TSDBOp_Return(TSDBStatus.OK, op['op'],
                              dict(zip(loids, results)))
 
+    def _similarity_search(self, op):
+        '''
+        Protocol for running a similarity search on the database,
+        i.e. finding the 'closest' time series in the database.
+
+        Parameters
+        ----------
+        op : TSDBOp
+            TSDB network operation for similarity search
+
+        Returns
+        -------
+        TSDBOp_Return: status and payload; result of running the TSDB operation
+        '''
+
+        # compute distance to the query time series -->
+
+        # check that a query time series is present
+        if 'query' not in op:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+        arg = op['query']
+
+        # run 'normal' select
+        loids, fields = self.server.db.select({}, None, None)
+
+        # run procs module on all returned database entries
+        mod = import_module('procs.corr')
+        storedproc = getattr(mod, 'proc_main')
+        results = []
+        for pk in loids:
+            row = self.server.db.rows[pk]
+            result = storedproc(pk, row, arg)
+            results.append(dict(zip(['d'], result)))
+
+        results = dict(zip(loids, results))
+
+        # retrieve the closest time series and their distance -->
+
+        # number of closest time series to return
+        top = int(op['top']) if 'top' in op else 1
+
+        # sort results
+        nearestwanted = [(k, results[k]['d']) for k in results.keys()]
+        nearestwanted.sort(key=lambda x: x[1])
+
+        # select closest time series and pack as dictionary for return
+        nearestresult = {n[0]: n[1] for n in nearestwanted[:top]}
+
+        # return status and payload
+        return TSDBOp_Return(TSDBStatus.OK, op['op'], nearestresult)
+
     def _add_trigger(self, op):
         '''
         Protocol for adding a trigger - similar to an event in asynchronous
@@ -399,6 +450,8 @@ class TSDBProtocol(asyncio.Protocol):
                     response = self._select(op)
                 elif isinstance(op, TSDBOp_AugmentedSelect):
                     response = self._augmented_select(op)
+                elif isinstance(op, TSDBOp_SimilaritySearch):
+                    response = self._similarity_search(op)
                 elif isinstance(op, TSDBOp_AddTrigger):
                     response = self._add_trigger(op)
                 elif isinstance(op, TSDBOp_RemoveTrigger):

@@ -34,6 +34,11 @@ class WebInterface():
         r = requests.get(self.server + 'augmented_select', data=json.dumps(msg))
         return json.loads(r.text, object_pairs_hook=OrderedDict)
 
+    def similarity_search(self, query, top=1):
+        msg = TSDBOp_SimilaritySearch(query, top).to_json()
+        r = requests.get(self.server + 'similarity_search', data=json.dumps(msg))
+        return json.loads(r.text, object_pairs_hook=OrderedDict)
+
     def add_trigger(self, proc, onwhat, target, arg=None):
         msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
         requests.post(self.server + 'add_trigger', data=json.dumps(msg))
@@ -41,8 +46,3 @@ class WebInterface():
     def remove_trigger(self, proc, onwhat):
         msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
         requests.post(self.server + 'remove_trigger', data=json.dumps(msg))
-
-    def similarity_search(self, query, top=1):
-        msg = {'query': query.to_json(), 'top': top}
-        r = requests.get(self.server + 'similarity_search', data=json.dumps(msg))
-        return json.loads(r.text, object_pairs_hook=OrderedDict)

@@ -587,6 +587,45 @@ def test_server():
 
     ########################################
     #
+    # test similarity search
+    #
+    ########################################
+
+    # first create a query time series
+    _, query = tsmaker(np.random.uniform(low=0.0, high=1.0),
+                       np.random.uniform(low=0.05, high=0.4),
+                       np.random.uniform(low=0.05, high=0.2))
+
+    # single closest time series
+
+    # package the operation
+    op = {'op': 'similarity_search', 'query': query, 'top': 1}
+    # test that this is packaged as expected
+    assert op == TSDBOp_SimilaritySearch(query, 1)
+    # run operation
+    result = protocol._similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+
+    # 5 closest time series
+
+    # package the operation
+    op = {'op': 'similarity_search', 'query': query, 'top': 5}
+    # test that this is packaged as expected
+    assert op == TSDBOp_SimilaritySearch(query, 5)
+    # run operation
+    result = protocol._similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 5
+
+    ########################################
+    #
     # tear down
     #
     ########################################

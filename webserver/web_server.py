@@ -175,6 +175,22 @@ class Handler(object):
 
         return web.Response(body=get_body(status, payload))
 
+    async def handle_similarity_search(self, request):
+        request_json = await request.json()
+
+        # Checking format
+        required_args = ['query', 'top']
+        check = check_arguments('similarity_search',
+                                request_json, *required_args)
+        if check is not None:
+            return web.Response(body=check)
+
+        query = TimeSeries(*request_json['query'])
+        top = int(request_json['top']) if 'top' in request_json else 1
+        status, payload = await self.client.similarity_search(query, top)
+
+        return web.Response(body=get_body(status, payload))
+
     async def handle_add_trigger(self, request):
         request_json = await request.json()
 
@@ -213,27 +229,6 @@ class Handler(object):
 
         return web.Response(body=get_body(status, payload))
 
-    async def handle_similarity_search(self, request):
-        request_json = await request.json()
-
-        # Checking format
-        required_args = ['query']
-        check = check_arguments('remove_trigger', request_json, *required_args)
-        if check is not None:
-            return aiohttp.web.Response(body=check)
-
-        query = TimeSeries(*request_json['query'])
-        top = int(request_json['top']) if 'top' in request_json else 1
-
-        # Computing the distance to the query timeseries
-        status, results = await self.client.augmented_select(
-            'corr', ['d'], query)
-        # Retrieving the closest ts with associated distance
-        nearestwanted = [(k, results[k]['d']) for k in results.keys()]
-        nearestwanted.sort(key=lambda x: x[1])
-
-        return web.Response(body=get_body(status, nearestwanted[:top]))
-
 
 class WebServer(object):
     '''
@@ -266,9 +261,9 @@ class WebServer(object):
         self.app.router.add_route('POST', '/tsdb/upsert_meta', self.handler.handle_upsert_meta)
         self.app.router.add_route('GET', '/tsdb/select', self.handler.handle_select)
         self.app.router.add_route('GET', '/tsdb/augmented_select', self.handler.handle_augmented_select)
+        self.app.router.add_route('GET', '/tsdb/similarity_search', self.handler.handle_similarity_search)
         self.app.router.add_route('POST', '/tsdb/add_trigger', self.handler.handle_add_trigger)
         self.app.router.add_route('POST', '/tsdb/remove_trigger', self.handler.handle_remove_trigger)
-        self.app.router.add_route('GET', '/tsdb/similarity_search', self.handler.handle_similarity_search)
 
     def run(self):
         '''
