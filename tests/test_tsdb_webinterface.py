@@ -174,7 +174,7 @@ class test_webserver(asynctest.TestCase):
         assert len(results) == 1
 
         # delete an existing time series
-        results = self.web_interface.delete_ts(vpkeys[0])
+        self.web_interface.delete_ts(vpkeys[0])
 
         # check that the time series is no longer there
         results = self.web_interface.select({'pk': vpkeys[0]})

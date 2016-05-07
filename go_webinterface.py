@@ -261,12 +261,14 @@ def main():
     # compare to database similarity search
     nearestwanted2 = web_interface.similarity_search(query, 1)
     print('Nearest time series (query): {}; distance: {:.2f}'.
-          format(list(nearestwanted2.keys())[0], list(nearestwanted2.values())[0]))
+          format(list(nearestwanted2.keys())[0],
+                 list(nearestwanted2.values())[0]))
 
     # visualize results
     plt.plot(query, label='Input TS')
     plt.plot(tsdict[nearestwanted1], label='Closest TS (manual)')
-    plt.plot(tsdict[list(nearestwanted2.keys())[0]], label='Closest TS (DB operation)')
+    plt.plot(tsdict[list(nearestwanted2.keys())[0]],
+             label='Closest TS (DB operation)')
     plt.legend(loc='best')
     plt.show()
 
