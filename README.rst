@@ -13,7 +13,14 @@ Description
 
 This package implements a persistent time series database with the following functionality:
 
-* `Documentation <docs/index.rst>`
-* `Demonstration <docs/demo.ipynb>`
+* `Documentation <docs/index.rst>`_
+* `Demonstration <docs/demo.ipynb>`_
 
-:ref:`authors <authors>`
+==========
+Developers
+==========
+
+* Gioia Dominedo <dominedo@g.harvard.edu>
+* Nicolas Drizard <nicolasdrizard@g.harvard.edu>
+* Kendrick Lo <klo@g.harvard.edu>
+* Malcolm Mason Rodriguez <mmasonrodriguez@college.harvard.edu>
