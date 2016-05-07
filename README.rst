@@ -11,7 +11,7 @@ Mynti207
 Description
 ===========
 
-This package implements a persistent time series database with the following functionality:
+This package implements a persistent time series database.
 
 * `Documentation <docs/index.rst>`_
 * `Demonstration <docs/demo.ipynb>`_
