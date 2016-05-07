@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-from tsdb import TSDBClient
-import timeseries as ts
+from tsdb import *
+from timeseries import TimeSeries
 import numpy as np
 import asyncio
+import requests
+import json
+from webserver import *
 import matplotlib.pyplot as plt
-import sys
 
 from scipy.stats import norm
 
@@ -13,8 +15,9 @@ NUMVPS = 5
 
 ########################################
 #
-# NOTE: this file can be used to test the client functionality.
-# For it to work, you will need to first run go_server.py and go_webserver.py.
+# NOTE: this file can be used to test the REST API functionality.
+# For it to work, you will need to first run go_server.py to set up the
+# server and go_webserver.py to set up the webserver.
 #
 ########################################
 
@@ -49,15 +52,15 @@ def tsmaker(m, s, j):
     v = norm.pdf(t, m, s) + j * np.random.randn(100)
 
     # return time series and metadata
-    return meta, ts.TimeSeries(t, v)
+    return meta, TimeSeries(t, v)
 
 
-async def main():
+def main():
 
     print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
 
-    # initialize database client
-    client = TSDBClient(verbose=False)
+    # initialize web interface
+    web_interface = WebInterface()
 
     ########################################
     #
@@ -96,17 +99,17 @@ async def main():
     #
     ########################################
 
-    # add a trigger - note: does not do anything
-    await client.add_trigger('junk', 'insert_ts', None, 'db:one:ts')
+    # add dummy trigger
+    web_interface.add_trigger('junk', 'insert_ts', None, None)
 
-    # add stats trigger to calculate mean and standard deviation of
-    # every time series that is added
-    await client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
+    # add stats trigger
+    web_interface.add_trigger(
+        'stats', 'insert_ts', ['mean', 'std'], None)
 
-    # add triggers to calculate the distances to the five vantage points
+    # add trigger to calculate the distances to the vantage point
     for i in range(NUMVPS):
-        await client.add_trigger('corr', 'insert_ts',
-                                 ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
+        web_interface.add_trigger(
+            'corr', 'insert_ts', ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
 
     ########################################
     #
@@ -117,10 +120,13 @@ async def main():
     print("\nSTARTING UPSERTS")
     print('\n---------------------')
 
-    # insert the time series and upsert the metadata
+    # insert the time series
     for k in tsdict:
-        await client.insert_ts(k, tsdict[k])
-        await client.upsert_meta(k, metadict[k])
+        web_interface.insert_ts(k, tsdict[k])
+
+    # upsert the metadata
+    for k in tsdict:
+        web_interface.upsert_meta(k, metadict[k])
 
     print("\nUPSERTS FINISHED")
     print('\n---------------------')
@@ -136,49 +142,49 @@ async def main():
 
     # select all database entries; no metadata fields
     print('\n---------DEFAULT------------')
-    _, results = await client.select()
+    results = web_interface.select()
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
     # select all database entries; sort by 'order'; no metadata fields
     print('\n---------ADDITIONAL------------')
-    _, results = await client.select(additional={'sort_by': '-order'})
+    results = web_interface.select(additional={'sort_by': '-order'})
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
     # select all database entries; return 'order' metadata
     print('\n----------ORDER FIELD-----------')
-    _, results = await client.select(fields=['order'])
+    results = web_interface.select(fields=['order'])
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
     # select all database entries; return all metadata fields
     print('\n---------ALL FIELDS------------')
-    _, results = await client.select(fields=[])
+    results = web_interface.select(fields=[])
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
     # select all entries with order = 1; return 'ts' metadata
     print('\n------------TS with order 1---------')
-    _, results = await client.select({'order': 1}, fields=['ts'])
+    results = web_interface.select({'order': 1}, fields=['ts'])
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
     # select all entries with blarg = 1; return all metadata fields
     print('\n------------All fields, blarg 1 ---------')
-    _, results = await client.select({'blarg': 1}, fields=[])
+    results = web_interface.select({'blarg': 1}, fields=[])
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
 
     # select all entries with order = 1 AND blarg = 2; no metadata fields
     print('\n------------order 1 blarg 2 no fields---------')
-    _, results = await client.select({'order': 1, 'blarg': 2})
+    results = web_interface.select({'order': 1, 'blarg': 2})
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
@@ -187,9 +193,9 @@ async def main():
     # metadata fields
     print('\n------------order >= 4  order, blarg and mean sent back, '
           'also sorted---------')
-    _, results = await client.select({'order': {'>=': 4}},
-                                     fields=['order', 'blarg', 'mean'],
-                                     additional={'sort_by': '-order'})
+    results = web_interface.select({'order': {'>=': 4}},
+                                   fields=['order', 'blarg', 'mean'],
+                                   additional={'sort_by': '-order'})
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
@@ -197,8 +203,8 @@ async def main():
     # select all entries with blarg >= 1 AND order = 1; return 'blarg' and
     # 'std' metadata fields
     print('\n------------order 1 blarg >= 1 fields blarg and std---------')
-    _, results = await client.select({'blarg': {'>=': 1}, 'order': 1},
-                                     fields=['blarg', 'std'])
+    results = web_interface.select({'blarg': {'>=': 1}, 'order': 1},
+                                   fields=['blarg', 'std'])
     if len(results) > 0:
         print('C> metadata fields:',
               list(results[list(results.keys())[0]].keys()))
@@ -212,6 +218,8 @@ async def main():
     #
     ########################################
 
+    ########################################
+
     print("\nSTARTING TIME SERIES SIMILARITY SEARCH")
     print('\n---------------------')
 
@@ -223,8 +231,8 @@ async def main():
                        np.random.uniform(low=0.05, high=0.4),
                        np.random.uniform(low=0.05, high=0.2))
 
-    # get distances from query time series to all the vantage points
-    _, result_distance = await client.augmented_select(
+    # get distance from query time series to the vantage point
+    result_distance = web_interface.augmented_select(
         'corr', ['vpdist'], query, {'vp': {'==': True}})
     vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
     print(vpdist)
@@ -240,26 +248,30 @@ async def main():
     relative_index_vp = vpkeys.index(nearest_vp_to_query)
 
     # calculate distance to all time series within the circle radius
-    _, results = await client.augmented_select(
-        'corr', ['towantedvp'], query, {'d_vp-{}'.format(relative_index_vp):
-                                        {'<=': radius}})
+    results = web_interface.augmented_select(
+        'corr', ['towantedvp'], query,
+        {'d_vp-{}'.format(relative_index_vp): {'<=': radius}})
 
     # find the closest time series
-    nearestwanted = min(results.keys(), key=lambda k: results[k]['towantedvp'])
-    print('Nearest time series: {}; distance: {:.2f}'.
-          format(nearestwanted, results[nearestwanted]['towantedvp']))
+    nearestwanted1 = min(results.keys(),
+                         key=lambda k: results[k]['towantedvp'])
+    print('Nearest time series (manual): {}; distance: {:.2f}'.
+          format(nearestwanted1, results[nearestwanted1]['towantedvp']))
+
+    # compare to database similarity search
+    nearestwanted2 = web_interface.similarity_search(query, 1)
+    print('Nearest time series (query): {}; distance: {:.2f}'.
+          format(nearestwanted2[0][0], nearestwanted2[0][1]))
 
     # visualize results
     plt.plot(query, label='Input TS')
-    plt.plot(tsdict[nearestwanted], label='Closest TS')
+    plt.plot(tsdict[nearestwanted1], label='Closest TS (manual)')
+    plt.plot(tsdict[nearestwanted2[0][0]], label='Closest TS (DB operation)')
     plt.legend(loc='best')
     plt.show()
 
     print("\nTIME SERIES SIMILARITY SEARCH FINISHED")
     print('\n---------------------')
 
-
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    coro = asyncio.ensure_future(main())
-    loop.run_until_complete(coro)
+    main()

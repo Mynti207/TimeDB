@@ -17,6 +17,19 @@ schema = {
 # number of vantage points
 NUMVPS = 5
 
+########################################
+#
+# NOTE: this file initializes the database server. This needs to be run
+# before any other database commands.
+#
+# For basic client functionality, you will also need to initialize a
+# TSDBClient object.
+#
+# For webserver client functionality (i.e. REST API), you will also need
+# to initialize a WebInterface object.
+#
+########################################
+
 
 def main():
 

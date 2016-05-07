@@ -406,7 +406,7 @@ class TSDBServer(object):
         Parameters
         ----------
         db : DictDB object
-            The underlying dictionary-based database.
+            The underlying dictionary-based database
         port : int
             Specifies the port the database client uses (default=9999)
         verbose : boolean
