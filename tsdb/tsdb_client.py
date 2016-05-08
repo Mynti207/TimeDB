@@ -2,6 +2,7 @@ import asyncio
 from .tsdb_serialization import serialize, LENGTH_FIELD_LENGTH, Deserializer
 from .tsdb_ops import *
 from .tsdb_error import TSDBStatus
+from collections import defaultdict, OrderedDict
 
 
 class TSDBClient(object):
@@ -131,6 +132,25 @@ class TSDBClient(object):
         -------
         Result of sending the message with the TSDB operation.
         '''
+
+        synthetic_field = False
+
+        # if sorting, add in the fields that we are sorting by
+        # necessary to recover sorting lost at deserialization
+        if additional is not None and 'sort_by' in additional:
+            sort_type = additional['sort_by'][:1]
+            if sort_type == '+' or sort_type == '-':
+                predicate = additional['sort_by'][1:]
+            else:
+                predicate = additional['sort_by'][:]
+            if fields is None:
+                fields = [predicate]
+                synthetic_field = True
+            elif fields != [] and predicate not in fields:
+                fields.append(predicate)
+                synthetic_field = True
+            reverse = True if sort_type == '-' else False
+
         # convert operation into message in json form
         msg = TSDBOp_Select(metadata_dict, fields, additional).to_json()
 
@@ -139,6 +159,17 @@ class TSDBClient(object):
 
         # send message
         status, payload = await self._send(msg)
+
+        # sorting is lost at deserialization - impose again here
+        if additional is not None and 'sort_by' in additional:
+            pks = list(payload.keys())
+            pks.sort(key=lambda pk: payload[pk][predicate],
+                     reverse=reverse)
+            vals = [payload[pk] for pk in pks]
+            if synthetic_field:  # remove synthetic query field if necessary
+                for v in vals:
+                    del v[predicate]
+            payload = OrderedDict(zip(pks, vals))
 
         # return the result of sending the message
         return status, payload
@@ -158,17 +189,36 @@ class TSDBClient(object):
         target : string
             Array of field names to which to apply the results of the
             coroutine, and to return.
-        arg : string
-            Possible additional arguments ('sort_by' and 'order')
+        arg : varies
+            Possible additional arguments for coroutine (e.g. time series for
+            similarity search)
         metadata_dict : dictionary
             Criteria to apply to metadata
         additional : dictionary
-            Additional criteria, e.g. apply sorting (default=None)
+            Additional criteria, e.g. ('sort_by' and 'order')
 
         Returns
         -------
         Result of sending the message with the TSDB operation.
         '''
+
+        synthetic_field = False
+
+        # if sorting, add in the fields that we are sorting by
+        # necessary to recover sorting lost at deserialization
+        if additional is not None and 'sort_by' in additional:
+            sort_type = additional['sort_by'][:1]
+            if sort_type == '+' or sort_type == '-':
+                predicate = additional['sort_by'][1:]
+            else:
+                predicate = additional['sort_by'][:]
+            if fields is None:
+                fields = [predicate]
+                synthetic_field = True
+            elif fields != [] and predicate not in fields:
+                fields.append(predicate)
+                synthetic_field = True
+            reverse = True if sort_type == '-' else False
 
         # convert operation into message in json form
         msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
@@ -179,6 +229,17 @@ class TSDBClient(object):
 
         # send message
         status, payload = await self._send(msg)
+
+        # sorting is lost at deserialization - impose again here
+        if additional is not None and 'sort_by' in additional:
+            pks = list(payload.keys())
+            pks.sort(key=lambda pk: payload[pk][predicate],
+                     reverse=reverse)
+            vals = [payload[pk] for pk in pks]
+            if synthetic_field:  # remove synthetic query field if necessary
+                for v in vals:
+                    del v[predicate]
+            payload = OrderedDict(zip(pks, vals))
 
         # return the result of sending the message
         return status, payload

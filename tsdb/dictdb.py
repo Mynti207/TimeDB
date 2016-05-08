@@ -377,13 +377,19 @@ class DictDB:
             if 'sort_by' in additional:
 
                 # sort format
-                # 0: ascending, 1: descending
-                predicate = additional['sort_by'][1:]
-                reverse = 0 if additional['sort_by'][0] == '-' else 1
+                # +: ascending, -: descending
+                # assume ascending order if unspecified
+                sort_type = additional['sort_by'][:1]
+                if sort_type == '+' or sort_type == '-':
+                    predicate = additional['sort_by'][1:]
+                else:
+                    predicate = additional['sort_by'][:]
+                reverse = True if sort_type == '-' else False
 
                 # sanity check
                 if (predicate not in self.schema or
-                        predicate not in self.indexes):
+                        (predicate not in self.indexes and
+                            predicate != self.pkfield)):
                     raise ValueError('Additional field {} not in schema or in '
                                      'indexes'.format(predicate))
 

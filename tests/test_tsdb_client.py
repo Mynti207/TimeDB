@@ -239,6 +239,14 @@ class test_client(asynctest.TestCase):
             assert list(payload[list(payload.keys())[0]].keys()) == []
             assert sorted(payload.keys()) == ts_keys
 
+        # select all database entries; no metadata fields; sort by primary key
+        status, payload = await self.client.select(
+            additional={'sort_by': '+pk'})
+        assert status == TSDBStatus.OK
+        if len(payload) > 0:
+            assert list(payload[list(payload.keys())[0]].keys()) == []
+            assert list(payload.keys()) == ts_keys
+
         # select all database entries; all metadata fields
         status, payload = await self.client.select(fields=[])
         assert status == TSDBStatus.OK

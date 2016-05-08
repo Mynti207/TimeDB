@@ -95,6 +95,10 @@ def test_tsdb_dictdb():
     assert sorted(pk) == ['pk1', 'pk2', 'pk3']
     assert selected == [{}, {}, {}]
 
+    pk, selected = ddb.select({}, None, {'sort_by': '+pk'})
+    assert pk == ['pk1', 'pk2', 'pk3']
+    assert selected == [{}, {}, {}]
+
     pk, selected = ddb.select({'order': 1, 'blarg': 2}, [], None)
     assert pk == ['pk1']
     assert len(selected) == 1

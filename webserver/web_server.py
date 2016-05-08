@@ -165,13 +165,16 @@ class Handler(object):
 
         proc = request_json['proc']
         target = request_json['target']
+        if 'arg' in request_json:
+            if request_json['arg'] is None:
+                arg = None
+            else:
+                arg = TimeSeries(*request_json['arg'])
         md = request_json['md'] if 'md' in request_json else {}
-        arg = (TimeSeries(*request_json['arg'])
-               if 'arg' in request_json else None)
         additional = (request_json['additional']
                       if 'additional' in request_json else None)
         status, payload = await self.client.augmented_select(
-            proc, target, arg=arg, metadata_dict=md, additional=additional)
+            proc=proc, target=target, arg=arg, metadata_dict=md, additional=additional)
 
         return web.Response(body=get_body(status, payload))
 

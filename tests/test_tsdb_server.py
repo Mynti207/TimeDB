@@ -268,6 +268,23 @@ def test_server():
         assert list(payload[list(payload.keys())[0]].keys()) == []
         assert sorted(payload.keys()) == ts_keys
 
+    # select all database entries; no metadata fields; sort by primary key
+
+    # package the operation
+    op = {'op': 'select', 'md': {}, 'fields': None,
+          'additional': {'sort_by': '+pk'}}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({}, None, {'sort_by': '+pk'})
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    if len(payload) > 0:
+        assert list(payload[list(payload.keys())[0]].keys()) == []
+        assert list(payload.keys()) == ts_keys
+
     # select all database entries; all metadata fields
 
     # package the operation
@@ -566,7 +583,11 @@ def test_server():
     assert status == TSDBStatus.OK
     assert payload is None
 
-    # augmented select
+    ########################################
+    #
+    # test augmented select
+    #
+    ########################################
 
     # package the operation
     op = {'op': 'augmented_select', 'proc': 'stats', 'target': ['mean', 'std'],

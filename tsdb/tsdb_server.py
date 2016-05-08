@@ -189,7 +189,7 @@ class TSDBProtocol(asyncio.Protocol):
         # name of procs module to apply
         proc = op['proc']
 
-        # possible additional arguments ('sort_by' and 'order')
+        # possible additional arguments for coroutine (e.g. time series)
         arg = op['arg']
 
         # array of field names to which to apply the results

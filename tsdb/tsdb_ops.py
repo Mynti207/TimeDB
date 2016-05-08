@@ -159,7 +159,7 @@ class TSDBOp_InsertTS(TSDBOp):
         pk : any hashable type
             Primary key for the new database entry
         ts : TimeSeries
-            Time series to be inserted into the database.
+            Time series to be inserted into the database
 
         Returns
         -------
@@ -273,8 +273,8 @@ class TSDBOp_UpsertMeta(TSDBOp):
 
 class TSDBOp_Select(TSDBOp):
     '''
-    TSDB network operation: selects database entries based on specified
-    criteria.
+    TSDB network operation: selects (queries) database entries based on
+    specified criteria.
     '''
 
     def __init__(self, md, fields, additional):
@@ -288,7 +288,7 @@ class TSDBOp_Select(TSDBOp):
         fields : list
             List of fields to return
         additional : dictionary
-            Additional criteria, e.g. apply sorting
+            Additional criteria (e.g. 'sort_by' and 'limit')
 
         Returns
         -------
@@ -340,11 +340,11 @@ class TSDBOp_AugmentedSelect(TSDBOp):
             Array of field names to which to apply the results of the
             coroutine, and to return.
         arg : string
-            Possible additional arguments ('sort_by' and 'order')
+            Possible additional arguments (e.g. time series for similarity search)
         metadata_dict : dictionary
             Criteria to apply to metadata
         additional : dictionary
-            Additional criteria, e.g. apply sorting (default=None)
+            Additional criteria (e.g. 'sort_by' and 'limit')
 
         Returns
         -------
@@ -391,8 +391,8 @@ class TSDBOp_SimilaritySearch(TSDBOp):
         ----------
         query : TimeSeries
             The time series to compare distances
-        k : int
-            The number of closest time series to reutnr
+        top : int
+            The number of closest time series to return
 
         Returns
         -------
@@ -442,7 +442,7 @@ class TSDBOp_AddTrigger(TSDBOp):
         target : string
             Array of field names to which to apply the results of the coroutine
         arg : string
-            Possible additional arguments ('sort_by' and 'order')
+            Possible additional arguments for the function
 
         Returns
         -------

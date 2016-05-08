@@ -264,6 +264,18 @@ class test_webserver(asynctest.TestCase):
 
         ########################################
         #
+        # test augmented select
+        #
+        ########################################
+
+        results = self.web_interface.augmented_select(
+            proc='stats', target=['mean', 'std'], md={'pk': 'ts-0'})
+        assert len(results) == 1
+        assert 'mean' in results['ts-0']
+        assert 'std' in results['ts-0']
+
+        ########################################
+        #
         # test time series similarity search
         #
         ########################################
@@ -275,10 +287,10 @@ class test_webserver(asynctest.TestCase):
 
         # get distance from query time series to the vantage point
         result_distance = self.web_interface.augmented_select(
-            'corr', ['vpdist'], query, {'vp': {'==': True}})
+            proc='corr', target=['vpdist'], arg=query, md={'vp': {'==': True}})
         vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
         assert len(vpdist) == num_vps
-        #
+
         # pick the closest vantage point
         nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
 
