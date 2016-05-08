@@ -39,8 +39,10 @@ class WebInterface():
         -------
         Nothing, modifies in-place.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_InsertTS(pk, ts).to_json()
+
         # post to webserver
         requests.post(self.server + 'insert_ts', data=json.dumps(msg))
 
@@ -57,8 +59,10 @@ class WebInterface():
         -------
         Nothing, modifies in-place.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_DeleteTS(pk).to_json()
+
         # post to webserver
         requests.post(self.server + 'delete_ts', data=json.dumps(msg))
 
@@ -77,8 +81,10 @@ class WebInterface():
         -------
         Nothing, modifies in-place.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_UpsertMeta(pk, md).to_json()
+
         # post to webserver
         requests.post(self.server + 'upsert_meta', data=json.dumps(msg))
 
@@ -99,10 +105,13 @@ class WebInterface():
         -------
         Result of the database operation.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_Select(md, fields, additional).to_json()
+
         # post to webserver
         r = requests.get(self.server + 'select', data=json.dumps(msg))
+
         # return result of request operation
         return json.loads(r.text, object_pairs_hook=OrderedDict)
 
@@ -132,12 +141,15 @@ class WebInterface():
         -------
         Result of the database operation.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_AugmentedSelect(
             proc, target, arg, md, additional).to_json()
+
         # post to webserver
         r = requests.get(
             self.server + 'augmented_select', data=json.dumps(msg))
+
         # return result of request operation
         return json.loads(r.text, object_pairs_hook=OrderedDict)
 
@@ -157,11 +169,14 @@ class WebInterface():
         -------
         Result of the database operation.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_SimilaritySearch(query, top).to_json()
+
         # post to webserver
         r = requests.get(
             self.server + 'similarity_search', data=json.dumps(msg))
+
         # return result of request operation
         return json.loads(r.text, object_pairs_hook=OrderedDict)
 
@@ -186,8 +201,10 @@ class WebInterface():
         -------
         Nothing, modifies in-place.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
+
         # post to webserver
         requests.post(self.server + 'add_trigger', data=json.dumps(msg))
 
@@ -206,7 +223,9 @@ class WebInterface():
         -------
         Nothing, modifies in-place.
         '''
+
         # package as TSDB operation
         msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
+
         # post to webserver
         requests.post(self.server + 'remove_trigger', data=json.dumps(msg))

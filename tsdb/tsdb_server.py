@@ -307,7 +307,7 @@ class TSDBProtocol(asyncio.Protocol):
                     return TSDBOp_Return(
                         TSDBStatus.INVALID_OPERATION, op['op'])
 
-        # possible additional arguments ('sort_by' and 'order')
+        # possible additional arguments ('sort_by' and 'limit')
         trigger_arg = op['arg']
 
         # update trigger list

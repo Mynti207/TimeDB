@@ -56,7 +56,7 @@ def tsmaker(m, s, j):
 ########################################
 
 
-class test_webserver(asynctest.TestCase):
+class test_webinterface(asynctest.TestCase):
 
     # database initializations
     def setUp(self):
@@ -80,7 +80,7 @@ class test_webserver(asynctest.TestCase):
         time.sleep(5)
 
     # run client tests
-    async def test_webserver_ops(self):
+    async def test_webinterface_ops(self):
 
         ########################################
         #
