@@ -25,8 +25,8 @@ Before running any database operations, you must:
 
 * Load the server by running `python go_server.py` from the root folder.
 * Load the webserver by running `python go_webserver.py` from the root folder.
-* Import the web interface (`import webserver`) and initialize it,
-e.g. `web_interface = WebInterface()`
+* Import the web interface (`import webserver`) and initialize it, e.g. `web_interface = WebInterface()`
+
 The instructions below assume that these three steps have been carried out.
 
 Database Operations
@@ -115,11 +115,9 @@ Query results
 
 **Additional search criteria:**
 
-* sort_by: Sorts the query results in either ascending or descending order. Use + to denote ascending order and - to denote descending order.
-e.g. {'sort_by': '+pk'}; {'sort_by': '-order'}
+* sort_by: Sorts the query results in either ascending or descending order. Use + to denote ascending order and - to denote descending order. e.g. {'sort_by': '+pk'}; {'sort_by': '-order'}
 
-* limit: Caps the number of fields that are returned when used in conjunction with sort_by.
-e.g. {'sort_by': '+pk', 'limit': 5} for the top 5 primary keys
+* limit: Caps the number of fields that are returned when used in conjunction with sort_by. e.g. {'sort_by': '+pk', 'limit': 5} for the top 5 primary keys
 
 Augmented Select
 ------------------
@@ -152,10 +150,8 @@ Query results
 
 **Additional search criteria:**
 
-* sort_by: Sorts the query results in either ascending or descending order. Use + to denote ascending order and - to denote descending order.
-e.g. {'sort_by': '+pk'}; {'sort_by': '-order'}
-* limit: Caps the number of fields that are returned when used in conjunction with sort_by.
-e.g. {'sort_by': '+pk', 'limit': 5} for the top 5 primary keys
+* sort_by: Sorts the query results in either ascending or descending order. Use + to denote ascending order and - to denote descending order. e.g. {'sort_by': '+pk'}; {'sort_by': '-order'}
+* limit: Caps the number of fields that are returned when used in conjunction with sort_by. e.g. {'sort_by': '+pk', 'limit': 5} for the top 5 primary keys
 
 **Available trigger functions:**
 
@@ -226,7 +222,7 @@ similarity_search(self, query, top=1)
 query : TimeSeries
 The time series being compared to those in the database
 
-top : int
+top : int  
 The number of closest time series to return (default=1)
 
 **Returns:**
