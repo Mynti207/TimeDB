@@ -28,7 +28,7 @@ install:
 
 # command to run tests
 script:
-  - nosetests --with-coverage --cover-package=timeseries,pype,tsdb,procs,webserver --cover-branches
+  - nosetests --with-coverage --cover-package=timeseries,pype,tsdb,procs,webserver
 
 # command to add coveralls
 after_success:
