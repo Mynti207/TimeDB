@@ -45,9 +45,11 @@ insert_ts(pk, ts)
 **Parameters:**
 
 pk : any hashable type
+
 Primary key for the new database entry
 
 ts : TimeSeries
+
 Time series to be inserted into the database
 
 **Returns:**
@@ -65,9 +67,11 @@ upsert_meta(pk, md)
 **Parameters:**
 
 pk : any hashable type
+
 Primary key for the  database entry
 
 md : dictionary
+
 Metadata to be upserted into the database
 
 **Returns:**
@@ -85,9 +89,11 @@ delete_ts(pk)
 **Parameters:**
 
 pk : any hashable type
+
 Primary key for the database entry to be deleted
 
 **Returns:**
+
 Nothing, modifies database in-place
 
 Select
@@ -101,12 +107,15 @@ select(md={}, fields=None, additional=None)
 **Parameters:**
 
 md : dictionary (default={})
+
 Criteria to apply to metadata
 
 fields : list (default=None)
+
 List of fields to return
 
 additional : dictionary (default=None)
+
 Additional criteria (e.g. 'sort_by' and 'limit')
 
 **Returns:**
@@ -130,18 +139,23 @@ augmented_select(proc, target, arg=None, md={}, additional=None)
 **Parameters:**
 
 proc : string
+
 Name of the function to run when the trigger is met
 
 target : string
+
 Field names used to identify the results of the function.
 
 arg : string (default=None)
+
 Possible additional arguments (e.g. time series for similarity search)
 
 md : dictionary (default={})
+
 Criteria to apply to metadata
 
 additional : dictionary (default=None)
+
 Additional criteria ('sort_by' and 'order')
 
 **Returns:**
@@ -151,11 +165,13 @@ Query results
 **Additional search criteria:**
 
 * sort_by: Sorts the query results in either ascending or descending order. Use + to denote ascending order and - to denote descending order. e.g. {'sort_by': '+pk'}; {'sort_by': '-order'}
+
 * limit: Caps the number of fields that are returned when used in conjunction with sort_by. e.g. {'sort_by': '+pk', 'limit': 5} for the top 5 primary keys
 
 **Available trigger functions:**
 
 * corr: Calculates the distance between two time series, using the normalize kernelized cross-correlation metric. Required argument: a TimeSeries object.
+
 * stats: Calculates the mean and standard deviation of time series values. No arguments required.
 
 Add Trigger
@@ -169,15 +185,19 @@ add_trigger(proc, onwhat, target, arg=None)
 **Parameters:**
 
 proc : string
+
 Name of the function to run when the trigger is hit
 
 onwhat : string
+
 Operation that triggers the function (e.g. 'insert_ts')
 
 target : string
+
 Array of field names to which to apply the results of the function
 
 arg : string (default=None)
+
 Possible additional arguments for the function
 
 **Returns:**
@@ -187,6 +207,7 @@ Nothing, modifies database in-place
 **Available trigger functions:**
 
 * corr: Calculates the distance between two time series, using the normalize kernelized cross-correlation metric. Required argument: a TimeSeries object.
+
 * stats: Calculates the mean and standard deviation of time series values. No arguments required.
 
 Remove Trigger
@@ -200,9 +221,11 @@ remove_trigger(proc, onwhat)
 **Parameters:**
 
 proc : string
+
 Name of the function that is run when the trigger is hit
 
 onwhat : string
+
 Operation that triggers the function (e.g. 'insert_ts')
 
 **Returns:**
@@ -220,9 +243,11 @@ similarity_search(self, query, top=1)
 **Parameters:**
 
 query : TimeSeries
+
 The time series being compared to those in the database
 
-top : int  
+top : int
+
 The number of closest time series to return (default=1)
 
 **Returns:**
