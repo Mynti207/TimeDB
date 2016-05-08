@@ -10,9 +10,6 @@ import matplotlib.pyplot as plt
 
 from scipy.stats import norm
 
-# number of vantage points
-NUMVPS = 5
-
 ########################################
 #
 # NOTE: this file can be used to test the REST API functionality.
@@ -68,8 +65,11 @@ def main():
     #
     ########################################
 
+    # parameters for testing
+    num_ts = 25
+    num_vps = 5
+
     # time series parameters
-    num_ts = 50
     mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
     sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
     jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
@@ -85,14 +85,6 @@ def main():
         tsdict[pk] = tsrs  # store time series data
         metadict[pk] = meta  # store metadata
 
-    # randomly choose five time series as vantage points
-    random_vps = np.random.choice(range(50), size=NUMVPS, replace=False)
-    vpkeys = ["ts-{}".format(i) for i in random_vps]
-
-    # change the metadata for the vantage points to have meta['vp']=True
-    for i in range(NUMVPS):
-        metadict[vpkeys[i]]['vp'] = True
-
     ########################################
     #
     # trigger operations
@@ -105,11 +97,6 @@ def main():
     # add stats trigger
     web_interface.add_trigger(
         'stats', 'insert_ts', ['mean', 'std'], None)
-
-    # add trigger to calculate the distances to the vantage point
-    for i in range(NUMVPS):
-        web_interface.add_trigger(
-            'corr', 'insert_ts', ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
 
     ########################################
     #
@@ -223,6 +210,15 @@ def main():
     print("\nSTARTING TIME SERIES SIMILARITY SEARCH")
     print('\n---------------------')
 
+    # randomly choose time series as vantage points
+    random_vps = np.random.choice(
+        range(num_ts), size=num_vps, replace=False)
+    vpkeys = ['ts-{}'.format(i) for i in random_vps]
+
+    # add the time series as vantage points
+    for i in range(num_vps):
+        web_interface.insert_vp(vpkeys[i])
+
     # primary keys of vantage points
     print("VPS", vpkeys)
 
@@ -260,6 +256,7 @@ def main():
 
     # compare to database similarity search
     nearestwanted2 = web_interface.similarity_search(query, 1)
+    print('nearestwanted2', nearestwanted2)
     print('Nearest time series (query): {}; distance: {:.2f}'.
           format(list(nearestwanted2.keys())[0],
                  list(nearestwanted2.values())[0]))

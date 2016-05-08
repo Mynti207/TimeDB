@@ -72,6 +72,10 @@ class test_webinterface(asynctest.TestCase):
         # initialize web interface
         self.web_interface = WebInterface()
 
+        # parameters for testing
+        self.num_ts = 25
+        self.num_vps = 5
+
     # avoids the server hanging
     def tearDown(self):
         self.server.terminate()
@@ -89,17 +93,16 @@ class test_webinterface(asynctest.TestCase):
         ########################################
 
         # a manageable number of test time series
-        num_ts = 25
-        mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
-        sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
-        jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
+        mus = np.random.uniform(low=0.0, high=1.0, size=self.num_ts)
+        sigs = np.random.uniform(low=0.05, high=0.4, size=self.num_ts)
+        jits = np.random.uniform(low=0.05, high=0.2, size=self.num_ts)
 
         # initialize dictionaries for time series and their metadata
         tsdict = {}
         metadict = {}
 
         # fill dictionaries with randomly generated entries for database
-        for i, m, s, j in zip(range(num_ts), mus, sigs, jits):
+        for i, m, s, j in zip(range(self.num_ts), mus, sigs, jits):
             meta, tsrs = tsmaker(m, s, j)  # generate data
             pk = "ts-{}".format(i)  # generate primary key
             tsdict[pk] = tsrs  # store time series data
@@ -108,47 +111,39 @@ class test_webinterface(asynctest.TestCase):
         # for testing later on
         ts_keys = sorted(tsdict.keys())
 
-        # randomly choose two time series as the vantage points
-        num_vps = 2
-        random_vps = np.random.choice(range(num_ts), size=num_vps,
-                                      replace=False)
-        vpkeys = ["ts-{}".format(i) for i in random_vps]
-
-        # change the metadata for the vantage points to have meta['vp']=True
-        for i in range(num_vps):
-            metadict[vpkeys[i]]['vp'] = True
-
         ########################################
         #
         # test trigger operations
         #
         ########################################
 
-        # add trigger to calculate the distances to the vantage point
-        for i in range(num_vps):
-            self.web_interface.add_trigger(
-                'corr', 'insert_ts', ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
-
         # add dummy trigger
-        self.web_interface.add_trigger('junk', 'insert_ts', None, None)
+        results = self.web_interface.add_trigger(
+            'junk', 'insert_ts', None, None)
+        assert results == 'OK'
 
         # add stats trigger
-        self.web_interface.add_trigger(
+        results = self.web_interface.add_trigger(
             'stats', 'insert_ts', ['mean', 'std'], None)
+        assert results == 'OK'
 
         # try to add a trigger on an invalid event
-        self.web_interface.add_trigger(
+        results = self.web_interface.add_trigger(
             'junk', 'stuff_happening', None, None)
+        assert results == 'ERROR: INVALID_OPERATION'
 
         # try to add a trigger to an invalid field
-        self.web_interface.add_trigger(
+        results = self.web_interface.add_trigger(
             'stats', 'insert_ts', ['mean', 'wrong_one'], None)
+        assert results == 'ERROR: INVALID_OPERATION'
 
         # try to remove a trigger that doesn't exist
-        self.web_interface.remove_trigger('not_here', 'insert_ts')
+        results = self.web_interface.remove_trigger('not_here', 'insert_ts')
+        assert results == 'ERROR: INVALID_OPERATION'
 
         # try to remove a trigger on an invalid event
-        self.web_interface.remove_trigger('stats', 'stuff_happening')
+        results = self.web_interface.remove_trigger('stats', 'stuff_happening')
+        assert results == 'ERROR: INVALID_OPERATION'
 
         ########################################
         #
@@ -158,10 +153,15 @@ class test_webinterface(asynctest.TestCase):
 
         # insert the time series
         for k in tsdict:
-            self.web_interface.insert_ts(k, tsdict[k])
+            results = self.web_interface.insert_ts(k, tsdict[k])
+            assert results == 'OK'
+
+        # pick a random time series
+        idx = np.random.choice(list(tsdict.keys()))
 
         # try to add duplicate primary key
-        self.web_interface.insert_ts(vpkeys[0], tsdict[vpkeys[0]])
+        results = self.web_interface.insert_ts(idx, tsdict[idx])
+        assert results != 'ERROR: INVALID KEY'
 
         ########################################
         #
@@ -169,26 +169,32 @@ class test_webinterface(asynctest.TestCase):
         #
         ########################################
 
+        # pick a random time series
+        idx = np.random.choice(list(tsdict.keys()))
+
         # check that the time series is there now
-        results = self.web_interface.select({'pk': vpkeys[0]})
+        results = self.web_interface.select({'pk': idx})
         assert len(results) == 1
 
         # delete an existing time series
-        self.web_interface.delete_ts(vpkeys[0])
+        results = self.web_interface.delete_ts(idx)
+        assert results == 'OK'
 
         # check that the time series is no longer there
-        results = self.web_interface.select({'pk': vpkeys[0]})
+        results = self.web_interface.select({'pk': idx})
         assert len(results) == 0
 
         # add the time series back in
-        self.web_interface.insert_ts(vpkeys[0], tsdict[vpkeys[0]])
+        results = self.web_interface.insert_ts(idx, tsdict[idx])
+        assert results == 'OK'
 
         # check that the time series is there now
-        results = self.web_interface.select({'pk': vpkeys[0]})
+        results = self.web_interface.select({'pk': idx})
         assert len(results) == 1
 
         # delete an invalid time series
-        results = self.web_interface.select({'pk': 'mistake'})
+        results = self.web_interface.delete_ts('mistake')
+        assert results == 'ERROR: INVALID_KEY'
 
         ########################################
         #
@@ -198,7 +204,12 @@ class test_webinterface(asynctest.TestCase):
 
         # upsert the metadata
         for k in tsdict:
-            self.web_interface.upsert_meta(k, metadict[k])
+            results = self.web_interface.upsert_meta(k, metadict[k])
+            assert results == 'OK'
+
+        # upsert metadata for a primary key that doesn't exist
+        results = self.web_interface.upsert_meta('mistake', metadict[k])
+        assert results == 'ERROR: INVALID_KEY'
 
         ########################################
         #
@@ -216,8 +227,7 @@ class test_webinterface(asynctest.TestCase):
         results = self.web_interface.select(fields=[])
         if len(results) > 0:
             assert (sorted(list(results[list(results.keys())[0]].keys())) ==
-                    ['blarg', 'd_vp-0', 'd_vp-1', 'mean', 'order', 'pk', 'std',
-                     'vp'])
+                    ['blarg', 'mean', 'order', 'pk', 'std', 'vp'])
             assert sorted(results.keys()) == ts_keys
 
         # select all database entries; all invalid metadata fields
@@ -241,7 +251,7 @@ class test_webinterface(asynctest.TestCase):
 
         # not present based on how time series were generated
         results = self.web_interface.select({'order': 10})
-        # # assert len(results) == 0
+        assert len(results) == 0
 
         # not present based on how time series were generated
         results = self.web_interface.select({'blarg': 0})
@@ -276,6 +286,47 @@ class test_webinterface(asynctest.TestCase):
 
         ########################################
         #
+        # test vantage point representation
+        #
+        ########################################
+
+        # randomly choose time series as vantage points
+        random_vps = np.random.choice(
+            range(self.num_ts), size=self.num_vps, replace=False)
+        vpkeys = ['ts-{}'.format(i) for i in random_vps]
+        distkeys = ['d_vp-{}'.format(i) for i in range(self.num_vps)]
+
+        # add the time series as vantage points
+        for i in range(self.num_vps):
+            self.web_interface.insert_vp(vpkeys[i])
+
+        # check that the distance fields are now in the database
+        results = self.web_interface.select(md={}, fields=distkeys)
+        if len(results) > 0:
+            assert (sorted(list(results[list(results.keys())[0]].keys())) ==
+                    distkeys)
+
+        # try to add a time series that doesn't exist as a vantage point
+        self.web_interface.insert_vp('mistake')
+
+        # remove them all
+        for i in range(self.num_vps):
+            self.web_interface.delete_vp(vpkeys[i])
+
+        # check that the distance fields are now not in the database
+        results = self.web_interface.select(md={}, fields=distkeys)
+        if len(results) > 0:
+            assert (list(results[list(results.keys())[0]].keys()) == [])
+
+        # try to delete a vantage point that doesn't exist
+        self.web_interface.delete_vp('mistake')
+
+        # add them back in
+        for i in range(self.num_vps):
+            self.web_interface.insert_vp(vpkeys[i])
+
+        ########################################
+        #
         # test time series similarity search
         #
         ########################################
@@ -289,7 +340,7 @@ class test_webinterface(asynctest.TestCase):
         result_distance = self.web_interface.augmented_select(
             proc='corr', target=['vpdist'], arg=query, md={'vp': {'==': True}})
         vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
-        assert len(vpdist) == num_vps
+        assert len(vpdist) == self.num_vps
 
         # pick the closest vantage point
         nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
@@ -313,3 +364,11 @@ class test_webinterface(asynctest.TestCase):
         nearestwanted2 = self.web_interface.similarity_search(query, 1)
         # compare primary keys
         assert nearestwanted1 == list(nearestwanted2.keys())[0]
+
+        # run similarity search on an existing time series
+        # -> should return itself
+
+        idx = np.random.choice(list(tsdict.keys()))
+        results = self.web_interface.similarity_search(tsdict[idx], 1)
+        assert len(results) == 1
+        assert list(results)[0] == idx

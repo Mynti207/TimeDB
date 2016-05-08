@@ -59,6 +59,58 @@ class TSDBClient(object):
         # return the result of sending the message
         return status, payload
 
+    async def insert_vp(self, primary_key):
+        '''
+        Inserts a time series into the database.
+
+        Parameters
+        ----------
+        primary_key : any hashable type
+            Primary key for the time series to be marked as vantage point
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_InsertVP(primary_key).to_json()
+
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+
+        # return the result of sending the message
+        return status, payload
+
+    async def delete_vp(self, primary_key):
+        '''
+        Inserts a time series into the database.
+
+        Parameters
+        ----------
+        primary_key : any hashable type
+            Primary key for the time series to be removed as vantage point
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_DeleteVP(primary_key).to_json()
+
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+
+        # return the result of sending the message
+        return status, payload
+
     async def delete_ts(self, primary_key):
         '''
         Deletes a time series from the database.
@@ -306,7 +358,7 @@ class TSDBClient(object):
         # return the result of sending the message
         return status, payload
 
-    async def remove_trigger(self, proc, onwhat):
+    async def remove_trigger(self, proc, onwhat, target=None):
         '''
         Removes a previously-set trigger.
 
@@ -316,6 +368,9 @@ class TSDBClient(object):
             Name of the module in procs that defines the trigger action
         onwhat : string
             Operation that triggers the coroutine (e.g. 'insert_ts')
+        target : string
+            Array of field names to which the results of the coroutine
+            are applied (removes all triggers if None is specified)
 
         Returns
         -------
@@ -323,7 +378,7 @@ class TSDBClient(object):
         '''
 
         # convert operation into message in json form
-        msg = TSDBOp_RemoveTrigger(proc, onwhat).to_json()
+        msg = TSDBOp_RemoveTrigger(proc, onwhat, target).to_json()
 
         # status update
         if self.verbose: print('C> msg', msg)

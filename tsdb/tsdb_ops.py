@@ -229,6 +229,88 @@ class TSDBOp_DeleteTS(TSDBOp):
         return cls(json_dict['pk'])
 
 
+class TSDBOp_InsertVP(TSDBOp):
+    '''
+    TSDB network operation: marks a time series as a vantage point.
+    '''
+
+    def __init__(self, pk):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the time series to be marked as a vantage point
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('insert_vp')
+        self['pk'] = pk
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+        Note: should not be used for return operation.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['pk'])
+
+
+class TSDBOp_DeleteVP(TSDBOp):
+    '''
+    TSDB network operation: removes a time series as a vantage point.
+    '''
+
+    def __init__(self, pk):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for time series to be removed as a vantage point
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('delete_vp')
+        self['pk'] = pk
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+        Note: should not be used for return operation.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['pk'])
+
+
 class TSDBOp_UpsertMeta(TSDBOp):
     '''
     TSDB network operation: upserts metadata for a database entry.
@@ -465,6 +547,9 @@ class TSDBOp_AddTrigger(TSDBOp):
             TSDB network operation type
         json_dict : dictionary
             Dictionary for conversion from json format.
+        target : string
+            Array of field names to which the results of the coroutine
+            are applied
 
         Returns
         -------
@@ -479,7 +564,7 @@ class TSDBOp_RemoveTrigger(TSDBOp):
     TSDB network operation: removes a previously-set trigger
     '''
 
-    def __init__(self, proc, onwhat):
+    def __init__(self, proc, onwhat, target):
         '''
         Initializes the class.
 
@@ -497,6 +582,7 @@ class TSDBOp_RemoveTrigger(TSDBOp):
         super().__init__('remove_trigger')
         self['proc'] = proc
         self['onwhat'] = onwhat
+        self['target'] = target
 
     @classmethod
     def from_json(cls, json_dict):
@@ -514,7 +600,7 @@ class TSDBOp_RemoveTrigger(TSDBOp):
         -------
         Unencoded database network operation
         '''
-        return cls(json_dict['proc'], json_dict['onwhat'])
+        return cls(json_dict['proc'], json_dict['onwhat'], json_dict['target'])
 
 
 # dictionary of tsdb network operations
@@ -528,4 +614,6 @@ typemap = {
     'similarity_search':    TSDBOp_SimilaritySearch,
     'add_trigger':          TSDBOp_AddTrigger,
     'remove_trigger':       TSDBOp_RemoveTrigger,
+    'insert_vp':            TSDBOp_InsertVP,
+    'delete_vp':            TSDBOp_DeleteVP
 }

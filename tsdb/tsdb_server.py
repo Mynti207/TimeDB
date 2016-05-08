@@ -101,12 +101,136 @@ class TSDBProtocol(asyncio.Protocol):
         TSDBOp_Return: status and payload; result of running the TSDB operation
         '''
 
+        # first try to delete the time series as a vantage point
+        # don't raise errors, as the time series may not be a vantage point
+        self.server.db.delete_vp(op['pk'], raise_error=False)
+
         # try to delete the time series, raise value error if the
         # primary key is invalid
         try:
             self.server.db.delete_ts(op['pk'])
         except ValueError:
             return TSDBOp_Return(TSDBStatus.INVALID_KEY, op['op'])
+
+        # return status and payload
+        return TSDBOp_Return(TSDBStatus.OK, op['op'])
+
+    def _insert_vp(self, op):
+        '''
+        Protocol for marking a time series as a vantage point.
+
+        Steps:
+        1. Sets the vantage point indicator in the time series' metadata
+        to True.
+        2. Adds a field to stores the distance from other time series
+        from the database schema and index lookup.
+        3. Adds a trigger that calculates the distance upon the insertion
+        of new time series.
+        4. Calculates the distance to all time series currently in the
+        database.
+        5. Adds the time series to the list of vantage points.
+
+        Steps 1, 2, and 5 are carried out at the DictDB level. Steps 3 and 4
+        are carried out server-side.
+
+        Parameters
+        ----------
+        op : TSDBOp
+            TSDB network operation for removing a vantage point
+
+        Returns
+        -------
+        TSDBOp_Return: status and payload; result of running the TSDB operation
+        '''
+
+        # try to add vantage point, raise value error if the primary
+        # key is invalid
+        try:
+            idx, pk, ts = self.server.db.insert_vp(op['pk'])
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_KEY, op['op'])
+
+        # additional server-side operations:
+
+        # add trigger to calculate distance when a new time series is added
+        run_op = TSDBOp_AddTrigger(proc='corr', onwhat='insert_ts',
+                                   target=[idx], arg=ts)
+        result = self._add_trigger(run_op)
+
+        # check that the operation was successful
+        status, payload = result['status'], result['payload']
+        if status != TSDBStatus.OK:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
+        # calculate distance for all existing time series
+        run_op = TSDBOp_AugmentedSelect(proc='corr', target=[idx], arg=ts,
+                                        md={}, additional=None)
+        result = self._augmented_select(run_op)
+
+        # check that the operation was successful
+        status, payload = result['status'], result['payload']
+        if status != TSDBStatus.OK:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
+        # upsert distance for each time series
+        for pk, md in payload.items():
+
+            # pack and run operation
+            run_op = TSDBOp_UpsertMeta(pk=pk, md=md)
+            result = self._upsert_meta(run_op)
+
+            # check that the operation was successful
+            status, payload = result['status'], result['payload']
+            if status != TSDBStatus.OK:
+                return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
+        # return status and payload
+        return TSDBOp_Return(TSDBStatus.OK, op['op'])
+
+    def _delete_vp(self, op):
+        '''
+        Protocol for unmarking a time series as a vantage point.
+
+        Steps:
+        1. Sets the vantage point indicator in the time series' metadata
+        to False.
+        2. Removes the field that stores the distance from other time series
+        from the database schema and index lookup.
+        3. Removes the trigger that calculates the distance upon time
+        series insertion.
+        4. Clears the previously-calculated distances from the metadata.
+        5. Removes the time series from the list of vantage points.
+
+        Steps 1, 2, 4, and 5 are carried out at the DictDB level. Step 4
+        is carried out server-side.
+
+        Parameters
+        ----------
+        op : TSDBOp
+            TSDB network operation for removing a vantage point
+
+        Returns
+        -------
+        TSDBOp_Return: status and payload; result of running the TSDB operation
+        '''
+
+        # try to delete vantage point, raise value error if the primary
+        # key is invalid
+        try:
+            didx = self.server.db.delete_vp(op['pk'])
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_KEY, op['op'])
+
+        # additional server-side operation:
+        # remove trigger to calculate distance when a new time series is added
+        run_op = TSDBOp_RemoveTrigger(proc='corr', onwhat='insert_ts',
+                                      target=[didx])
+        result = self._remove_trigger(run_op)
+
+        # check that the operation was successful
+        status, payload = result['status'], result['payload']
+        if status != TSDBStatus.OK:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
         # return status and payload
         return TSDBOp_Return(TSDBStatus.OK, op['op'])
@@ -125,8 +249,12 @@ class TSDBProtocol(asyncio.Protocol):
         -------
         TSDBOp_Return: status and payload; result of running the TSDB operation
         '''
-        # upsert the metadata
-        self.server.db.upsert_meta(op['pk'], op['md'])
+
+        # upsert the metadata - raise ValueError if the primary key is invalid
+        try:
+            self.server.db.upsert_meta(op['pk'], op['md'])
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_KEY, op['op'])
 
         # run any triggers that result from upserting metadata
         self._run_trigger('upsert_meta', [op['pk']])
@@ -228,40 +356,64 @@ class TSDBProtocol(asyncio.Protocol):
         TSDBOp_Return: status and payload; result of running the TSDB operation
         '''
 
+        # check whether there are any vantage points - won't work otherwise!
+        if len(self.server.db.vantage_points) == 0:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
         # compute distance to the query time series -->
 
         # check that a query time series is present
         if 'query' not in op:
             return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
-        arg = op['query']
 
-        # run 'normal' select
-        loids, fields = self.server.db.select({}, None, None)
+        # check that the query can be cast as a time series
+        if not isinstance(op['query'], TimeSeries):
+            try:
+                TimeSeries(*op['query'])
+            except:
+                return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
-        # run procs module on all returned database entries
-        mod = import_module('procs.corr')
-        storedproc = getattr(mod, 'proc_main')
-        results = []
-        for pk in loids:
-            row = self.server.db.rows[pk]
-            result = storedproc(pk, row, arg)
-            results.append(dict(zip(['d'], result)))
+        # unpack operation parameters
+        arg = op['query']  # query time series
+        top = int(op['top']) if 'top' in op else 1  # number of TS to return
 
-        results = dict(zip(loids, results))
+        # step 1: get distances from query time series to all vantage points
 
-        # retrieve the closest time series and their distance -->
+        run_op = TSDBOp_AugmentedSelect(
+            md={'vp': {'==': True}}, proc='corr', arg=arg,
+            target=['vpdist'], additional=None)
+        result = self._augmented_select(run_op)
+        status, payload = result['status'], result['payload']
+        if status != TSDBStatus.OK:
+            return TSDBOp_Return(TSDBStatus.UNKNOWN_ERROR, op['op'])
 
-        # number of closest time series to return
-        top = int(op['top']) if 'top' in op else 1
+        # step 2: pick closest vantage point
+        vpkeys = list(self.server.db.vantage_points.values())
+        vpdist = {v: payload[v]['vpdist'] for v in vpkeys}
+        nearest_vp = min(vpkeys, key=lambda v: vpdist[v])
 
-        # sort results
-        nearestwanted = [(k, results[k]['d']) for k in results.keys()]
+        # step 3: define circle radius as 2 x distance to closest vantage point
+        radius = 2 * vpdist[nearest_vp]
+
+        # step 4: find relative index of nearest vantage point
+        relative_idx = vpkeys.index(nearest_vp)
+
+        # step 5: calculate distance to all time series within the radius
+        run_op = TSDBOp_AugmentedSelect(
+            md={'d_vp-{}'.format(relative_idx): {'<=': radius}},
+            proc='corr', arg=op['query'], target=['towantedvp'],
+            additional=None)
+        result = self._augmented_select(run_op)
+        status, payload = result['status'], result['payload']
+        if status != TSDBStatus.OK:
+            return TSDBOp_Return(TSDBStatus.UNKNOWN_ERROR, op['op'])
+
+        # step 6: find the closest time series and return
+        nearestwanted = [(k, payload[k]['towantedvp']) for k in payload.keys()]
         nearestwanted.sort(key=lambda x: x[1])
-
-        # select closest time series and pack as dictionary for return
         nearestresult = {n[0]: n[1] for n in nearestwanted[:top]}
 
-        # return status and payload
+        # step 7: return status and payload
         return TSDBOp_Return(TSDBStatus.OK, op['op'], nearestresult)
 
     def _add_trigger(self, op):
@@ -342,25 +494,47 @@ class TSDBProtocol(asyncio.Protocol):
         if trigger_onwhat not in typemap:
             return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
-        # look up all triggers associated with that operation
-        trigs = self.server.triggers[trigger_onwhat]
+        # the field(s) to which the result of the coroutine is applied
+        trigger_target = op['target']
 
-        # keep track of number of triggers removed
-        removed = 0
+        # delete all triggers associated with the action and coroutine
+        if trigger_target is None:
 
-        # remove all instances of the particular coroutine associated
-        # with that operation
-        for t in trigs:
-            if t[0] == trigger_proc:
-                trigs.remove(t)
-                removed += 1
+            # look up all triggers associated with that operation
+            trigs = self.server.triggers[trigger_onwhat]
 
-        # confirm that at least one trigger has been removed
-        if removed == 0:
-            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+            # keep track of number of triggers removed
+            removed = 0
 
-        # return status and payload
-        return TSDBOp_Return(TSDBStatus.OK, op['op'])
+            # remove all instances of the particular coroutine associated
+            # with that operation
+            for t in trigs:
+                if t[0] == trigger_proc:
+                    trigs.remove(t)
+                    removed += 1
+
+            # confirm that at least one trigger has been removed
+            if removed == 0:
+                return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
+            # return status and payload
+            return TSDBOp_Return(TSDBStatus.OK, op['op'])
+
+        # only remove a particular trigger
+        # (used to delete vantage point representation)
+        else:
+
+            # look up all triggers associated with that operation
+            trigs = self.server.triggers[trigger_onwhat]
+
+            # delete the relevant trigger
+            for t in trigs:
+                if t[0] == trigger_proc:  # matches coroutine
+                    if t[3] == trigger_target:  # matches target
+                        trigs.remove(t)
+
+            # return status and payload
+            return TSDBOp_Return(TSDBStatus.OK, op['op'])
 
     def _run_trigger(self, opname, rowmatch):
         '''
@@ -456,6 +630,10 @@ class TSDBProtocol(asyncio.Protocol):
                     response = self._add_trigger(op)
                 elif isinstance(op, TSDBOp_RemoveTrigger):
                     response = self._remove_trigger(op)
+                elif isinstance(op, TSDBOp_InsertVP):
+                    response = self._insert_vp(op)
+                elif isinstance(op, TSDBOp_DeleteVP):
+                    response = self._delete_vp(op)
                 else:
                     response = TSDBOp_Return(
                         TSDBStatus.UNKNOWN_ERROR, op['op'])

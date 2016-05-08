@@ -3,7 +3,7 @@ import json
 from aiohttp import web
 from timeseries import TimeSeries
 
-from tsdb import TSDBClient
+from tsdb import TSDBClient, TSDBStatus
 
 
 def check_arguments(request_type, request_json, *required_args):
@@ -52,12 +52,19 @@ def get_body(status, payload):
 
     Returns
     ----------
-    UTF-8 encoded payload if no errors; 'Error with status' otherwise.
+    UTF-8 encoded payload if no errors; error message otherwise.
     '''
-    if status == 0:
-        body = json.dumps(payload).encode('utf-8')
+    if status == TSDBStatus.OK:
+        if payload is None:
+            msg = str(TSDBStatus(status))
+            msg = msg[(msg.index('.') + 1):]
+            body = json.dumps(msg).encode('utf-8')
+        else:
+            body = json.dumps(payload).encode('utf-8')
     else:
-        body = bytes('Error with status {}'.format(status), 'utf-8')
+        msg = str(TSDBStatus(status))
+        msg = msg[(msg.index('.') + 1):]
+        body = json.dumps('ERROR: ' + msg).encode('utf-8')
     return body
 
 
@@ -158,6 +165,70 @@ class Handler(object):
 
         # send the operation to the client
         status, payload = await self.client.delete_ts(pk)
+
+        # unpack and return response
+        return web.Response(body=get_body(status, payload))
+
+    async def handle_insert_vp(self, request):
+        '''
+        Handler for marking a time series as a vantage point.
+
+        Parameters
+        ----------
+        request : request instance
+            Request instance that packages all database operation parameters
+
+        Returns
+        -------
+        StreamResponse
+        '''
+
+        # convert request to json format
+        request_json = await request.json()
+
+        # check that the request format is in line with specifications
+        required_args = ['pk']
+        check = check_arguments('insert_vp', request_json, *required_args)
+        if check is not None:
+            return aiohttp.web.Response(body=check)
+
+        # unpack the database operation parameters
+        pk = request_json['pk']
+
+        # send the operation to the client
+        status, payload = await self.client.insert_vp(pk)
+
+        # unpack and return response
+        return web.Response(body=get_body(status, payload))
+
+    async def handle_delete_vp(self, request):
+        '''
+        Handler for unmarking a time series as a vantage point.
+
+        Parameters
+        ----------
+        request : request instance
+            Request instance that packages all database operation parameters
+
+        Returns
+        -------
+        StreamResponse
+        '''
+
+        # convert request to json format
+        request_json = await request.json()
+
+        # check that the request format is in line with specifications
+        required_args = ['pk']
+        check = check_arguments('delete_vp', request_json, *required_args)
+        if check is not None:
+            return aiohttp.web.Response(body=check)
+
+        # unpack the database operation parameters
+        pk = request_json['pk']
+
+        # send the operation to the client
+        status, payload = await self.client.delete_vp(pk)
 
         # unpack and return response
         return web.Response(body=get_body(status, payload))
@@ -374,9 +445,10 @@ class Handler(object):
         # unpack the database operation parameters
         proc = request_json['proc']
         onwhat = request_json['onwhat']
+        target = request_json['target']
 
         # send the operation to the client
-        status, payload = await self.client.remove_trigger(proc, onwhat)
+        status, payload = await self.client.remove_trigger(proc, onwhat, target)
 
         # unpack and return response
         return web.Response(body=get_body(status, payload))
@@ -425,6 +497,10 @@ class WebServer(object):
                                   self.handler.handle_add_trigger)
         self.app.router.add_route('POST', '/tsdb/remove_trigger',
                                   self.handler.handle_remove_trigger)
+        self.app.router.add_route('POST', '/tsdb/insert_vp',
+                                  self.handler.handle_insert_vp)
+        self.app.router.add_route('POST', '/tsdb/delete_vp',
+                                  self.handler.handle_delete_vp)
 
     def run(self):
         '''

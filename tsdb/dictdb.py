@@ -1,3 +1,4 @@
+import collections
 from collections import defaultdict
 
 import operator
@@ -104,8 +105,132 @@ class DictDB:
             if schema[s]['index'] is not None:
                 self.indexes[s] = defaultdict(set)
 
+        # specifies vantage points {vantage point id : primary key}
+        self.vantage_points = {}
+
         # whether status updates are printed
         self.verbose = verbose
+
+    def insert_vp(self, pk):
+        '''
+        Adds a vantage point (i.e. an existing time series) to the database.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the new database entry
+
+        Returns
+        -------
+        dix : string
+            ID of the field that will store the distance to the vantage point
+        pk : string
+            The primary key of the vantage point
+        ts : TimeSeries
+            The time series data of the vantage point
+        '''
+
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            raise ValueError('Primary key is not a hashable type.')
+
+        # check that the primary key is present in the database
+        if pk not in self.rows:
+            raise ValueError('Primary key not present.')
+
+        # check that the primary key is not already set as a vantage point
+        if pk in self.vantage_points.values():
+            raise ValueError('Primary key is already set as vantage point.')
+
+        # mark time series as vantage point
+        self.rows[pk]['vp'] = True
+
+        # get vantage point id
+        if len(self.vantage_points.keys()) == 0:
+            idx = 0
+        else:
+            idx = max(self.vantage_points.keys()) + 1
+        didx = 'd_vp-{}'.format(idx)
+
+        # add to vantage point dictionary
+        self.vantage_points[idx] = pk
+
+        # add distance field to schema
+        self.schema[didx] = {'convert': float, 'index': 1}
+
+        # update inverse-lookup index dictionary
+        self.index_bulk()
+
+        # fields for additional server-side operations:
+        # add trigger to calculate distance when a new time series is added
+        # calculate distance for all existing time series
+        return didx, pk, self.rows[pk]['ts']
+
+    def delete_vp(self, pk, raise_error=True):
+        '''
+        Unmarks a time series as a vantage point.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the new database entry
+        raise_error : boolean
+            Determines whether a ValueError is raised when trying to unmark
+            a time series that is not actually marked as a vantage point.
+            Used when deleting time series, to check whether it needs to
+            also be unmarked.
+
+        Returns
+        -------
+        dix : string
+            ID of the field that previously stored the distance to the
+            vantage point
+        '''
+
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            if raise_error:
+                raise ValueError('Primary key is not a hashable type.')
+            else:
+                return
+
+        # check that the primary key is present in the database
+        if pk not in self.rows:
+            if raise_error:
+                raise ValueError('Primary key not present.')
+            else:
+                return
+
+        # check that the primary key is set as a vantage point
+        if pk not in self.vantage_points.values():
+            if raise_error:
+                raise ValueError('Primary key is not set as a vantage point.')
+            else:
+                return
+
+        # remove time series marker as vantage point
+        self.rows[pk]['vp'] = False
+
+        # get vantage point id
+        idx = [k for k, v in self.vantage_points.items() if v == pk][0]
+        didx = 'd_vp-{}'.format(idx)
+
+        # delete from schema
+        del self.schema[didx]
+
+        # update inverse-lookup index dictionary
+        del self.indexes[didx]
+
+        # remove previously calculated distances from database
+        for pk in self.rows:
+            del self.rows[pk][didx]
+
+        # remove from vantage point dictionary
+        del self.vantage_points[idx]
+
+        # additional server-side operation:
+        # remove trigger to calculate distance when a new time series is added
+        return didx
 
     def insert_ts(self, pk, ts):
         '''
@@ -122,6 +247,11 @@ class DictDB:
         -------
         Nothing, modifies in-place.
         '''
+
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            raise ValueError('Primary key is not a hashable type.')
+
         # check if the primary key is present in the database
         if pk not in self.rows:
             # if not present, create a new entry
@@ -149,6 +279,11 @@ class DictDB:
         -------
         Nothing, modifies in-place.
         '''
+
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            raise ValueError('Primary key is not a hashable type.')
+
         # if not present, raise an error
         if pk not in self.rows:
             raise ValueError('Primary key not found during insert')
@@ -179,9 +314,13 @@ class DictDB:
         Nothing, modifies in-place.
         '''
 
-        # insert the primary key if it is not already present
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            raise ValueError('Primary key is not a hashable type.')
+
+        # if not present, raise an error
         if pk not in self.rows:
-            self.rows[pk] = {'pk': pk}
+            raise ValueError('Primary key not found during insert')
 
         # extract the rows corresponding to the primary key
         row = self.rows[pk]
@@ -219,6 +358,7 @@ class DictDB:
 
         # loop through and update indices for all relevant entries
         for pkid in pks:
+            # update indices
             self.update_indices(pkid)
 
     def update_indices(self, pk):
@@ -235,6 +375,10 @@ class DictDB:
         Nothing, modifies in-place.
         '''
 
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            raise ValueError('Primary key is not a hashable type.')
+
         # extract data for the given primary key
         row = self.rows[pk]
 
@@ -243,6 +387,8 @@ class DictDB:
         for field in row:
             v = row[field]
             if self.schema[field]['index'] is not None:
+                if field not in self.indexes:
+                    self.indexes[field] = defaultdict(set)
                 idx = self.indexes[field]
                 idx[v].add(pk)
 
@@ -261,6 +407,10 @@ class DictDB:
         -------
         Nothing, modifies in-place.
         '''
+
+        # check that pk is a hashable type
+        if not isinstance(pk, collections.Hashable):
+            raise ValueError('Primary key is not a hashable type.')
 
         # loop through the data fields, and remove from the inverse-lookup
         # dictionary if the field has an index value

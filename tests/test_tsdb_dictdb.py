@@ -68,36 +68,35 @@ def test_tsdb_dictdb():
         ddb.delete_ts('not_here')
 
     # try to insert metadata for a time series that isn't present
-    ddb.upsert_meta('pk3', {'order': 2, 'blarg': 2})
+    with pytest.raises(ValueError):
+        ddb.upsert_meta('pk3', {'order': 2, 'blarg': 2})
 
     # extract database entries for testing
     db_rows = ddb.rows
     idx = sorted(db_rows.keys())  # sorted primary keys
 
     # check primary keys
-    assert idx == ['pk1', 'pk2', 'pk3']
+    assert idx == ['pk1', 'pk2']
 
     # check metadata
     assert db_rows['pk1']['order'] == 1
     assert db_rows['pk2']['order'] == 2
-    assert db_rows['pk3']['order'] == 2
     assert db_rows['pk1']['blarg'] == 2
     assert db_rows['pk2']['blarg'] == 2
-    assert db_rows['pk3']['blarg'] == 2
 
     # CHECK SELECT OPERATIONS -->
 
     pk, selected = ddb.select({}, None, None)
-    assert sorted(pk) == ['pk1', 'pk2', 'pk3']
-    assert selected == [{}, {}, {}]
+    assert sorted(pk) == ['pk1', 'pk2']
+    assert selected == [{}, {}]
 
     pk, selected = ddb.select({}, None, {'sort_by': '-order', 'limit': 5})
-    assert sorted(pk) == ['pk1', 'pk2', 'pk3']
-    assert selected == [{}, {}, {}]
+    assert sorted(pk) == ['pk1', 'pk2']
+    assert selected == [{}, {}]
 
     pk, selected = ddb.select({}, None, {'sort_by': '+pk'})
-    assert pk == ['pk1', 'pk2', 'pk3']
-    assert selected == [{}, {}, {}]
+    assert pk == ['pk1', 'pk2']
+    assert selected == [{}, {}]
 
     pk, selected = ddb.select({'order': 1, 'blarg': 2}, [], None)
     assert pk == ['pk1']
@@ -107,8 +106,8 @@ def test_tsdb_dictdb():
     assert selected[0]['blarg'] == 2
 
     pk, selected = ddb.select({'order': [1, 2], 'blarg': 2}, [], None)
-    assert sorted(pk) == ['pk1', 'pk2', 'pk3']
-    assert len(selected) == 3
+    assert sorted(pk) == ['pk1', 'pk2']
+    assert len(selected) == 2
     idx = pk.index('pk1')
     assert selected[idx]['pk'] == 'pk1'
     assert selected[idx]['order'] == 1

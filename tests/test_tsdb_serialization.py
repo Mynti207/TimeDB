@@ -27,7 +27,7 @@ def test_tsdb_serialization_positive():
                 TSDBOp_AugmentedSelect('corr', ['dist'], None, None, None),
                 TSDBOp_Return(None, None),
                 TSDBOp_AddTrigger('corr', 'insert_ts', None, None),
-                TSDBOp_RemoveTrigger('corr', 'insert_ts')]
+                TSDBOp_RemoveTrigger('corr', 'insert_ts', None)]
 
     # test various database operations
     for msg_op in test_ops:

@@ -228,6 +228,10 @@ onwhat : string
 
 Operation that triggers the function (e.g. 'insert_ts')
 
+target : string
+
+Array of field names to which the results are applied. If not provided, all triggers associated with the database operation and function will be removed.
+
 **Returns:**
 
 Nothing, modifies database in-place

@@ -14,9 +14,6 @@ schema = {
   'vp':         {'convert': bool,       'index': 1}
 }
 
-# number of vantage points
-NUMVPS = 5
-
 ########################################
 #
 # NOTE: this file initializes the database server. This needs to be run
@@ -32,10 +29,6 @@ NUMVPS = 5
 
 
 def main():
-
-    # augment the schema by adding columns for five vantage points
-    for i in range(NUMVPS):
-        schema["d_vp-{}".format(i)] = {'convert': float, 'index': 1}
 
     # initialize the database
     db = DictDB(schema, 'pk', verbose=False)

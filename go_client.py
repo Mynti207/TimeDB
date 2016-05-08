@@ -8,9 +8,6 @@ import sys
 
 from scipy.stats import norm
 
-# number of vantage points
-NUMVPS = 5
-
 ########################################
 #
 # NOTE: this file can be used to test the client functionality.
@@ -65,8 +62,11 @@ async def main():
     #
     ########################################
 
-    # time series parameters
+    # parameters for testing
     num_ts = 50
+    num_vps = 5
+
+    # time series parameters
     mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
     sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
     jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
@@ -82,14 +82,6 @@ async def main():
         tsdict[pk] = tsrs  # store time series data
         metadict[pk] = meta  # store metadata
 
-    # randomly choose five time series as vantage points
-    random_vps = np.random.choice(range(50), size=NUMVPS, replace=False)
-    vpkeys = ["ts-{}".format(i) for i in random_vps]
-
-    # change the metadata for the vantage points to have meta['vp']=True
-    for i in range(NUMVPS):
-        metadict[vpkeys[i]]['vp'] = True
-
     ########################################
     #
     # trigger operations
@@ -102,11 +94,6 @@ async def main():
     # add stats trigger to calculate mean and standard deviation of
     # every time series that is added
     await client.add_trigger('stats', 'insert_ts', ['mean', 'std'], None)
-
-    # add triggers to calculate the distances to the five vantage points
-    for i in range(NUMVPS):
-        await client.add_trigger('corr', 'insert_ts',
-                                 ["d_vp-{}".format(i)], tsdict[vpkeys[i]])
 
     ########################################
     #
@@ -217,6 +204,16 @@ async def main():
 
     print("\nSTARTING TIME SERIES SIMILARITY SEARCH")
     print('\n---------------------')
+
+    # randomly choose time series as vantage points
+    random_vps = np.random.choice(
+        range(num_ts), size=num_vps, replace=False)
+    vpkeys = ['ts-{}'.format(i) for i in random_vps]
+    distkeys = ['d_vp-{}'.format(i) for i in range(num_vps)]
+
+    # add the time series as vantage points
+    for i in range(num_vps):
+        status, payload = await client.insert_vp(vpkeys[i])
 
     # primary keys of vantage points
     print("VPS", vpkeys)

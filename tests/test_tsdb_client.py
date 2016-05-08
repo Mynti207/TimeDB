@@ -66,6 +66,10 @@ class test_client(asynctest.TestCase):
         # initialize database client
         self.client = TSDBClient()
 
+        # parameters for testing
+        self.num_ts = 25
+        self.num_vps = 5
+
     # avoids the server hanging
     def tearDown(self):
         self.server.terminate()
@@ -81,17 +85,16 @@ class test_client(asynctest.TestCase):
         ########################################
 
         # a manageable number of test time series
-        num_ts = 25
-        mus = np.random.uniform(low=0.0, high=1.0, size=num_ts)
-        sigs = np.random.uniform(low=0.05, high=0.4, size=num_ts)
-        jits = np.random.uniform(low=0.05, high=0.2, size=num_ts)
+        mus = np.random.uniform(low=0.0, high=1.0, size=self.num_ts)
+        sigs = np.random.uniform(low=0.05, high=0.4, size=self.num_ts)
+        jits = np.random.uniform(low=0.05, high=0.2, size=self.num_ts)
 
         # initialize dictionaries for time series and their metadata
         tsdict = {}
         metadict = {}
 
         # fill dictionaries with randomly generated entries for database
-        for i, m, s, j in zip(range(num_ts), mus, sigs, jits):
+        for i, m, s, j in zip(range(self.num_ts), mus, sigs, jits):
             meta, tsrs = tsmaker(m, s, j)  # generate data
             pk = "ts-{}".format(i)  # generate primary key
             tsdict[pk] = tsrs  # store time series data
@@ -100,28 +103,11 @@ class test_client(asynctest.TestCase):
         # for testing later on
         ts_keys = sorted(tsdict.keys())
 
-        # randomly choose two time series as the vantage points
-        num_vps = 2
-        random_vps = np.random.choice(range(num_ts), size=num_vps,
-                                      replace=False)
-        vpkeys = ["ts-{}".format(i) for i in random_vps]
-
-        # change the metadata for the vantage points to have meta['vp']=True
-        for i in range(num_vps):
-            metadict[vpkeys[i]]['vp'] = True
-
         #######################################
         #
         # test trigger operations
         #
         #######################################
-
-        # add trigger to calculate the distances to the vantage point
-        for i in range(num_vps):
-            status, payload = await self.client.add_trigger(
-                'corr', 'insert_ts', ['d_vp-{}'.format(i)], tsdict[vpkeys[i]])
-            assert status == TSDBStatus.OK
-            assert payload is None
 
         # add dummy trigger
         status, payload = await self.client.add_trigger(
@@ -171,9 +157,11 @@ class test_client(asynctest.TestCase):
             assert status == TSDBStatus.OK
             assert payload is None
 
+        # pick a random time series
+        idx = np.random.choice(list(tsdict.keys()))
+
         # try to add duplicate primary key
-        status, payload = await self.client.insert_ts(
-            vpkeys[0], tsdict[vpkeys[0]])
+        status, payload = await self.client.insert_ts(idx, tsdict[idx])
         assert status == TSDBStatus.INVALID_KEY
         assert payload is None
 
@@ -183,29 +171,31 @@ class test_client(asynctest.TestCase):
         #
         ########################################
 
+        # pick a random time series
+        idx = np.random.choice(list(tsdict.keys()))
+
         # check that the time series is there now
-        status, payload = await self.client.select({'pk': vpkeys[0]})
+        status, payload = await self.client.select({'pk': idx})
         assert status == TSDBStatus.OK
         assert len(payload) == 1
 
         # delete an existing time series
-        status, payload = await self.client.delete_ts(vpkeys[0])
+        status, payload = await self.client.delete_ts(idx)
         assert status == TSDBStatus.OK
         assert payload is None
 
         # check that the time series is no longer there
-        status, payload = await self.client.select({'pk': vpkeys[0]})
+        status, payload = await self.client.select({'pk': idx})
         assert status == TSDBStatus.OK
         assert len(payload) == 0
 
         # add the time series back in
-        status, payload = await self.client.insert_ts(
-            vpkeys[0], tsdict[vpkeys[0]])
+        status, payload = await self.client.insert_ts(idx, tsdict[idx])
         assert status == TSDBStatus.OK
         assert payload is None
 
         # check that the time series is there now
-        status, payload = await self.client.select({'pk': vpkeys[0]})
+        status, payload = await self.client.select({'pk': idx})
         assert status == TSDBStatus.OK
         assert len(payload) == 1
 
@@ -252,8 +242,7 @@ class test_client(asynctest.TestCase):
         assert status == TSDBStatus.OK
         if len(payload) > 0:
             assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
-                    ['blarg', 'd_vp-0', 'd_vp-1', 'mean', 'order', 'pk', 'std',
-                     'vp'])
+                    ['blarg', 'mean', 'order', 'pk', 'std', 'vp'])
             assert sorted(payload.keys()) == ts_keys
 
         # select all database entries; all invalid metadata fields
@@ -345,6 +334,59 @@ class test_client(asynctest.TestCase):
 
         ########################################
         #
+        # test vantage point representation
+        #
+        ########################################
+
+        # randomly choose time series as vantage points
+        random_vps = np.random.choice(
+            range(self.num_ts), size=self.num_vps, replace=False)
+        vpkeys = ['ts-{}'.format(i) for i in random_vps]
+        distkeys = ['d_vp-{}'.format(i) for i in range(self.num_vps)]
+
+        # add the time series as vantage points
+        for i in range(self.num_vps):
+            status, payload = await self.client.insert_vp(vpkeys[i])
+            assert status == TSDBStatus.OK
+            assert payload is None
+
+        # check that the distance fields are now in the database
+        status, payload = await self.client.select({}, distkeys)
+        assert status == TSDBStatus.OK
+        if len(payload) > 0:
+            assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
+                    distkeys)
+
+        # try to add a time series that doesn't exist as a vantage point
+        status, payload = await self.client.insert_vp('mistake')
+        assert status == TSDBStatus.INVALID_KEY
+        assert payload is None
+
+        # remove them all
+        for i in range(self.num_vps):
+            status, payload = await self.client.delete_vp(vpkeys[i])
+            assert status == TSDBStatus.OK
+            assert payload is None
+
+        # check that the distance fields are now not in the database
+        status, payload = await self.client.select({}, distkeys)
+        assert status == TSDBStatus.OK
+        if len(payload) > 0:
+            assert (list(payload[list(payload.keys())[0]].keys()) == [])
+
+        # try to delete a vantage point that doesn't exist
+        status, payload = await self.client.delete_vp('mistake')
+        assert status == TSDBStatus.INVALID_KEY
+        assert payload is None
+
+        # add them back in
+        for i in range(self.num_vps):
+            status, payload = await self.client.insert_vp(vpkeys[i])
+            assert status == TSDBStatus.OK
+            assert payload is None
+
+        ########################################
+        #
         # test time series similarity search
         #
         ########################################
@@ -359,7 +401,7 @@ class test_client(asynctest.TestCase):
             'corr', ['vpdist'], query, {'vp': {'==': True}})
         assert status == TSDBStatus.OK
         vpdist = {v: payload[v]['vpdist'] for v in vpkeys}
-        assert len(vpdist) == num_vps
+        assert len(vpdist) == self.num_vps
 
         # pick the closest vantage point
         nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
@@ -389,7 +431,16 @@ class test_client(asynctest.TestCase):
         assert len(payload) == 1
         assert list(payload.keys())[0] == nearestwanted
 
-        # 5 closest time series
+        # five closest time series
         status, payload = await self.client.similarity_search(query, 5)
         assert status == TSDBStatus.OK
-        assert len(payload) == 5
+        assert len(payload) <= 5
+
+        # run similarity search on an existing time series
+        # -> should return itself
+
+        idx = np.random.choice(list(tsdict.keys()))
+        status, payload = await self.client.similarity_search(tsdict[idx], 1)
+        assert status == TSDBStatus.OK
+        assert len(payload) == 1
+        assert list(payload)[0] == idx
