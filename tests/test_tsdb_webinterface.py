@@ -361,7 +361,7 @@ class test_webinterface(asynctest.TestCase):
                              key=lambda k: results[k]['towantedvp'])
 
         # compare to database similarity search
-        nearestwanted2 = self.web_interface.similarity_search(query, 1)
+        nearestwanted2 = self.web_interface.vp_similarity_search(query, 1)
         # compare primary keys
         assert nearestwanted1 == list(nearestwanted2.keys())[0]
 
@@ -369,6 +369,6 @@ class test_webinterface(asynctest.TestCase):
         # -> should return itself
 
         idx = np.random.choice(list(tsdict.keys()))
-        results = self.web_interface.similarity_search(tsdict[idx], 1)
+        results = self.web_interface.vp_similarity_search(tsdict[idx], 1)
         assert len(results) == 1
         assert list(results)[0] == idx

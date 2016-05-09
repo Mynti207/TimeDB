@@ -28,7 +28,8 @@ def test_tsdb_dictdb():
       'useless':    {'convert': identity,   'index': None},
       'mean':       {'convert': float,      'index': 1},
       'std':        {'convert': float,      'index': 1},
-      'vp':         {'convert': bool,       'index': 1}
+      'vp':         {'convert': bool,       'index': 1},
+      'deleted':    {'convert': bool,       'index': 1}
     }
 
     # create dictionary
@@ -76,7 +77,7 @@ def test_tsdb_dictdb():
     idx = sorted(db_rows.keys())  # sorted primary keys
 
     # check primary keys
-    assert idx == ['pk1', 'pk2']
+    assert idx == ['0DELETED_pk1', 'pk1', 'pk2']
 
     # check metadata
     assert db_rows['pk1']['order'] == 1
@@ -123,7 +124,7 @@ def test_tsdb_dictdb():
 
     # bulk update of indices
     ddb.index_bulk()
-    check_indexes = ['blarg', 'mean', 'order', 'std', 'vp']
+    check_indexes = ['blarg', 'deleted', 'mean', 'order', 'std', 'vp']
     assert sorted(ddb.indexes.keys()) == check_indexes
     for v in ddb.indexes.values():
         assert isinstance(v, defaultdict)

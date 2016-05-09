@@ -44,6 +44,10 @@ def ccor(ts1, ts2):
     fft_ts1 = nfft.fft(ts1.valuesseq)
     fft_ts2 = nfft.fft(ts2.valuesseq)
 
+    # print(len(ts1))
+    # print(len(ts2))
+    # assert len(ts1) == len(ts2)
+
     # return cross-correlation, i.e. the convolution of the first fft
     # and the conjugate of the second
     return ((1 / (1. * len(ts1))) *

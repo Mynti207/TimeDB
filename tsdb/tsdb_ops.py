@@ -459,7 +459,7 @@ class TSDBOp_AugmentedSelect(TSDBOp):
                    json_dict['md'], json_dict['additional'])
 
 
-class TSDBOp_SimilaritySearch(TSDBOp):
+class TSDBOp_VPSimilaritySearch(TSDBOp):
     '''
     TSDB network operation: finds the time series in the database that are
     closest to the query time series.
@@ -480,7 +480,7 @@ class TSDBOp_SimilaritySearch(TSDBOp):
         -------
         Nothing, modifies in-place.
         '''
-        super().__init__('similarity_search')
+        super().__init__('vp_similarity_search')
         self['query'] = query
         self['top'] = top
 
@@ -611,7 +611,7 @@ typemap = {
     'upsert_meta':          TSDBOp_UpsertMeta,
     'select':               TSDBOp_Select,
     'augmented_select':     TSDBOp_AugmentedSelect,
-    'similarity_search':    TSDBOp_SimilaritySearch,
+    'vp_similarity_search': TSDBOp_VPSimilaritySearch,
     'add_trigger':          TSDBOp_AddTrigger,
     'remove_trigger':       TSDBOp_RemoveTrigger,
     'insert_vp':            TSDBOp_InsertVP,

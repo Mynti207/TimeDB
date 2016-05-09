@@ -13,7 +13,8 @@ schema = {
   'useless':    {'convert': identity,   'index': None},
   'mean':       {'convert': float,      'index': 1},
   'std':        {'convert': float,      'index': 1},
-  'vp':         {'convert': bool,       'index': 1}
+  'vp':         {'convert': bool,       'index': 1},
+  'deleted':    {'convert': bool,       'index': 1}
 }
 
 
@@ -755,11 +756,11 @@ def test_server():
     # single closest time series
 
     # package the operation
-    op = {'op': 'similarity_search', 'query': query, 'top': 1}
+    op = {'op': 'vp_similarity_search', 'query': query, 'top': 1}
     # test that this is packaged as expected
-    assert op == TSDBOp_SimilaritySearch(query, 1)
+    assert op == TSDBOp_VPSimilaritySearch(query, 1)
     # run operation
-    result = protocol._similarity_search(op)
+    result = protocol._vp_similarity_search(op)
     # unpack results
     status, payload = result['status'], result['payload']
     # test that return values are as expected
@@ -769,11 +770,11 @@ def test_server():
     # 5 closest time series
 
     # package the operation
-    op = {'op': 'similarity_search', 'query': query, 'top': 5}
+    op = {'op': 'vp_similarity_search', 'query': query, 'top': 5}
     # test that this is packaged as expected
-    assert op == TSDBOp_SimilaritySearch(query, 5)
+    assert op == TSDBOp_VPSimilaritySearch(query, 5)
     # run operation
-    result = protocol._similarity_search(op)
+    result = protocol._vp_similarity_search(op)
     # unpack results
     status, payload = result['status'], result['payload']
     # test that return values are as expected
@@ -785,11 +786,11 @@ def test_server():
     # pick a random time series
     idx = np.random.choice(list(tsdict.keys()))
     # package the operation
-    op = {'op': 'similarity_search', 'query': tsdict[idx], 'top': 1}
+    op = {'op': 'vp_similarity_search', 'query': tsdict[idx], 'top': 1}
     # test that this is packaged as expected
-    assert op == TSDBOp_SimilaritySearch(tsdict[idx], 1)
+    assert op == TSDBOp_VPSimilaritySearch(tsdict[idx], 1)
     # run operation
-    result = protocol._similarity_search(op)
+    result = protocol._vp_similarity_search(op)
     # unpack results
     status, payload = result['status'], result['payload']
     # test that return values are as expected

@@ -223,7 +223,8 @@ class DictDB:
 
         # remove previously calculated distances from database
         for pk in self.rows:
-            del self.rows[pk][didx]
+            if self.rows[pk]['deleted'] is False:
+                del self.rows[pk][didx]
 
         # remove from vantage point dictionary
         del self.vantage_points[idx]
@@ -263,12 +264,15 @@ class DictDB:
         # add the time series to new database entry
         self.rows[pk]['ts'] = ts
 
+        # initialize the tombstone to False
+        self.rows[pk]['deleted'] = False
+
         # update inverse-lookup index dictionary
         self.update_indices(pk)
 
     def delete_ts(self, pk):
         '''
-        Deletes a time series (and all associated metadata) from the database.
+        Marks a time series as deleted.
 
         Parameters
         ----------
@@ -288,14 +292,27 @@ class DictDB:
         if pk not in self.rows:
             raise ValueError('Primary key not found during insert')
 
-        # temperarily store the database entry, for use in updating the indices
-        row = self.rows[pk]
+        # mark as deleted
+        self.rows[pk]['deleted'] = True
 
-        # delete the time series from the database
-        del self.rows[pk]
+        # rename to avoid key clashes
+        new_pk = '0DELETED_' + pk
+        while new_pk in self.rows:
+            idx, new_pk = int(new_pk[:1]), new_pk[1:]
+            new_pk = str(idx + 1) + new_pk
+        self.rows[new_pk] = self.rows.pop(pk)
 
         # update inverse-lookup index dictionary
-        self.remove_indices(pk, row)
+        for s in self.schema:
+            if self.schema[s]['index'] is not None:
+                if s == 'deleted':
+                    self.indexes['deleted'][False].remove(pk)
+                    self.indexes['deleted'][True].add(new_pk)
+                else:
+                    for val in self.indexes[s]:
+                        if pk in self.indexes[s][val]:
+                            self.indexes[s][val].remove(pk)
+                            self.indexes[s][val].add(new_pk)
 
     def upsert_meta(self, pk, meta):
         '''
@@ -442,6 +459,10 @@ class DictDB:
         # start with the set of all primary keys
         pks = set(self.rows.keys())
 
+        # remove those that have been deleted
+        not_deleted = self.indexes['deleted'][False]
+        pks = pks.intersection(not_deleted)
+
         # loop through each specified metadata criterion
         for field, value in meta.items():
 
@@ -560,7 +581,8 @@ class DictDB:
             if not len(fields):
                 if self.verbose: print('S> D> ALL FIELDS')
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
-                                      if k != 'ts'} for pk in pks]  # remove ts
+                                      if k != 'ts' and k != 'deleted'}
+                                     for pk in pks]  # remove ts
             else:
                 if self.verbose: print('S> D> FIELDS {}'.format(fields))
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()

@@ -245,13 +245,19 @@ async def main():
                                         {'<=': radius}})
 
     # find the closest time series
-    nearestwanted = min(results.keys(), key=lambda k: results[k]['towantedvp'])
+    nearestwanted1 = min(results.keys(),
+                         key=lambda k: results[k]['towantedvp'])
     print('Nearest time series: {}; distance: {:.2f}'.
-          format(nearestwanted, results[nearestwanted]['towantedvp']))
+          format(nearestwanted1, results[nearestwanted1]['towantedvp']))
+
+    status, payload = await client.vp_similarity_search(query, 1)
+    nearestwanted2 = list(payload.keys())[0]
 
     # visualize results
     plt.plot(query, label='Input TS')
-    plt.plot(tsdict[nearestwanted], label='Closest TS')
+    plt.plot(tsdict[nearestwanted1], label='Closest TS (manual)')
+    plt.plot(tsdict[nearestwanted2],
+             label='Closest TS (DB operation)')
     plt.legend(loc='best')
     plt.show()
 

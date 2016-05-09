@@ -208,7 +208,7 @@ class WebInterface():
         # return result of request operation
         return json.loads(r.text, object_pairs_hook=OrderedDict)
 
-    def similarity_search(self, query, top=1):
+    def vp_similarity_search(self, query, top=1):
         '''
         Finds the time series in the database that are closest to the query
         time series.
@@ -226,11 +226,11 @@ class WebInterface():
         '''
 
         # package as TSDB operation
-        msg = TSDBOp_SimilaritySearch(query, top).to_json()
+        msg = TSDBOp_VPSimilaritySearch(query, top).to_json()
 
         # post to webserver
         r = requests.get(
-            self.server + 'similarity_search', data=json.dumps(msg))
+            self.server + 'vp_similarity_search', data=json.dumps(msg))
 
         # return result of request operation
         return json.loads(r.text, object_pairs_hook=OrderedDict)

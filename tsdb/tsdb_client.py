@@ -296,7 +296,7 @@ class TSDBClient(object):
         # return the result of sending the message
         return status, payload
 
-    async def similarity_search(self, query, top=1):
+    async def vp_similarity_search(self, query, top=1):
         '''
         Finds closest time series in the database to the query time series.
 
@@ -313,7 +313,7 @@ class TSDBClient(object):
         '''
 
         # convert operation into message in json form
-        msg = TSDBOp_SimilaritySearch(query, top).to_json()
+        msg = TSDBOp_VPSimilaritySearch(query, top).to_json()
 
         # status update
         if self.verbose: print('C> msg', msg)

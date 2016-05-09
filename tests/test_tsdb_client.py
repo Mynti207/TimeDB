@@ -426,13 +426,13 @@ class test_client(asynctest.TestCase):
         # compare to stored procedure
 
         # package the operation
-        status, payload = await self.client.similarity_search(query, 1)
+        status, payload = await self.client.vp_similarity_search(query, 1)
         assert status == TSDBStatus.OK
         assert len(payload) == 1
         assert list(payload.keys())[0] == nearestwanted
 
         # five closest time series
-        status, payload = await self.client.similarity_search(query, 5)
+        status, payload = await self.client.vp_similarity_search(query, 5)
         assert status == TSDBStatus.OK
         assert len(payload) <= 5
 
@@ -440,7 +440,7 @@ class test_client(asynctest.TestCase):
         # -> should return itself
 
         idx = np.random.choice(list(tsdict.keys()))
-        status, payload = await self.client.similarity_search(tsdict[idx], 1)
+        status, payload = await self.client.vp_similarity_search(tsdict[idx], 1)
         assert status == TSDBStatus.OK
         assert len(payload) == 1
         assert list(payload)[0] == idx

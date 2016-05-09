@@ -129,7 +129,10 @@ class Handler(object):
 
         # unpack the database operation parameters
         pk = request_json['pk']
-        ts_ = TimeSeries(*request_json['ts'])
+        if isinstance(request_json['ts'], TimeSeries):
+            ts_ = request_json['ts']
+        else:
+            ts_ = TimeSeries(*request_json['ts'])
 
         # send the operation to the client
         status, payload = await self.client.insert_ts(pk, ts_)
@@ -345,7 +348,7 @@ class Handler(object):
         # unpack and return response
         return web.Response(body=get_body(status, payload))
 
-    async def handle_similarity_search(self, request):
+    async def handle_vp_similarity_search(self, request):
         '''
         Handler for carrying out a similarity search, i.e. finding the
         'closest' time series in the database.
@@ -366,16 +369,19 @@ class Handler(object):
         # check that the request format is in line with specifications
         required_args = ['query', 'top']
         check = check_arguments(
-            'similarity_search', request_json, *required_args)
+            'vp_similarity_search', request_json, *required_args)
         if check is not None:
             return web.Response(body=check)
 
         # unpack the database operation parameters
-        query = TimeSeries(*request_json['query'])
+        if isinstance(request_json['query'], TimeSeries):
+            query = request_json['query']
+        else:
+            query = TimeSeries(*request_json['query'])
         top = int(request_json['top']) if 'top' in request_json else 1
 
         # send the operation to the client
-        status, payload = await self.client.similarity_search(query, top)
+        status, payload = await self.client.vp_similarity_search(query, top)
 
         # unpack and return response
         return web.Response(body=get_body(status, payload))
@@ -491,8 +497,8 @@ class WebServer(object):
                                   self.handler.handle_select)
         self.app.router.add_route('GET', '/tsdb/augmented_select',
                                   self.handler.handle_augmented_select)
-        self.app.router.add_route('GET', '/tsdb/similarity_search',
-                                  self.handler.handle_similarity_search)
+        self.app.router.add_route('GET', '/tsdb/vp_similarity_search',
+                                  self.handler.handle_vp_similarity_search)
         self.app.router.add_route('POST', '/tsdb/add_trigger',
                                   self.handler.handle_add_trigger)
         self.app.router.add_route('POST', '/tsdb/remove_trigger',

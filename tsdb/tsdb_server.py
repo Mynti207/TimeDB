@@ -341,9 +341,9 @@ class TSDBProtocol(asyncio.Protocol):
         return TSDBOp_Return(TSDBStatus.OK, op['op'],
                              dict(zip(loids, results)))
 
-    def _similarity_search(self, op):
+    def _vp_similarity_search(self, op):
         '''
-        Protocol for running a similarity search on the database,
+        Protocol for running a vantage point similarity search on the database,
         i.e. finding the 'closest' time series in the database.
 
         Parameters
@@ -624,8 +624,8 @@ class TSDBProtocol(asyncio.Protocol):
                     response = self._select(op)
                 elif isinstance(op, TSDBOp_AugmentedSelect):
                     response = self._augmented_select(op)
-                elif isinstance(op, TSDBOp_SimilaritySearch):
-                    response = self._similarity_search(op)
+                elif isinstance(op, TSDBOp_VPSimilaritySearch):
+                    response = self._vp_similarity_search(op)
                 elif isinstance(op, TSDBOp_AddTrigger):
                     response = self._add_trigger(op)
                 elif isinstance(op, TSDBOp_RemoveTrigger):

@@ -11,7 +11,8 @@ schema = {
   'useless':    {'convert': identity,   'index': None},
   'mean':       {'convert': float,      'index': 1},
   'std':        {'convert': float,      'index': 1},
-  'vp':         {'convert': bool,       'index': 1}
+  'vp':         {'convert': bool,       'index': 1},
+  'deleted':    {'convert': bool,       'index': 1}
 }
 
 ########################################
