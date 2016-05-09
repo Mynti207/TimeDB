@@ -11,6 +11,7 @@ class TSDBStatus(enum.IntEnum):
     UNKNOWN_ERROR = 1
     INVALID_OPERATION = 2
     INVALID_KEY = 3
+    NO_MATCH = 4  # for similarity searches
 
     @staticmethod
     def encoded_length():

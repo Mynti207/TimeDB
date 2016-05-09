@@ -67,7 +67,7 @@ class TSDBOp(dict):
             elif hasattr(v, 'to_json'):
                 json_dict[k] = v.to_json()
             else:
-                raise TypeError('Cannot convert object to JSON: '+str(v))
+                raise TypeError('Cannot convert object to JSON: ' + str(v))
 
         # return overall result
         return json_dict
@@ -462,7 +462,7 @@ class TSDBOp_AugmentedSelect(TSDBOp):
 class TSDBOp_VPSimilaritySearch(TSDBOp):
     '''
     TSDB network operation: finds the time series in the database that are
-    closest to the query time series.
+    closest to the query time series (based on vantage points).
     '''
 
     def __init__(self, query, top):
@@ -501,6 +501,85 @@ class TSDBOp_VPSimilaritySearch(TSDBOp):
         Unencoded database network operation
         '''
         return cls(json_dict['query'], json_dict['top'])
+
+
+class TSDBOp_iSAXSimilaritySearch(TSDBOp):
+    '''
+    TSDB network operation: finds the time series in the database that are
+    closest to the query time series (based on iSAX tree).
+    '''
+
+    def __init__(self, query):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        query : TimeSeries
+            The time series to compare distances
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('isax_similarity_search')
+        self['query'] = query
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls(json_dict['query'])
+
+
+class TSDBOp_iSAXTree(TSDBOp):
+    '''
+    TSDB network operation: returns a visual representation of the iSAX tree.
+    '''
+
+    def __init__(self):
+        '''
+        Initializes the class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        super().__init__('isax_tree')
+
+    @classmethod
+    def from_json(cls, json_dict):
+        '''
+        Recover database operation from json-encoded dictionary.
+
+        Parameters
+        ----------
+        cls : class
+            TSDB network operation type
+        json_dict : dictionary
+            Dictionary for conversion from json format.
+
+        Returns
+        -------
+        Unencoded database network operation
+        '''
+        return cls()
 
 
 class TSDBOp_AddTrigger(TSDBOp):
@@ -606,14 +685,16 @@ class TSDBOp_RemoveTrigger(TSDBOp):
 # dictionary of tsdb network operations
 # simplifies reconstruction of tsdb operation instances from network data
 typemap = {
-    'insert_ts':            TSDBOp_InsertTS,
-    'delete_ts':            TSDBOp_DeleteTS,
-    'upsert_meta':          TSDBOp_UpsertMeta,
-    'select':               TSDBOp_Select,
-    'augmented_select':     TSDBOp_AugmentedSelect,
-    'vp_similarity_search': TSDBOp_VPSimilaritySearch,
-    'add_trigger':          TSDBOp_AddTrigger,
-    'remove_trigger':       TSDBOp_RemoveTrigger,
-    'insert_vp':            TSDBOp_InsertVP,
-    'delete_vp':            TSDBOp_DeleteVP
+    'insert_ts':                TSDBOp_InsertTS,
+    'delete_ts':                TSDBOp_DeleteTS,
+    'upsert_meta':              TSDBOp_UpsertMeta,
+    'select':                   TSDBOp_Select,
+    'augmented_select':         TSDBOp_AugmentedSelect,
+    'vp_similarity_search':     TSDBOp_VPSimilaritySearch,
+    'isax_similarity_search':   TSDBOp_iSAXSimilaritySearch,
+    'isax_tree':                TSDBOp_iSAXTree,
+    'add_trigger':              TSDBOp_AddTrigger,
+    'remove_trigger':           TSDBOp_RemoveTrigger,
+    'insert_vp':                TSDBOp_InsertVP,
+    'delete_vp':                TSDBOp_DeleteVP
 }

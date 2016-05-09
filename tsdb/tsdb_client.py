@@ -299,6 +299,7 @@ class TSDBClient(object):
     async def vp_similarity_search(self, query, top=1):
         '''
         Finds closest time series in the database to the query time series.
+        Similarity search based on vantage points.
 
         Parameters
         ----------
@@ -314,6 +315,58 @@ class TSDBClient(object):
 
         # convert operation into message in json form
         msg = TSDBOp_VPSimilaritySearch(query, top).to_json()
+
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+
+        # return the result of sending the message
+        return status, payload
+
+    async def isax_similarity_search(self, query):
+        '''
+        Finds closest time series in the database to the query time series.
+        Similarity search based on iSAX tree.
+
+        Parameters
+        ----------
+        query : TimeSeries
+            The time series to compare distances
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_iSAXSimilaritySearch(query).to_json()
+
+        # status update
+        if self.verbose: print('C> msg', msg)
+
+        # send message
+        status, payload = await self._send(msg)
+
+        # return the result of sending the message
+        return status, payload
+
+    async def isax_tree(self):
+        '''
+        Returns a visual representation of the iSAX tree.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Result of sending the message with the TSDB operation.
+        '''
+
+        # convert operation into message in json form
+        msg = TSDBOp_iSAXTree().to_json()
 
         # status update
         if self.verbose: print('C> msg', msg)

@@ -1,5 +1,6 @@
 import collections
 from collections import defaultdict
+from .isax import *
 
 import operator
 
@@ -107,6 +108,9 @@ class DictDB:
 
         # specifies vantage points {vantage point id : primary key}
         self.vantage_points = {}
+
+        # initializes isax tree
+        self.tree = iSaxTree("root")
 
         # whether status updates are printed
         self.verbose = verbose
@@ -270,6 +274,9 @@ class DictDB:
         # update inverse-lookup index dictionary
         self.update_indices(pk)
 
+        # insert into isax tree
+        self.tree.insert(ts.values(), tsid=pk)
+
     def delete_ts(self, pk):
         '''
         Marks a time series as deleted.
@@ -291,6 +298,9 @@ class DictDB:
         # if not present, raise an error
         if pk not in self.rows:
             raise ValueError('Primary key not found during insert')
+
+        # delete from isax tree
+        self.tree.delete(self.rows[pk]['ts'].values())
 
         # mark as deleted
         self.rows[pk]['deleted'] = True

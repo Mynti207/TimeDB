@@ -367,6 +367,7 @@ class TSDBProtocol(asyncio.Protocol):
             return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
         # check that the query can be cast as a time series
+        # no need to store here - will be carried out in coroutine
         if not isinstance(op['query'], TimeSeries):
             try:
                 TimeSeries(*op['query'])
@@ -414,7 +415,77 @@ class TSDBProtocol(asyncio.Protocol):
         nearestresult = {n[0]: n[1] for n in nearestwanted[:top]}
 
         # step 7: return status and payload
-        return TSDBOp_Return(TSDBStatus.OK, op['op'], nearestresult)
+        if len(nearestresult) == 0:
+            return TSDBOp_Return(TSDBStatus.NO_MATCH, op['op'], nearestresult)
+        else:
+            return TSDBOp_Return(TSDBStatus.OK, op['op'], nearestresult)
+
+    def _isax_similarity_search(self, op):
+        '''
+        Protocol for running an iSAX similarity search on the database,
+        i.e. finding the 'closest' time series in the database.
+
+        Parameters
+        ----------
+        op : TSDBOp
+            TSDB network operation for similarity search
+
+        Returns
+        -------
+        TSDBOp_Return: status and payload; result of running the TSDB operation
+        '''
+
+        # check that a query time series is present
+        if 'query' not in op:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
+        # check query format, case as time series if necessary
+        if isinstance(op['query'], TimeSeries):
+            query = op['query']
+        else:
+            try:
+                query = TimeSeries(*op['query'])
+            except:
+                return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+
+        # unpack operation parameters
+        query = query.values()  # query time series values
+
+        # run similarity search
+        result = self.server.db.tree.find_nbr(query)
+
+        # return status and payload
+        if result is None:
+            # couldn't find a match
+            return TSDBOp_Return(TSDBStatus.NO_MATCH, op['op'], result)
+        else:
+            # return id of nearest time series (string)
+            return TSDBOp_Return(TSDBStatus.OK, op['op'], result)
+
+    def _isax_tree(self, op):
+        '''
+        Protocol for generating a visual representation of the iSAX tree.
+
+        Parameters
+        ----------
+        op : TSDBOp
+            TSDB network operation for tree representation
+
+        Returns
+        -------
+        TSDBOp_Return: status and payload; result of running the TSDB operation
+        '''
+
+        # generate representation
+        result = self.server.db.tree.display_tree()
+
+        # return status and payload
+        if len(result) == 0:
+            # nothing returned
+            return TSDBOp_Return(TSDBStatus.UNKNOWN_ERROR, op['op'], result)
+        else:
+            # return id of nearest time series (string)
+            return TSDBOp_Return(TSDBStatus.OK, op['op'], result)
 
     def _add_trigger(self, op):
         '''
@@ -626,6 +697,10 @@ class TSDBProtocol(asyncio.Protocol):
                     response = self._augmented_select(op)
                 elif isinstance(op, TSDBOp_VPSimilaritySearch):
                     response = self._vp_similarity_search(op)
+                elif isinstance(op, TSDBOp_iSAXSimilaritySearch):
+                    response = self._isax_similarity_search(op)
+                elif isinstance(op, TSDBOp_iSAXTree):
+                    response = self._isax_tree(op)
                 elif isinstance(op, TSDBOp_AddTrigger):
                     response = self._add_trigger(op)
                 elif isinstance(op, TSDBOp_RemoveTrigger):

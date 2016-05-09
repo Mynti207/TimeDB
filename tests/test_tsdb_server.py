@@ -744,7 +744,7 @@ def test_server():
 
     ########################################
     #
-    # test similarity search
+    # test vantage point similarity search
     #
     ########################################
 
@@ -797,6 +797,41 @@ def test_server():
     assert status == TSDBStatus.OK
     assert len(payload) == 1
     assert list(payload)[0] == idx
+
+    ########################################
+    #
+    # test isax functions
+    #
+    ########################################
+
+    # run similarity search on an existing time series - should return itself
+
+    # pick a random time series
+    idx = np.random.choice(list(tsdict.keys()))
+    # package the operation
+    op = {'op': 'isax_similarity_search', 'query': tsdict[idx]}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXSimilaritySearch(tsdict[idx])
+    # run operation
+    result = protocol._isax_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert ((status == TSDBStatus.OK and payload == idx) or
+            (status == TSDBStatus.NO_MATCH))
+
+    # visualize tree representation
+
+    # package the operation
+    op = {'op': 'isax_tree'}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXTree()
+    # run operation
+    result = protocol._isax_tree(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert isinstance(payload, str)
 
     ########################################
     #

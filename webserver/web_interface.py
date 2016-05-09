@@ -211,7 +211,7 @@ class WebInterface():
     def vp_similarity_search(self, query, top=1):
         '''
         Finds the time series in the database that are closest to the query
-        time series.
+        time series. (Based on vantage points.)
 
         Parameters
         ----------
@@ -231,6 +231,53 @@ class WebInterface():
         # post to webserver
         r = requests.get(
             self.server + 'vp_similarity_search', data=json.dumps(msg))
+
+        # return result of request operation
+        return json.loads(r.text, object_pairs_hook=OrderedDict)
+
+    def isax_similarity_search(self, query):
+        '''
+        Finds the time series in the database that are closest to the query
+        time series. (Based on iSAX tree.)
+
+        Parameters
+        ----------
+        query : TimeSeries
+            The time series to compare distances
+
+        Returns
+        -------
+        Result of the database operation (or error message).
+        '''
+
+        # package as TSDB operation
+        msg = TSDBOp_iSAXSimilaritySearch(query).to_json()
+
+        # post to webserver
+        r = requests.get(
+            self.server + 'isax_similarity_search', data=json.dumps(msg))
+
+        # return result of request operation
+        return json.loads(r.text, object_pairs_hook=OrderedDict)
+
+    def isax_tree(self):
+        '''
+        Returns a visual representation of the iSAX tree.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        Result of the database operation (or error message).
+        '''
+
+        # package as TSDB operation
+        msg = TSDBOp_iSAXTree().to_json()
+
+        # post to webserver
+        r = requests.get(self.server + 'isax_tree', data=json.dumps(msg))
 
         # return result of request operation
         return json.loads(r.text, object_pairs_hook=OrderedDict)

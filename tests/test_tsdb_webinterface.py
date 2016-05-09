@@ -372,3 +372,20 @@ class test_webinterface(asynctest.TestCase):
         results = self.web_interface.vp_similarity_search(tsdict[idx], 1)
         assert len(results) == 1
         assert list(results)[0] == idx
+
+        ########################################
+        #
+        # test isax functions
+        #
+        ########################################
+
+        # run similarity search on an existing time series
+        # -> should return itself
+        idx = np.random.choice(list(tsdict.keys()))
+        results = self.web_interface.isax_similarity_search(tsdict[idx])
+        assert results == idx
+
+        # visualize tree representation
+        results = self.web_interface.isax_tree()
+        assert isinstance(results, str)
+        print(results)

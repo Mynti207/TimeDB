@@ -256,7 +256,6 @@ def main():
 
     # compare to database similarity search
     nearestwanted2 = web_interface.vp_similarity_search(query, 1)
-    print('nearestwanted2', nearestwanted2)
     print('Nearest time series (query): {}; distance: {:.2f}'.
           format(list(nearestwanted2.keys())[0],
                  list(nearestwanted2.values())[0]))

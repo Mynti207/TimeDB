@@ -351,7 +351,7 @@ class Handler(object):
     async def handle_vp_similarity_search(self, request):
         '''
         Handler for carrying out a similarity search, i.e. finding the
-        'closest' time series in the database.
+        'closest' time series in the database (using vantage points).
 
         Parameters
         ----------
@@ -382,6 +382,68 @@ class Handler(object):
 
         # send the operation to the client
         status, payload = await self.client.vp_similarity_search(query, top)
+
+        # unpack and return response
+        return web.Response(body=get_body(status, payload))
+
+    async def handle_isax_similarity_search(self, request):
+        '''
+        Handler for carrying out a similarity search, i.e. finding the
+        'closest' time series in the database (using iSAX tree).
+
+        Parameters
+        ----------
+        request : request instance
+            Request instance that packages all database operation parameters
+
+        Returns
+        -------
+        StreamResponse
+        '''
+
+        # convert request to json format
+        request_json = await request.json()
+
+        # check that the request format is in line with specifications
+        required_args = ['query']
+        check = check_arguments(
+            'isax_similarity_search', request_json, *required_args)
+        if check is not None:
+            return web.Response(body=check)
+
+        # unpack the database operation parameters
+        if isinstance(request_json['query'], TimeSeries):
+            query = request_json['query']
+        else:
+            query = TimeSeries(*request_json['query'])
+
+        # send the operation to the client
+        status, payload = await self.client.isax_similarity_search(query)
+
+        # unpack and return response
+        return web.Response(body=get_body(status, payload))
+
+    async def handle_isax_tree(self, request):
+        '''
+        Handler for getting a visual representation of the iSAX tree.
+
+        Parameters
+        ----------
+        request : request instance
+            Request instance that packages all database operation parameters
+
+        Returns
+        -------
+        StreamResponse
+        '''
+
+        # convert request to json format
+        request_json = await request.json()
+
+        # no parameters to check/unpack
+
+        # send the operation to the client
+        status, payload = await self.client.isax_tree()
 
         # unpack and return response
         return web.Response(body=get_body(status, payload))
@@ -499,6 +561,10 @@ class WebServer(object):
                                   self.handler.handle_augmented_select)
         self.app.router.add_route('GET', '/tsdb/vp_similarity_search',
                                   self.handler.handle_vp_similarity_search)
+        self.app.router.add_route('GET', '/tsdb/isax_similarity_search',
+                                  self.handler.handle_isax_similarity_search)
+        self.app.router.add_route('GET', '/tsdb/isax_tree',
+                                  self.handler.handle_isax_tree)
         self.app.router.add_route('POST', '/tsdb/add_trigger',
                                   self.handler.handle_add_trigger)
         self.app.router.add_route('POST', '/tsdb/remove_trigger',

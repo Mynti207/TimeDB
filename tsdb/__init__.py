@@ -6,6 +6,7 @@ from .tsdb_error import *
 from .tsdb_ops import *
 from .tsdb_serialization import *
 from .tsdb_server import *
+from .isax import *
 
 try:
     __version__ = pkg_resources.get_distribution(__name__).version
