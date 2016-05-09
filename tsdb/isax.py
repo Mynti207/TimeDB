@@ -11,45 +11,64 @@ from scipy import stats
 
 def stand(x):
     '''
-    Standardize a data series.
+    Standardizes a time series
 
-    Input: a 1-D numpy array
-    Returns: the 1-D numpy array with values standardized
+    Parameters
+    ----------
+    x : 1-d numpy array
+        Time series to be standardized
+
+    Returns
+    -------
+    1-d numpy array with standardized time series values
     '''
 
-    return (x-np.mean(x))/np.std(x, ddof=0)
+    return (x - np.mean(x)) / np.std(x, ddof=0)
 
 
 def get_breakpoints(a):
     '''
     Return list of breakpoints given cardinality a, used in SAX indexing.
 
-    Input: integer a, representing number of breakpoints
-    Returns: list of floats representing standard deviations from 0 mean,
-    length (a - 1)
+    Parameters
+    ----------
+    a : integer
+        Number of breakpoints
+
+    Returns
+    -------
+    list of floats representing standard deviations from 0 mean, length (a - 1)
     '''
 
     avec = np.zeros(a - 1)  # 1 less breakpoint than length
     for i in range(a - 1):
-        avec[i] = sp.stats.norm.ppf((i + 1)/a, loc=0, scale=1)
+        avec[i] = sp.stats.norm.ppf((i + 1) / a, loc=0, scale=1)
     return avec
 
 
 def get_isax_word(ts, w, a):
-    ''' Given a time series, return iSAX word representation.
+    '''
+    Given a time series, return iSAX word representation.
 
-    Inputs:
+    Parameters
+    ----------
     ts: time series
-    w: number of chunks to divide time series
-    a: cardinality (number of possible index values/levels per chunk)
 
-    Returns: list of strings of length w,
-             each string represents a binary number having log2(a) digits
+    w : int
+        Number of chunks in which to divide time series
+
+    a: int
+        Cardinality (number of possible index values/levels per chunk)
 
     Notes:
     Unexpected results may occur if cardinality is not 2^n for some n.
     Rounding errors may occur if w does not divide into length of time series
     evenly.
+
+    Returns
+    -------
+    List of strings of length w, where each string represents a binary number
+    with log2(a) digits
     '''
 
     # standardize time series
@@ -57,10 +76,10 @@ def get_isax_word(ts, w, a):
 
     # divide series into chunks
     if len(series) >= w:
-        lenchunk = int(len(series)/w)
+        lenchunk = int(len(series) / w)
     else:
-        # we choose to divide into unit chunks if length of series is not
-        # at least w
+        # we choose to divide into unit chunks if the length of series
+        # is not at least w
         lenchunk = 1
 
     # get averages of each bin
@@ -68,11 +87,14 @@ def get_isax_word(ts, w, a):
              for chunk in range(w)]
 
     breakpoints = get_breakpoints(a)
-    assert len(breakpoints) == (a-1)
+
+    if len(breakpoints) != (a - 1):
+        return ValueError('Not compatible with tree structure.')
 
     # reverse list so that 0 value is lowest y (most negative on std scale)
     labels = np.arange(a)[::-1]
-    assert len(labels) == a
+    if len(labels) != a:
+        return ValueError('Not compatible with tree structure.')
 
     # convert to SAX code
     sax = np.empty(w, dtype=int)
@@ -94,16 +116,26 @@ def get_isax_word(ts, w, a):
 
 def distance(ts1, ts2):
     '''
-    Calculates Euclidian distance between two time series.
+    Calculates Euclidian distance between two time series. Assumes time series
+    are of the same length.
 
-    Takes time series in the form of two 1-D numpy arrays. Assumes time series
-    are of same length.
-    Used by `find_nbr` in `iSaxTree` class to compare time series, but other
-    distance measure can
-    be substituted here.
+    Used by `find_nbr` in `iSaxTree` class to compare time series. Other
+    distance measures can be substituted here.
+
+    Parameters
+    ----------
+    ts1 : 1d numpy array
+        Time series values
+    ts2 : 1d numpy array
+        Time series values
+
+    Returns
+    -------
+    Float, distance between the two time series.
     '''
 
-    assert len(ts1) == len(ts2)
+    if len(ts1) != len(ts2):
+        return ValueError('Not compatible with tree structure.')
 
     d = (ts1 - ts2)**2
     d = d.sum(axis=-1)
@@ -118,7 +150,7 @@ def distance(ts1, ts2):
 # currently iSAX word (string) is used as the filename;
 # these functions store the "files" in memory
 #
-# Note that the storage structure (alldata) works different from the
+# Note that the storage structure (alldata) works differently from the
 # `keyhashes` dictionary for the iSaxTree classes; the former only has an
 # iSAX word index if there are existing time series being stored for it
 # (e.g. upon deletion of all time series for that word, the entry from
@@ -134,11 +166,35 @@ def distance(ts1, ts2):
 class TreeFileStructure:
 
     def __init__(self):
-        self.alldata = {}  # can be re-initialized if desired
+        '''
+        Initializes the TreeFileStructure class.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        An initialized TreeFileStructure object.
+        '''
+
+        # can be re-initialized if desired
+        self.alldata = {}
 
     def read_file(self, filename):
-        # returns list of tuples indexed by filename
-        # [(time series as numpy array, time series ID), ...]
+        '''
+        Returns a list of time series associated with an iSAX word
+
+        Parameters
+        ----------
+        filename : string
+            iSAX word
+
+        Returns
+        -------
+        A list of tuples:
+        [(time series as numpy array, time series ID), ...]
+        '''
         templist = []
         try:
             templist = self.alldata[filename]
@@ -147,20 +203,63 @@ class TreeFileStructure:
         return templist
 
     def isax_exists(self, filename):
-        # returns True if iSAX word has any time series stored for it
+        '''
+        Checks whether an iSAX word has any time series associated
+        with it.
+
+        Parameters
+        ----------
+        filename : string
+            iSAX word
+
+        Returns
+        -------
+        Boolean, whether there are any time series stored with the iSAX word
+        '''
         return filename in self.alldata
 
     def already_in_file(self, filename, ts):
-        # returns True if a specific time series corresponding to an iSAX
-        # word is stored with the iSAX word
+        '''
+        Checks whether a specific time series is stored with an iSAX word
+
+        Parameters
+        ----------
+        filename : string
+            iSAX word
+        ts : 1d numpy array
+            Time series values
+
+        Returns
+        -------
+        Boolean, whether a specific time series is stored with an iSAX word.
+        '''
         if self.isax_exists(filename):
-            data = self.read_file(filename)  # read data
+            # read data
+            data = self.read_file(filename)
             exists = np.any([np.array_equal(item[0], ts) for item in data])
             if exists:
                 return True
-        return False  # not in file
 
-    def write_to_file(self, filename, ts, tsid=""):
+        # not in file
+        return False
+
+    def write_to_file(self, filename, ts, tsid=''):
+        '''
+        TODO
+
+        Parameters
+        ----------
+        filename : string
+            iSAX word
+        ts : 1d numpy array
+            Time series values
+        tsip : string
+            Time series identifier (equivalent to DictDB primary key)
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
         # assumes already checked not in file
         # write time series to `filename` with optional ID
         if self.isax_exists(filename):
@@ -170,6 +269,22 @@ class TreeFileStructure:
             self.alldata[filename] = [(ts, tsid)]
 
     def delete_from_file(self, filename, ts):
+        '''
+        TODO
+
+        Parameters
+        ----------
+        filename : string
+            iSAX word
+        ts : 1d numpy array
+            Time series values
+        tsip : string
+            Time series identifier (equivalent to DictDB primary key)
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
         # deletes time series from storage
         self.alldata[filename] = [item for item in self.alldata[filename]
                                   if not np.array_equal(item[0], ts)]
@@ -183,25 +298,69 @@ class TreeFileStructure:
 #
 ####################
 
+class log:
+    def __init__(self):
+        self.graphstr = ''
+
+    def graph_as_string(self):
+        return self.graphstr
+
+
 class BasicTree:
     '''
     Basic n-ary tree class.
     '''
 
     def __init__(self, data, parent=None):
+        '''
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        '''
         self.data = data
         self.parent = parent
         self.child_pointers = []  # stores of pointers to child nodes
 
     def add_child(self, data, level):
+        '''
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        '''
         n = self.__class__(data, self, level)
         self.child_pointers += [n]
         return n
 
     def num_children(self):
+        '''
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        '''
         return len(self.child_pointers)
 
     def isRoot(self):
+        '''
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        '''
         return not self.parent
 
 
@@ -262,13 +421,10 @@ class iSaxTree(BasicTree):
     3.  delete - delete a time series from the tree; actual time series
     required as input
             Usage: myTree.delete(ts)
-    4.  preorder - outputs as text structure of tree with counts of time series
-    stored in each leaf node
-            Usage: myTree.preorder()
-    5.  preorder_ids - same as preorder, but list of IDs output along with
-    counts
-            Usage: myTree.preorder_ids()
-    6.  find_nbr - performs an approximate search for nearest neighbor of input
+    4.  display_tree - outputs as text structure of tree with counts and IDs of
+    time series stored in each leaf node
+            Usage: myTree.display_tree()
+    5.  find_nbr - performs an approximate search for nearest neighbor of input
     time series
             Notes: format of input/reference time series should be a 1-D numpy
             array; the input time series need not be an existing time series
@@ -281,6 +437,14 @@ class iSaxTree(BasicTree):
         Initializes tree (or subtree).
 
         Note: leave level unspecified to create root node of a new tree.
+
+        TODO
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         '''
 
         super().__init__(data, parent)
@@ -307,13 +471,7 @@ class iSaxTree(BasicTree):
         # maximum depth (number of levels) in tree to split
         self.maxlevel = 10
 
-        # initialize file structure (separately, in case we want to re-init)
-        self.initialize_file_structure()
-
-    def initialize_file_structure(self):
-        self.fs = TreeFileStructure()
-
-    def insert(self, ts, level=1, tsid=""):
+    def insert(self, ts, fs, level=1, tsid=''):
         '''
         Attempt insertion at a given level of the tree (default is below root).
 
@@ -330,19 +488,23 @@ class iSaxTree(BasicTree):
         applied up to `maxlevel` to control height of tree; at `maxlevel`
         series is added to a child node even if threshold number of series
         is exceeded
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         '''
 
-        # print ("attempting insert of", tsid)
-
         # level to add node must be one below current node's level
-        assert level == (self.level + 1)
+        if level != (self.level + 1):
+            return ValueError('Not compatible with tree structure.')
 
         # get iSAX representation of input time series (as string)
         isax_word = str(get_isax_word(ts, self.w, self.a*(2**(level-1))))
 
-        if self.fs.already_in_file(isax_word, ts):
+        if fs.already_in_file(isax_word, ts):
             # exact match already in file
-            # print ("did not insert - already in file")
             return
 
         if isax_word in self.keyhashes:
@@ -354,29 +516,27 @@ class iSaxTree(BasicTree):
 
             if node.num_children() == 0:
                 # child is a terminal node / leaf
-                assert node.data == isax_word
+                if node.data != isax_word:
+                    return ValueError('Not compatible with tree structure.')
                 # there is space to add series to the leaf
-                if len(self.fs.read_file(isax_word)) < self.TH:
-                    self.fs.write_to_file(isax_word, ts, tsid=tsid)
+                if len(fs.read_file(isax_word)) < self.TH:
+                    fs.write_to_file(isax_word, ts, tsid=tsid)
                 # add to leaf if maximum depth reached
                 # (i.e. do not split further)
                 elif level == self.maxlevel:
-                    self.fs.write_to_file(isax_word, ts, tsid=tsid)
+                    fs.write_to_file(isax_word, ts, tsid=tsid)
                 # additional insert warrants a split, create an internal node
                 else:
-                    # print ("creating new internal node at level", level)
 
                     # get all time series associated with this node and
                     # reinsert into new subtree
-                    ts_list = self.fs.alldata[isax_word]
+                    ts_list = fs.alldata[isax_word]
                     for ts_to_move, itemid in ts_list:
                         node.insert(ts_to_move, level + 1, tsid=itemid)
-                        self.fs.delete_from_file(str(get_isax_word(
+                        fs.delete_from_file(str(get_isax_word(
                             ts_to_move, self.w, self.a * (2 ** (level - 1)))),
                             ts_to_move)
 
-                    # print ("completed moving series from internal node into ",
-                    #        "new nodes")
                     # insert input time series that triggered split
                     # into a node in the new subtree (i.e. one level down)
                     node.insert(ts, level + 1, tsid=tsid)
@@ -388,25 +548,30 @@ class iSaxTree(BasicTree):
             # new node to be created; add pointer to new terminal node
             # in self's list
             self.keyhashes[isax_word] = self.num_children()  # 0-index
-            self.fs.write_to_file(isax_word, ts, tsid=tsid)
+            fs.write_to_file(isax_word, ts, tsid=tsid)
             self.add_child(isax_word, level)
 
         return
 
-    def delete(self, ts, level=1):
+    def delete(self, ts, fs, level=1):
         '''
         Delete a time series from the tree.
 
         Usage: myTree.delete(ts)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         '''
 
         # get iSAX representation of input time series (as string)
         isax_word = str(get_isax_word(ts, self.w, self.a * (2 ** (level - 1))))
 
-        if self.fs.already_in_file(isax_word, ts):
+        if fs.already_in_file(isax_word, ts):
             # exact match already in file
-            # print("match found - deleting")
-            self.fs.delete_from_file(isax_word, ts)
+            fs.delete_from_file(isax_word, ts)
             return
 
         # a node for the same iSAX word has previously been created;
@@ -417,11 +582,11 @@ class iSaxTree(BasicTree):
             node = self.child_pointers[idx]
 
             if node.num_children() == 0:  # child is a terminal node
-                assert node.data == isax_word
+                if node.data != isax_word:
+                    return ValueError('Not compatible with tree structure.')
                 # if code reaches here, word is not in node otherwise it would
                 # have already been deleted since it should be stored filed
                 # under `isax_word`
-                # print ("delete failed -- time series not in store")
             else:
                 # child is an internal (i.e. not a terminal node); traverse
                 node.delete(ts, level + 1)
@@ -429,61 +594,37 @@ class iSaxTree(BasicTree):
             pass
             # there was no node created for this isax_word;
             # therefore it cannot be in tree
-            # print ("delete failed -- time series not in store")
         return
 
-    def preorder(self):
+    def preorder_str(self, l, fs):
         '''
-        Outputs structure of tree with counts of time series stored in each
-        leaf node.
+        Same as preorder_ids, but saves output as one big string.
 
-        Usage: myTree.preorder()
-        '''
-
-        if self.isRoot():
-            print (self.data)
-        else:
-            if self.fs.isax_exists(self.data):
-                count = len(self.fs.read_file(self.data))
-            else:
-                count = 0
-            paddedstr = ("---" * self.level + ">" + self.data + ": " +
-                         str(count))
-            print (paddedstr)
-
-        # recursively traverse tree
-        for child_link in self.child_pointers:
-            child_link.preorder()
-
-    def preorder_ids(self):
-        '''
-        Same as preorder, but list of IDs are output along with counts.
-
-        Usage: myTree.preorder_ids()
+        self: iSaxTree object
+        l: log Class object
         '''
 
         if self.isRoot():
-            print (self.data)
+            paddedstr = self.data + '\n'
+            l.graphstr += paddedstr
         else:
-            if self.fs.isax_exists(self.data):
-                count = len(self.fs.read_file(self.data))
-                listing = [item[1] for item in self.fs.read_file(self.data)]
+            if fs.isax_exists(self.data):
+                count = len(fs.read_file(self.data))
+                listing = [item[1] for item in fs.read_file(self.data)]
             else:
                 count = 0
                 listing = []
-            paddedstr = ("---" * self.level + ">" + self.data + ": " +
-                         str(count))
-            print (paddedstr, sorted(listing))
+            paddedstr = ('---' * self.level + '>' + self.data + ': ' +
+                         str(count) + ' ' + str(sorted(listing)) + '\n')
+            l.graphstr += paddedstr
 
         # recursively traverse tree
         for child_link in self.child_pointers:
-            child_link.preorder_ids()
+            child_link.preorder_str(l, fs)
 
-    def display_tree(self):
-        return 'DUMMY STRING'
-
-    def find_nbr(self, ts, level=1):
-        ''' Performs an approximate search for nearest neighbor of input time series.
+    def find_nbr(self, ts, fs, level=1):
+        '''
+        Performs an approximate search for nearest neighbor of input time series.
 
         Example usage: myTree.find_nbr(reference_ts)
 
@@ -501,36 +642,36 @@ class iSaxTree(BasicTree):
         suggestion is returned.
         3. The input/reference time series should be a 1-D numpy array; the
         input time series need not be an existing time series in tree.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
         '''
 
         # get iSAX representation of input time series (as string)
         isax_word = str(get_isax_word(ts, self.w, self.a * (2 ** (level - 1))))
 
-        if self.fs.isax_exists(isax_word):
+        if fs.isax_exists(isax_word):
             # exact isax word match found in file, retrieve all series
-            ts_list = self.fs.read_file(isax_word)
-            # print(len(ts_list), "neighbors with same iSAX word found")
-            assert len(ts_list) > 0
+            ts_list = fs.read_file(isax_word)
+            if len(ts_list) == 0:
+                return ValueError('Not compatible with tree structure.')
 
             if len(ts_list) == 1:  # one entry, return it
-                # print ("closest neighbor:", ts_list[0][1])
-                # return ts_list[0][0]
-                return ts_list[0][1]
+                return {ts_list[0][1]: 0}
             else:
                 # calculate distances from reference series to each located
                 # series and return closest
                 mindist = np.inf
                 best_id = ""
-                best_ts = None
                 for item in ts_list:
                     tempdist = distance(ts, item[0])
                     if tempdist < mindist:
                         mindist = tempdist
                         best_id = item[1]
-                        best_ts = item[0]
-                # print ("closest neighbor:", best_id)
-                # return best_ts
-                return best_id
+                return {best_id: mindist}
 
         # if isax_word is in keyhashes dictionary, but not in file system
         # then this means we need to check the children for potential matches
@@ -541,14 +682,15 @@ class iSaxTree(BasicTree):
 
             # child is a terminal node
             if node.num_children() == 0:
-                assert node.data == isax_word
+                if node.data != isax_word:
+                    return ValueError('Not compatible with tree structure.')
                 # if code reaches here, node was created but it is empty
                 # create list of neighboring series from nodes that have
                 # shared parent
                 ts_list = []
                 for child in self.child_pointers:
                     try:
-                        ts_list += self.fs.read_file(child.data)
+                        ts_list += fs.read_file(child.data)
                     except:
                         # node may exist, but no series are stored in the
                         # file system
@@ -556,28 +698,20 @@ class iSaxTree(BasicTree):
 
                 if len(ts_list) > 0:
                     # calculate distances to each time series; return minimum
-                    # print(len(ts_list),
-                    #       "neighbors with same parent iSAX word found")
                     mindist = np.inf
                     best_id = ""
-                    best_ts = None
                     for item in ts_list:
                         tempdist = distance(ts, item[0])
                         if tempdist < mindist:
                             mindist = tempdist
                             best_id = item[1]
-                            best_ts = item[0]
-                    # print ("closest neighbor:", best_id)
-                    # return best_ts
-                    return best_id
+                    return {best_id: mindist}
+                # no neighbors found at the same level
                 else:
-                    # print ("no suggestions: no neighbors found at same level")
                     return None
             else:
                 # child is an internal (i.e. not a terminal node); traverse
                 return node.find_nbr(ts, level + 1)
+            # there was no node created for this isax_word
         else:
             pass
-            # there was no node created for this isax_word
-            # print ("no suggestions: no time series corresponds to the same ",
-            #        "isax_word")

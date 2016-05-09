@@ -54,7 +54,7 @@ async def main():
     print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
 
     # initialize database client
-    client = TSDBClient(verbose=False)
+    client = TSDBClient()
 
     ########################################
     #

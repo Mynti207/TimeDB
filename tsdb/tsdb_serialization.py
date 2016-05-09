@@ -49,14 +49,13 @@ class Deserializer(object):
     removed from this buffer after it is returned.
     '''
 
-    def __init__(self, verbose=True):
+    def __init__(self):
         '''
         Initializes the Deserializer class.
 
         Parameters
         ----------
-        verbose : boolean
-            Determines whether status updates are printed
+        None
 
         Returns
         -------
@@ -65,7 +64,6 @@ class Deserializer(object):
         # initialize blank buffer
         self.buf = b''
         self.buflen = -1
-        self.verbose = verbose
 
     def append(self, data):
         '''
@@ -144,6 +142,4 @@ class Deserializer(object):
             return json.loads(json_str, object_pairs_hook=OrderedDict)
         except json.JSONDecodeError:
             # otherwise it is not valid json data, so don't return it
-            if self.verbose: print('Invalid JSON object received:\n' +
-                                   str(json_str))
             return None

@@ -63,7 +63,7 @@ class DictDB:
     In-memory, dictionary based database.
     '''
 
-    def __init__(self, schema, pkfield, verbose=False):
+    def __init__(self, schema, pkfield):
         '''
         Initializes the DictDB class.
 
@@ -74,8 +74,6 @@ class DictDB:
             formats
         pkfield : string
             Specifies the name of the primary key field
-        verbose : boolean
-            Determines whether status updates are printed.
 
         Returns
         -------
@@ -109,11 +107,12 @@ class DictDB:
         # specifies vantage points {vantage point id : primary key}
         self.vantage_points = {}
 
-        # initializes isax tree
-        self.tree = iSaxTree("root")
+        # initializes file structure for isax tree
+        self.fs = TreeFileStructure()
 
-        # whether status updates are printed
-        self.verbose = verbose
+        # initializes isax tree
+        # includes pointer to file structure
+        self.tree = iSaxTree('root')
 
     def insert_vp(self, pk):
         '''
@@ -275,7 +274,10 @@ class DictDB:
         self.update_indices(pk)
 
         # insert into isax tree
-        self.tree.insert(ts.values(), tsid=pk)
+        try:
+            self.tree.insert(ts.values(), tsid=pk, fs=self.fs)
+        except ValueError:
+            return ValueError('Not compatible with tree structure.')
 
     def delete_ts(self, pk):
         '''
@@ -300,7 +302,10 @@ class DictDB:
             raise ValueError('Primary key not found during insert')
 
         # delete from isax tree
-        self.tree.delete(self.rows[pk]['ts'].values())
+        try:
+            self.tree.delete(self.rows[pk]['ts'].values(), fs=self.fs)
+        except ValueError:
+            return ValueError('Not compatible with tree structure.')
 
         # mark as deleted
         self.rows[pk]['deleted'] = True
@@ -585,16 +590,13 @@ class DictDB:
 
         # extract the relevant sub-set of fields
         if fields is None:  # no sub-set is specified
-            if self.verbose: print('S> D> NO FIELDS')
             matchedfielddicts = [{} for pk in pks]
         else:
             if not len(fields):
-                if self.verbose: print('S> D> ALL FIELDS')
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k != 'ts' and k != 'deleted'}
                                      for pk in pks]  # remove ts
             else:
-                if self.verbose: print('S> D> FIELDS {}'.format(fields))
                 matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
                                       if k in fields} for pk in pks]
 

@@ -13,7 +13,7 @@ class TSDBClient(object):
     Note: can be used in a python program, web server, or repl.
     '''
 
-    def __init__(self, port=9999, verbose=False):
+    def __init__(self, port=9999):
         '''
         Initializes the TSDBClient class.
 
@@ -21,15 +21,12 @@ class TSDBClient(object):
         ----------
         port : int
             Specifies the port the database client uses (default=9999)
-        verbose : boolean
-            Determines whether status updates are printed
 
         Returns
         -------
         An initialized TSDB client object
         '''
         self.port = port
-        self.verbose = verbose
 
     async def insert_ts(self, primary_key, ts):
         '''
@@ -49,9 +46,6 @@ class TSDBClient(object):
 
         # convert operation into message in json form
         msg = TSDBOp_InsertTS(primary_key, ts).to_json()
-
-        # status update
-        if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
@@ -76,9 +70,6 @@ class TSDBClient(object):
         # convert operation into message in json form
         msg = TSDBOp_InsertVP(primary_key).to_json()
 
-        # status update
-        if self.verbose: print('C> msg', msg)
-
         # send message
         status, payload = await self._send(msg)
 
@@ -101,9 +92,6 @@ class TSDBClient(object):
 
         # convert operation into message in json form
         msg = TSDBOp_DeleteVP(primary_key).to_json()
-
-        # status update
-        if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
@@ -128,9 +116,6 @@ class TSDBClient(object):
         # convert operation into message in json form
         msg = TSDBOp_DeleteTS(primary_key).to_json()
 
-        # status update
-        if self.verbose: print('C> msg', msg)
-
         # send message
         status, payload = await self._send(msg)
 
@@ -148,8 +133,6 @@ class TSDBClient(object):
             Primary key for the  database entry
         metadata_dict : dictionary
             Metadata to be upserted into the database
-        verbose : boolean
-            Determines whether status updates are displayed
 
         Returns
         -------
@@ -157,9 +140,6 @@ class TSDBClient(object):
         '''
         # convert operation into message in json form
         msg = TSDBOp_UpsertMeta(primary_key, metadata_dict).to_json()
-
-        # status update
-        if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
@@ -205,9 +185,6 @@ class TSDBClient(object):
 
         # convert operation into message in json form
         msg = TSDBOp_Select(metadata_dict, fields, additional).to_json()
-
-        # status update
-        if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
@@ -276,9 +253,6 @@ class TSDBClient(object):
         msg = TSDBOp_AugmentedSelect(proc, target, arg, metadata_dict,
                                      additional).to_json()
 
-        # status update
-        if self.verbose: print('C> msg', msg)
-
         # send message
         status, payload = await self._send(msg)
 
@@ -316,9 +290,6 @@ class TSDBClient(object):
         # convert operation into message in json form
         msg = TSDBOp_VPSimilaritySearch(query, top).to_json()
 
-        # status update
-        if self.verbose: print('C> msg', msg)
-
         # send message
         status, payload = await self._send(msg)
 
@@ -343,9 +314,6 @@ class TSDBClient(object):
         # convert operation into message in json form
         msg = TSDBOp_iSAXSimilaritySearch(query).to_json()
 
-        # status update
-        if self.verbose: print('C> msg', msg)
-
         # send message
         status, payload = await self._send(msg)
 
@@ -367,9 +335,6 @@ class TSDBClient(object):
 
         # convert operation into message in json form
         msg = TSDBOp_iSAXTree().to_json()
-
-        # status update
-        if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
@@ -402,9 +367,6 @@ class TSDBClient(object):
         # convert operation into message in json form
         msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
 
-        # status update
-        if self.verbose: print('C> msg', msg)
-
         # send message
         status, payload = await self._send(msg)
 
@@ -432,9 +394,6 @@ class TSDBClient(object):
 
         # convert operation into message in json form
         msg = TSDBOp_RemoveTrigger(proc, onwhat, target).to_json()
-
-        # status update
-        if self.verbose: print('C> msg', msg)
 
         # send message
         status, payload = await self._send(msg)
@@ -478,14 +437,6 @@ class TSDBClient(object):
         # unpack the message
         status = msg_received['status']
         payload = msg_received['payload']
-
-        # status update
-        if self.verbose:
-            print('C> status:', TSDBStatus(status))
-            try:
-                print('C> payload:', list(payload.keys()))
-            except:
-                print('C> payload:', payload)
 
         # return the message
         return status, payload

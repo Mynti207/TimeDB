@@ -6,6 +6,7 @@ from .tsdb_serialization import Deserializer, serialize
 from .tsdb_error import TSDBStatus
 from .tsdb_ops import *
 import procs
+from .isax import log
 
 
 def trigger_callback_maker(pk, target, calltomake):
@@ -40,7 +41,7 @@ class TSDBProtocol(asyncio.Protocol):
     Protocols for the time series database. Unpack the json-encoded database
     operations and run them.
     '''
-    def __init__(self, server, verbose=False):
+    def __init__(self, server):
         '''
         Initializes the TSDBProtocol class.
 
@@ -48,17 +49,14 @@ class TSDBProtocol(asyncio.Protocol):
         ----------
         server : TSDBServer
             The server on which tsdb network operations are run
-        verbose : boolean
-            Determines whether status updates are printed
 
         Returns
         -------
         An initialized TSDB protocol object
         '''
         self.server = server
-        self.deserializer = Deserializer(verbose=verbose)
+        self.deserializer = Deserializer()
         self.futures = []
-        self.verbose = verbose
 
     def _insert_ts(self, op):
         '''
@@ -452,7 +450,10 @@ class TSDBProtocol(asyncio.Protocol):
         query = query.values()  # query time series values
 
         # run similarity search
-        result = self.server.db.tree.find_nbr(query)
+        try:
+            result = self.server.db.tree.find_nbr(query, fs=self.server.db.fs)
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'], result)
 
         # return status and payload
         if result is None:
@@ -477,7 +478,17 @@ class TSDBProtocol(asyncio.Protocol):
         '''
 
         # generate representation
-        result = self.server.db.tree.display_tree()
+        try:
+            # print('----------')
+            # print('STARTING PREORDER')
+            # print(self.server.db.fs.alldata.keys())
+            # print('----------')
+            mygraph = log()
+            self.server.db.tree.preorder_str(mygraph, self.server.db.fs)
+            result = mygraph.graph_as_string()
+            # print(result)
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
         # return status and payload
         if len(result) == 0:
@@ -627,9 +638,6 @@ class TSDBProtocol(asyncio.Protocol):
         # look up the triggers associated with the network operation
         lot = self.server.triggers[opname]
 
-        # status update
-        if self.verbose: print("S> list of triggers to run", lot)
-
         # loop through all relevant trigger coroutines
         for tname, t, arg, target in lot:
 
@@ -646,7 +654,6 @@ class TSDBProtocol(asyncio.Protocol):
         '''
         Protocol for a made connection.
         '''
-        if self.verbose: print('S> connection made')
         self.conn = conn
 
     def data_received(self, data):
@@ -723,7 +730,7 @@ class TSDBProtocol(asyncio.Protocol):
         '''
         Protocol for a closed/lost connection.
         '''
-        if self.verbose: print('S> connection lost')
+        pass
 
 
 class TSDBServer(object):
@@ -731,7 +738,7 @@ class TSDBServer(object):
     Callback-based asynchronous socket server.
     '''
 
-    def __init__(self, db, port=9999, verbose=False):
+    def __init__(self, db, port=9999):
         '''
         Initializes the class.
 
@@ -741,8 +748,6 @@ class TSDBServer(object):
             The underlying dictionary-based database
         port : int
             Specifies the port the database client uses (default=9999)
-        verbose : boolean
-            Determines whether status updates are printed
 
         Returns
         -------
@@ -753,7 +758,6 @@ class TSDBServer(object):
         self.triggers = defaultdict(list)
         self.trigger_arg_cache = defaultdict(dict)
         self.autokeys = {}
-        self.verbose = verbose
 
     def exception_handler(self, loop, context):
         '''
@@ -771,9 +775,6 @@ class TSDBServer(object):
         -------
         Nothing, modifies in place.
         '''
-        # status update
-        if self.verbose: print('S> EXCEPTION:', str(context))
-
         # stop ayncio event loop (listener)
         loop.stop()
 
@@ -790,9 +791,6 @@ class TSDBServer(object):
         Nothing, modifies in-place.
         '''
 
-        # status update
-        if self.verbose: print('S> Starting TSDB server on port', self.port)
-
         # initialize ayncio event loop
         loop = asyncio.get_event_loop()
 
@@ -808,9 +806,9 @@ class TSDBServer(object):
         try:
             loop.run_forever()
         except KeyboardInterrupt:
-            if self.verbose: print('S> Exiting.')
-        except Exception as e:
-            if self.verbose: print('S> Exception:', e)
+            pass
+        except Exception:
+            pass
         finally:
             listener.close()
             loop.close()

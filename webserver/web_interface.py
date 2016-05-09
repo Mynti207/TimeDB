@@ -1,6 +1,7 @@
-from tsdb import *
+# from tsdb import *
 import requests
-import asyncio
+import json
+from collections import OrderedDict
 
 
 class WebInterface():
@@ -40,8 +41,10 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_InsertTS(pk, ts).to_json()
+        # package message as dictionary
+        if hasattr(ts, 'to_json'):
+            ts = ts.to_json()
+        msg = {'pk': pk, 'ts': ts}
 
         # post to webserver
         r = requests.post(self.server + 'insert_ts', data=json.dumps(msg))
@@ -63,8 +66,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_DeleteTS(pk).to_json()
+        # package message as dictionary
+        msg = {'pk': pk}
 
         # post to webserver
         r = requests.post(self.server + 'delete_ts', data=json.dumps(msg))
@@ -86,8 +89,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_InsertVP(pk).to_json()
+        # package message as dictionary
+        msg = {'pk': pk}
 
         # post to webserver
         r = requests.post(self.server + 'insert_vp', data=json.dumps(msg))
@@ -109,8 +112,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_DeleteVP(pk).to_json()
+        # package message as dictionary
+        msg = {'pk': pk}
 
         # post to webserver
         r = requests.post(self.server + 'delete_vp', data=json.dumps(msg))
@@ -134,8 +137,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_UpsertMeta(pk, md).to_json()
+        # package message as dictionary
+        msg = {'pk': pk, 'md': md}
 
         # post to webserver
         r = requests.post(self.server + 'upsert_meta', data=json.dumps(msg))
@@ -161,8 +164,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_Select(md, fields, additional).to_json()
+        # package message as dictionary
+        msg = {'md': md, 'fields': fields, 'additional': additional}
 
         # post to webserver
         r = requests.get(self.server + 'select', data=json.dumps(msg))
@@ -197,9 +200,11 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_AugmentedSelect(
-            proc, target, arg, md, additional).to_json()
+        # package message as dictionary
+        if hasattr(arg, 'to_json'):
+            arg = arg.to_json()
+        msg = {'proc': proc, 'target': target, 'arg': arg, 'md': md,
+               'additional': additional}
 
         # post to webserver
         r = requests.get(
@@ -225,8 +230,10 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_VPSimilaritySearch(query, top).to_json()
+        # package message as dictionary
+        if hasattr(query, 'to_json'):
+            query = query.to_json()
+        msg = {'query': query, 'top': top}
 
         # post to webserver
         r = requests.get(
@@ -250,8 +257,10 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_iSAXSimilaritySearch(query).to_json()
+        # package message as dictionary
+        if hasattr(query, 'to_json'):
+            query = query.to_json()
+        msg = {'query': query}
 
         # post to webserver
         r = requests.get(
@@ -273,8 +282,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_iSAXTree().to_json()
+        # package message as dictionary
+        msg = {}
 
         # post to webserver
         r = requests.get(self.server + 'isax_tree', data=json.dumps(msg))
@@ -304,8 +313,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_AddTrigger(proc, onwhat, target, arg).to_json()
+        # package message as dictionary
+        msg = {'proc': proc, 'onwhat': onwhat, 'target': target, 'arg': arg}
 
         # post to webserver
         r = requests.post(self.server + 'add_trigger', data=json.dumps(msg))
@@ -332,8 +341,8 @@ class WebInterface():
         Result of the database operation (or error message).
         '''
 
-        # package as TSDB operation
-        msg = TSDBOp_RemoveTrigger(proc, onwhat, target).to_json()
+        # package message as dictionary
+        msg = {'proc': proc, 'onwhat': onwhat, 'target': target}
 
         # post to webserver
         r = requests.post(self.server + 'remove_trigger', data=json.dumps(msg))

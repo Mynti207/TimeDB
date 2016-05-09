@@ -32,10 +32,10 @@ schema = {
 def main():
 
     # initialize the database
-    db = DictDB(schema, 'pk', verbose=False)
+    db = DictDB(schema, 'pk')
 
     # initialize & run the server
-    server = TSDBServer(db, verbose=False)
+    server = TSDBServer(db)
     server.run()
 
 if __name__ == '__main__':
