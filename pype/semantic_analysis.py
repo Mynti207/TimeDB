@@ -1,6 +1,7 @@
 from pype.ast import *
 from pype.error import *
 
+
 class PrettyPrint(ASTVisitor):
     '''
     Vistor sublcass to visit an AST.

@@ -44,6 +44,4 @@ def test_inling():
     outputs = {'mul': ['z'], 'dist': ['c']}
     for name, g in ir.graphs.items():
         for kin in inputs[name]:
-            print(kin)
-            print(g.nodes[g.variables[kin]].type)
             assert(g.nodes[g.variables[kin]].type == FGNodeType.input)
