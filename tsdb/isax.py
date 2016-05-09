@@ -253,7 +253,7 @@ class TreeFileStructure:
             iSAX word
         ts : 1d numpy array
             Time series values
-        tsip : string
+        tsid : string
             Time series identifier (equivalent to DictDB primary key)
 
         Returns
@@ -532,18 +532,18 @@ class iSaxTree(BasicTree):
                     # reinsert into new subtree
                     ts_list = fs.alldata[isax_word]
                     for ts_to_move, itemid in ts_list:
-                        node.insert(ts_to_move, level + 1, tsid=itemid)
+                        node.insert(ts_to_move, fs, level + 1, tsid=itemid)
                         fs.delete_from_file(str(get_isax_word(
                             ts_to_move, self.w, self.a * (2 ** (level - 1)))),
                             ts_to_move)
 
                     # insert input time series that triggered split
                     # into a node in the new subtree (i.e. one level down)
-                    node.insert(ts, level + 1, tsid=tsid)
+                    node.insert(ts, fs, level + 1, tsid=tsid)
             else:
                 # child is an internal node (i.e. not a terminal node);
                 # traverse to next level
-                node.insert(ts, level + 1, tsid=tsid)
+                node.insert(ts, fs, level + 1, tsid=tsid)
         else:
             # new node to be created; add pointer to new terminal node
             # in self's list
@@ -589,7 +589,7 @@ class iSaxTree(BasicTree):
                 # under `isax_word`
             else:
                 # child is an internal (i.e. not a terminal node); traverse
-                node.delete(ts, level + 1)
+                node.delete(ts, fs, level + 1)
         else:
             pass
             # there was no node created for this isax_word;
@@ -711,7 +711,7 @@ class iSaxTree(BasicTree):
                     return None
             else:
                 # child is an internal (i.e. not a terminal node); traverse
-                return node.find_nbr(ts, level + 1)
+                return node.find_nbr(ts, fs, level + 1)
             # there was no node created for this isax_word
         else:
             pass

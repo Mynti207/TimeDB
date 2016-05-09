@@ -387,7 +387,7 @@ class TSDBProtocol(asyncio.Protocol):
             return TSDBOp_Return(TSDBStatus.UNKNOWN_ERROR, op['op'])
 
         # step 2: pick closest vantage point
-        vpkeys = list(self.server.db.vantage_points.values())
+        vpkeys = self.server.db.vantage_points
         vpdist = {v: payload[v]['vpdist'] for v in vpkeys}
         nearest_vp = min(vpkeys, key=lambda v: vpdist[v])
 
@@ -479,14 +479,9 @@ class TSDBProtocol(asyncio.Protocol):
 
         # generate representation
         try:
-            # print('----------')
-            # print('STARTING PREORDER')
-            # print(self.server.db.fs.alldata.keys())
-            # print('----------')
             mygraph = log()
             self.server.db.tree.preorder_str(mygraph, self.server.db.fs)
             result = mygraph.graph_as_string()
-            # print(result)
         except ValueError:
             return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 

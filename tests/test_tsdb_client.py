@@ -339,10 +339,9 @@ class test_client(asynctest.TestCase):
         ########################################
 
         # randomly choose time series as vantage points
-        random_vps = np.random.choice(
-            range(self.num_ts), size=self.num_vps, replace=False)
-        vpkeys = ['ts-{}'.format(i) for i in random_vps]
-        distkeys = ['d_vp-{}'.format(i) for i in range(self.num_vps)]
+        vpkeys = list(np.random.choice(ts_keys, size=self.num_vps,
+                                       replace=False))
+        distkeys = sorted(['d_vp_' + i for i in vpkeys])
 
         # add the time series as vantage points
         for i in range(self.num_vps):
@@ -440,7 +439,8 @@ class test_client(asynctest.TestCase):
         # -> should return itself
 
         idx = np.random.choice(list(tsdict.keys()))
-        status, payload = await self.client.vp_similarity_search(tsdict[idx], 1)
+        status, payload = await self.client.vp_similarity_search(
+            tsdict[idx], 1)
         assert status == TSDBStatus.OK
         assert len(payload) == 1
         assert list(payload)[0] == idx

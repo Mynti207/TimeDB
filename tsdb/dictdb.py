@@ -104,8 +104,8 @@ class DictDB:
             if schema[s]['index'] is not None:
                 self.indexes[s] = defaultdict(set)
 
-        # specifies vantage points {vantage point id : primary key}
-        self.vantage_points = {}
+        # specifies primary keys of vantage point time series
+        self.vantage_points = []
 
         # initializes file structure for isax tree
         self.fs = TreeFileStructure()
@@ -140,23 +140,21 @@ class DictDB:
         # check that the primary key is present in the database
         if pk not in self.rows:
             raise ValueError('Primary key not present.')
+        if self.rows[pk]['deleted'] is True:
+            raise ValueError('Primary key has been deleted.')
 
         # check that the primary key is not already set as a vantage point
-        if pk in self.vantage_points.values():
+        if pk in self.vantage_points:
             raise ValueError('Primary key is already set as vantage point.')
 
         # mark time series as vantage point
         self.rows[pk]['vp'] = True
 
-        # get vantage point id
-        if len(self.vantage_points.keys()) == 0:
-            idx = 0
-        else:
-            idx = max(self.vantage_points.keys()) + 1
-        didx = 'd_vp-{}'.format(idx)
+        # get field name for distance to vantage point
+        didx = 'd_vp_' + pk
 
         # add to vantage point dictionary
-        self.vantage_points[idx] = pk
+        self.vantage_points.append(pk)
 
         # add distance field to schema
         self.schema[didx] = {'convert': float, 'index': 1}
@@ -203,9 +201,14 @@ class DictDB:
                 raise ValueError('Primary key not present.')
             else:
                 return
+        if self.rows[pk]['deleted'] is True:
+            if raise_error:
+                raise ValueError('Primary key has been deleted.')
+            else:
+                return
 
         # check that the primary key is set as a vantage point
-        if pk not in self.vantage_points.values():
+        if pk not in self.vantage_points:
             if raise_error:
                 raise ValueError('Primary key is not set as a vantage point.')
             else:
@@ -215,8 +218,7 @@ class DictDB:
         self.rows[pk]['vp'] = False
 
         # get vantage point id
-        idx = [k for k, v in self.vantage_points.items() if v == pk][0]
-        didx = 'd_vp-{}'.format(idx)
+        didx = 'd_vp_' + pk
 
         # delete from schema
         del self.schema[didx]
@@ -225,12 +227,12 @@ class DictDB:
         del self.indexes[didx]
 
         # remove previously calculated distances from database
-        for pk in self.rows:
-            if self.rows[pk]['deleted'] is False:
-                del self.rows[pk][didx]
+        for r in self.rows:
+            if self.rows[r]['deleted'] is False:
+                del self.rows[r][didx]
 
         # remove from vantage point dictionary
-        del self.vantage_points[idx]
+        self.vantage_points.remove(pk)
 
         # additional server-side operation:
         # remove trigger to calculate distance when a new time series is added
@@ -299,7 +301,9 @@ class DictDB:
 
         # if not present, raise an error
         if pk not in self.rows:
-            raise ValueError('Primary key not found during insert')
+            raise ValueError('Primary key not found during deletion.')
+        if self.rows[pk]['deleted'] is True:
+            raise ValueError('Primary key has already been deleted.')
 
         # delete from isax tree
         try:
@@ -353,6 +357,8 @@ class DictDB:
         # if not present, raise an error
         if pk not in self.rows:
             raise ValueError('Primary key not found during insert')
+        if self.rows[pk]['deleted'] is True:
+            raise ValueError('Primary key has been deleted.')
 
         # extract the rows corresponding to the primary key
         row = self.rows[pk]

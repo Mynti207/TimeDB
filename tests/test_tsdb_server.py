@@ -631,9 +631,8 @@ def test_server():
     # pick a new time series to add as a vantage point
 
     # randomly choose time series as vantage points
-    random_vps = np.random.choice(range(num_ts), size=num_vps, replace=False)
-    vpkeys = ['ts-{}'.format(i) for i in random_vps]
-    distkeys = ['d_vp-{}'.format(i) for i in range(num_vps)]
+    vpkeys = list(np.random.choice(ts_keys, size=num_vps, replace=False))
+    distkeys = sorted(['d_vp_' + i for i in vpkeys])
 
     # add the time series as vantage points
 
@@ -804,37 +803,36 @@ def test_server():
     #
     ########################################
 
-    # # run similarity search on an existing time series - should return itself
-    #
-    # # pick a random time series
-    # idx = np.random.choice(list(tsdict.keys()))
-    # # package the operation
-    # op = {'op': 'isax_similarity_search', 'query': tsdict[idx]}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_iSAXSimilaritySearch(tsdict[idx])
-    # # run operation
-    # result = protocol._isax_similarity_search(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # print('COMPARING', idx, 'WITH', payload)
-    # assert len(payload) == 1
-    # assert list(payload)[0] == idx
-    #
-    # # visualize tree representation
-    #
-    # # package the operation
-    # op = {'op': 'isax_tree'}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_iSAXTree()
-    # # run operation
-    # result = protocol._isax_tree(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert isinstance(payload, str)
-    # assert 1==2
+    # run similarity search on an existing time series - should return itself
+
+    # pick a random time series
+    idx = np.random.choice(list(tsdict.keys()))
+    # package the operation
+    op = {'op': 'isax_similarity_search', 'query': tsdict[idx]}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXSimilaritySearch(tsdict[idx])
+    # run operation
+    result = protocol._isax_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    print('COMPARING', idx, 'WITH', payload)
+    assert len(payload) == 1
+    assert list(payload)[0] == idx
+
+    # visualize tree representation
+
+    # package the operation
+    op = {'op': 'isax_tree'}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXTree()
+    # run operation
+    result = protocol._isax_tree(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert isinstance(payload, str)
 
     ########################################
     #

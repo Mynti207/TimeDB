@@ -55,7 +55,7 @@ class TSDBClient(object):
 
     async def insert_vp(self, primary_key):
         '''
-        Inserts a time series into the database.
+        Marks a time series as a vantage point.
 
         Parameters
         ----------
