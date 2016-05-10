@@ -46,11 +46,8 @@ class WebInterface():
             ts = ts.to_json()
         msg = {'pk': pk, 'ts': ts}
 
-        # post to webserver
-        r = requests.post(self.server + 'insert_ts', data=json.dumps(msg))
-
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_post('insert_ts', msg)
 
     def delete_ts(self, pk):
         '''
@@ -69,11 +66,8 @@ class WebInterface():
         # package message as dictionary
         msg = {'pk': pk}
 
-        # post to webserver
-        r = requests.post(self.server + 'delete_ts', data=json.dumps(msg))
-
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_post('delete_ts', msg)
 
     def insert_vp(self, pk):
         '''
@@ -92,11 +86,8 @@ class WebInterface():
         # package message as dictionary
         msg = {'pk': pk}
 
-        # post to webserver
-        r = requests.post(self.server + 'insert_vp', data=json.dumps(msg))
-
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_post('insert_vp', msg)
 
     def delete_vp(self, pk):
         '''
@@ -115,11 +106,8 @@ class WebInterface():
         # package message as dictionary
         msg = {'pk': pk}
 
-        # post to webserver
-        r = requests.post(self.server + 'delete_vp', data=json.dumps(msg))
-
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_post('delete_vp', msg)
 
     def upsert_meta(self, pk, md):
         '''
@@ -140,11 +128,8 @@ class WebInterface():
         # package message as dictionary
         msg = {'pk': pk, 'md': md}
 
-        # post to webserver
-        r = requests.post(self.server + 'upsert_meta', data=json.dumps(msg))
-
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_post('upsert_meta', msg)
 
     def select(self, md={}, fields=None, additional=None):
         '''
@@ -167,11 +152,8 @@ class WebInterface():
         # package message as dictionary
         msg = {'md': md, 'fields': fields, 'additional': additional}
 
-        # post to webserver
-        r = requests.get(self.server + 'select', data=json.dumps(msg))
-
-        # return result of request operation
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_get('select', msg)
 
     def augmented_select(self, proc, target, arg=None, md={}, additional=None):
         '''
@@ -206,12 +188,8 @@ class WebInterface():
         msg = {'proc': proc, 'target': target, 'arg': arg, 'md': md,
                'additional': additional}
 
-        # post to webserver
-        r = requests.get(
-            self.server + 'augmented_select', data=json.dumps(msg))
-
-        # return result of request operation
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_get('augmented_select', msg)
 
     def vp_similarity_search(self, query, top=1):
         '''
@@ -235,12 +213,8 @@ class WebInterface():
             query = query.to_json()
         msg = {'query': query, 'top': top}
 
-        # post to webserver
-        r = requests.get(
-            self.server + 'vp_similarity_search', data=json.dumps(msg))
-
-        # return result of request operation
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_get('vp_similarity_search', msg)
 
     def isax_similarity_search(self, query):
         '''
@@ -262,12 +236,8 @@ class WebInterface():
             query = query.to_json()
         msg = {'query': query}
 
-        # post to webserver
-        r = requests.get(
-            self.server + 'isax_similarity_search', data=json.dumps(msg))
-
-        # return result of request operation
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_get('isax_similarity_search', msg)
 
     def isax_tree(self):
         '''
@@ -285,11 +255,8 @@ class WebInterface():
         # package message as dictionary
         msg = {}
 
-        # post to webserver
-        r = requests.get(self.server + 'isax_tree', data=json.dumps(msg))
-
-        # return result of request operation
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_get('isax_tree', msg)
 
     def add_trigger(self, proc, onwhat, target, arg=None):
         '''
@@ -316,11 +283,8 @@ class WebInterface():
         # package message as dictionary
         msg = {'proc': proc, 'onwhat': onwhat, 'target': target, 'arg': arg}
 
-        # post to webserver
-        r = requests.post(self.server + 'add_trigger', data=json.dumps(msg))
-
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+        # process request and return result (or error message)
+        return self.request_post('add_trigger', msg)
 
     def remove_trigger(self, proc, onwhat, target=None):
         '''
@@ -344,8 +308,73 @@ class WebInterface():
         # package message as dictionary
         msg = {'proc': proc, 'onwhat': onwhat, 'target': target}
 
-        # post to webserver
-        r = requests.post(self.server + 'remove_trigger', data=json.dumps(msg))
+        # process request and return result (or error message)
+        return self.request_post('remove_trigger', msg)
 
-        # return result of request operation (either None or error message)
-        return json.loads(r.text, object_pairs_hook=OrderedDict)
+    def request_get(self, handler, msg):
+        '''
+        Helper function: processes a GET request and returns result
+        or error message
+
+        Parameters
+        ----------
+        handler : string
+            Address of webserver handler for request
+        msg : string
+            Parameters for GET request
+
+        Returns
+        -------
+        Result of GET request or error message
+        '''
+
+        # define error messages
+        ERROR_REQUEST = 'FAILED TO SEND DATABASE REQUEST'
+        ERROR_PROCESS = 'FAILED TO RETURN DATABASE REQUEST'
+
+        # post to webserver - return error message on failure
+        try:
+            r = requests.get(self.server + handler, data=json.dumps(msg))
+        except:
+            return json.loads(ERROR_REQUEST, object_pairs_hook=OrderedDict)
+
+        # process and return result of database operation
+        # error message on failure
+        try:
+            return json.loads(r.text, object_pairs_hook=OrderedDict)
+        except:
+            return json.loads(ERROR_PROCESS, object_pairs_hook=OrderedDict)
+
+    def request_post(self, handler, msg):
+        '''
+        Helper function: processes a POST request and returns result
+        or error message
+
+        Parameters
+        ----------
+        handler : string
+            Address of webserver handler for request
+        msg : string
+            Parameters for POST request
+
+        Returns
+        -------
+        Result of POST request or error message
+        '''
+
+        # define error messages
+        ERROR_REQUEST = 'FAILED TO SEND DATABASE REQUEST'
+        ERROR_PROCESS = 'FAILED TO RETURN DATABASE REQUEST'
+
+        # post to webserver - return error message on failure
+        try:
+            r = requests.post(self.server + handler, data=json.dumps(msg))
+        except:
+            return json.loads(ERROR_REQUEST, object_pairs_hook=OrderedDict)
+
+        # process and return result of database operation
+        # error message on failure
+        try:
+            return json.loads(r.text, object_pairs_hook=OrderedDict)
+        except:
+            return json.loads(ERROR_PROCESS, object_pairs_hook=OrderedDict)

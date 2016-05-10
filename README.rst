@@ -15,7 +15,7 @@ This package implements a persistent time series database.
 
 * `Documentation <docs/index.rst>`_
 * `Demonstration <docs/demo.ipynb>`_
-* `Stock market example <docs/stock_example.ipynb>`_
+* Stock market example: `price data <docs/stock_example_prices.ipynb>`_ | `return data <docs/stock_example_returns.ipynb>`_
 
 Developers
 ==========
