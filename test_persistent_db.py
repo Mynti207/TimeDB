@@ -44,7 +44,7 @@ def test_tsdb_dictdb():
     ddb.upsert_meta('pk1', {'order': 1, 'blarg': 2})
     ddb.insert_ts('pk2', a2)
     ddb.upsert_meta('pk2', {'order': 2, 'blarg': 2})
-    
+
 
     # # try to insert a duplicate primary key
     # with pytest.raises(ValueError):
@@ -57,6 +57,10 @@ def test_tsdb_dictdb():
     pk, selected = ddb.select({'pk': 'pk1'}, [], None)
     assert pk == []
     assert len(selected) == 0
+    pk, selected = ddb.select({'pk': 'pk2'}, [], None)
+    print('SELECT')
+    print(pk)
+    print(selected)
 
     # # add the time series back in
     # ddb.insert_ts('pk1', a1)

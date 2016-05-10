@@ -22,6 +22,7 @@ DEFAULT_VALUES = {
 }
 
 INT_BYTES = 8
+LENGTH_OFFSET = 4
 
 
 class Heap:
@@ -65,20 +66,29 @@ class Heap:
 
 
 class TSHeap(Heap):
+    '''
+    Heap file used to store raw timeseries
+    '''
 
     def __init__(self, file_name, ts_length):
         super().__init__(file_name)
 
-        self.meta_file = self.heap_file+".met"
-        if os.path.exists(self.meta_file):
-            with open(self.meta_file, "rb", buffering=0) as fd:
-                self.ts_length, self.len_byte_array = pickle.load(fd)
-        else:
+        # Check if fd is empty (case when new TSHeap)
+        # Need to write the length of the ts
+        if self.writeptr == 0:
             self.ts_length = ts_length
-            self.len_byte_array = 2 * self.ts_length * INT_BYTES
-            with open(self.meta_file, "xb", buffering=0) as fd:
-                meta_data = (self.ts_length, self.len_byte_array)
-                pickle.dump(meta_data, fd)
+            ts_len_bytes = ts_length.to_bytes(LENGTH_OFFSET,
+                                              byteorder="little")
+            self._write(ts_len_bytes)
+            print('New writeptr is: ', self.writeptr)
+        else:
+            # Read ts length 
+            self.fd.seek(0)
+            self.ts_length = int.from_bytes(self.fd.read(LENGTH_OFFSET),
+                                            byteorder="little")
+
+        # Define length of byte array (lists of times and list of values)
+        self.len_byte_array = 2 * self.ts_length * INT_BYTES
         # Define format string
         self.fmt = "<%sd" % (2*self.ts_length)
 
@@ -98,6 +108,9 @@ class TSHeap(Heap):
 
 
 class MetaHeap(Heap):
+    '''
+    Heap file used to store metadata
+    '''
 
     def __init__(self, file_name, schema):
         '''
@@ -107,15 +120,8 @@ class MetaHeap(Heap):
         super().__init__(file_name)
         self.schema = schema
         self.meta_file = file_name+".met"
-        if os.path.exists(self.meta_file):
-            with open(self.meta_file, "rb", buffering=0) as fd:
-                self.fmt, self.fields, self.default_values, self.len_byte_array = pickle.load(fd)
-        else:
-            self._build_format_string()
-            with open(self.meta_file, "xb", buffering=0) as fd:
-                meta_data = (self.fmt, self.fields, self.default_values,
-                             self.len_byte_array)
-                pickle.dump(meta_data, fd)
+        # Build: fields, default_values, len_byte_array, fmt
+        self._build_format_string()
 
     def _build_format_string(self):
         '''
