@@ -1,6 +1,9 @@
 import pkg_resources
 
 from .dictdb import *
+from .persistant_db import *
+from .heaps import *
+from .indexes import *
 from .tsdb_client import *
 from .tsdb_error import *
 from .tsdb_ops import *
