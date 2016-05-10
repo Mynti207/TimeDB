@@ -1,5 +1,4 @@
 import numpy as np
-import scipy as sp
 from scipy import stats
 
 ####################
@@ -37,12 +36,12 @@ def get_breakpoints(a):
 
     Returns
     -------
-    list of floats representing standard deviations from 0 mean, length (a - 1)
+    List of floats representing standard deviations from 0 mean, length (a - 1)
     '''
 
     avec = np.zeros(a - 1)  # 1 less breakpoint than length
     for i in range(a - 1):
-        avec[i] = sp.stats.norm.ppf((i + 1) / a, loc=0, scale=1)
+        avec[i] = stats.norm.ppf((i + 1) / a, loc=0, scale=1)
     return avec
 
 
@@ -52,11 +51,10 @@ def get_isax_word(ts, w, a):
 
     Parameters
     ----------
-    ts: time series
-
+    ts: 1d numpy array
+        Time series values
     w : int
         Number of chunks in which to divide time series
-
     a: int
         Cardinality (number of possible index values/levels per chunk)
 
@@ -245,7 +243,7 @@ class TreeFileStructure:
 
     def write_to_file(self, filename, ts, tsid=''):
         '''
-        TODO
+        Adds a time series to the iSAX file system.
 
         Parameters
         ----------
@@ -260,6 +258,7 @@ class TreeFileStructure:
         -------
         Nothing, modifies in-place.
         '''
+
         # assumes already checked not in file
         # write time series to `filename` with optional ID
         if self.isax_exists(filename):
@@ -270,7 +269,7 @@ class TreeFileStructure:
 
     def delete_from_file(self, filename, ts):
         '''
-        TODO
+        Removes a time series from the iSAX file system.
 
         Parameters
         ----------
@@ -288,8 +287,9 @@ class TreeFileStructure:
         # deletes time series from storage
         self.alldata[filename] = [item for item in self.alldata[filename]
                                   if not np.array_equal(item[0], ts)]
+        # delete if empty
         if len(self.alldata[filename]) == 0:
-            del self.alldata[filename]  # delete if empty
+            del self.alldata[filename]
 
 
 ####################
@@ -299,10 +299,38 @@ class TreeFileStructure:
 ####################
 
 class log:
+    '''
+    String representation of iSAX tree.
+    '''
+
     def __init__(self):
+        '''
+        Initializes the log class. Used to store string representation
+        of iSAX tree through recursive function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        An initialized log object.
+        '''
         self.graphstr = ''
 
     def graph_as_string(self):
+        '''
+        Returns the string representation of the iSAX tree.
+        Note: should have been previously calculated.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        An initialized log object.
+        '''
         return self.graphstr
 
 
@@ -313,27 +341,38 @@ class BasicTree:
 
     def __init__(self, data, parent=None):
         '''
-        TODO
+        Initializes the BasicTree class, i.e. basic n-ary tree.
 
         Parameters
         ----------
+        data : str
+            String representation of the node
+        parent : tree node
+            The parent node to the node being initialized
 
         Returns
         -------
+        An initialized BasicTree object.
         '''
         self.data = data
         self.parent = parent
-        self.child_pointers = []  # stores of pointers to child nodes
+        # stores pointers to child nodes
+        self.child_pointers = []
 
     def add_child(self, data, level):
         '''
-        TODO
+        Adds a child to the tree.
 
         Parameters
         ----------
+        data : str
+            String representation of child node name
+        level : tree node
+            Current tree level, i.e. will be the parent of the child node
 
         Returns
         -------
+        An initialized Basic Tree object that represents the new child node.
         '''
         n = self.__class__(data, self, level)
         self.child_pointers += [n]
@@ -341,25 +380,30 @@ class BasicTree:
 
     def num_children(self):
         '''
-        TODO
+        Calculates the number of children nodes.
 
         Parameters
         ----------
+        None
 
         Returns
         -------
+        The number of children nodes.
         '''
         return len(self.child_pointers)
 
     def isRoot(self):
         '''
-        TODO
+        Determines whether the current node is the root of the overall tree.
 
         Parameters
         ----------
+        None
 
         Returns
         -------
+        Whether the current node is the root, i.e. it does not have a
+        parent node.
         '''
         return not self.parent
 
@@ -406,45 +450,25 @@ class iSaxTree(BasicTree):
     a numpy array, time series ID), ...]  Currently, ISAX-indexed time series
     data is stored in memory; modifications are required to implement writes
     to persistent storage.
-
-    Methods available:
-
-    1.  (constructor) - initialize an instance of a tree with given label
-            Usage: myTree = iSaxTree("root")
-    2.  insert - insert a time series into the tree, optionally with a given
-    ID (must identify with `tsid` if used)
-            Notes: format of time series should be a 1-D numpy array
-                   (e.g. array([ 26.02,  25.9 ,  25.71,  25.84,  25.98,  ...);
-                   may not work correctly if time series of different lengths
-                   are inserted
-            Usage: myTree.insert(ts, tsid="Time Series ID")
-    3.  delete - delete a time series from the tree; actual time series
-    required as input
-            Usage: myTree.delete(ts)
-    4.  display_tree - outputs as text structure of tree with counts and IDs of
-    time series stored in each leaf node
-            Usage: myTree.display_tree()
-    5.  find_nbr - performs an approximate search for nearest neighbor of input
-    time series
-            Notes: format of input/reference time series should be a 1-D numpy
-            array; the input time series need not be an existing time series
-            in tree
-            Usage: myTree.find_nbr(reference_ts)
     '''
 
     def __init__(self, data, parent=None, level=0):
         '''
         Initializes tree (or subtree).
-
-        Note: leave level unspecified to create root node of a new tree.
-
-        TODO
+        Note: leave level unspecified to create the root node of a new tree.
 
         Parameters
         ----------
+        data : str
+            String representation of the node
+        parent : tree node
+            The parent node to the node being initialized
+        level : int
+            The current level in the tree (0 = root)
 
         Returns
         -------
+        An initialized iSaxTree class.
         '''
 
         super().__init__(data, parent)
@@ -473,17 +497,14 @@ class iSaxTree(BasicTree):
 
     def insert(self, ts, fs, level=1, tsid=''):
         '''
-        Attempt insertion at a given level of the tree (default is below root).
-
-        Example usage: myTree.insert(ts, tsid="Time Series ID")
+        Attempts insertion at a given level of the tree (default is below root)
 
         Notes:
         1. Format of time series should be a 1-D numpy array
-               (e.g. array([ 26.2,  25.9 ,  25.71,  25.84,  25.98,  25.73, ...)
-               may not work correctly if time series of different lengths
-               are inserted
+        (e.g. array([ 26.2,  25.9 ,  25.71,  25.84,  25.98,  25.73, ...)
+        may not work correctly if time series of different lengths are inserted
         2. Series ID (string) is optional, but must be specified with `tsid`
-        if used.
+        if used
         3. Currently, threshold for maximum number of series per file is
         applied up to `maxlevel` to control height of tree; at `maxlevel`
         series is added to a child node even if threshold number of series
@@ -491,9 +512,19 @@ class iSaxTree(BasicTree):
 
         Parameters
         ----------
+        ts : 1d numpy array
+            Time series values
+        fs : TreeFileStructure
+            The iSAX tree "file structure" that collects the time series data
+        level : int
+            The level of the tree (0 = root)
+        tsid : str
+            Unique time series identifier, equivalent to database
+            primary key
 
         Returns
         -------
+        Nothing, modifies in-place.
         '''
 
         # level to add node must be one below current node's level
@@ -555,15 +586,20 @@ class iSaxTree(BasicTree):
 
     def delete(self, ts, fs, level=1):
         '''
-        Delete a time series from the tree.
-
-        Usage: myTree.delete(ts)
+        Deletes a time series from the tree.
 
         Parameters
         ----------
+        ts : 1d numpy array
+            Time series values
+        fs : TreeFileStructure
+            The iSAX tree "file structure" that collects the time series data
+        level : int
+            The level of the tree (0 = root)
 
         Returns
         -------
+        Nothing, modifies in-place.
         '''
 
         # get iSAX representation of input time series (as string)
@@ -598,10 +634,18 @@ class iSaxTree(BasicTree):
 
     def preorder_str(self, l, fs):
         '''
-        Same as preorder_ids, but saves output as one big string.
+        Recursively creates string representation of iSAX tree.
 
-        self: iSaxTree object
-        l: log Class object
+        Parameters
+        ----------
+        l : log
+            Log object, used to store string representation through recursion
+        fs : TreeFileStructure
+            The iSAX tree "file structure" that collects the time series data
+
+        Returns
+        -------
+        String representation of iSAX tree.
         '''
 
         if self.isRoot():
@@ -624,9 +668,8 @@ class iSaxTree(BasicTree):
 
     def find_nbr(self, ts, fs, level=1):
         '''
-        Performs an approximate search for nearest neighbor of input time series.
-
-        Example usage: myTree.find_nbr(reference_ts)
+        Performs an approximate search for the nearest neighbor of the
+        input time series
 
         Notes:
 
@@ -645,25 +688,35 @@ class iSaxTree(BasicTree):
 
         Parameters
         ----------
+        ts : 1d numpy array
+            Time series values
+        fs : TreeFileStructure
+            The iSAX tree "file structure" that collects the time series data
+        level : int
+            The level of the tree (0 = root)
 
         Returns
         -------
+        The primary key of the closest time series and its distance from the
+        query time series. Returns None if no neighbor is found.
         '''
 
         # get iSAX representation of input time series (as string)
         isax_word = str(get_isax_word(ts, self.w, self.a * (2 ** (level - 1))))
 
+        # exact isax word match found in file, retrieve all series
         if fs.isax_exists(isax_word):
-            # exact isax word match found in file, retrieve all series
             ts_list = fs.read_file(isax_word)
             if len(ts_list) == 0:
                 return ValueError('Not compatible with tree structure.')
 
-            if len(ts_list) == 1:  # one entry, return it
+            # one entry, return it
+            if len(ts_list) == 1:
                 return {ts_list[0][1]: 0}
+
+            # calculate distances from reference series to each located
+            # series and return closest
             else:
-                # calculate distances from reference series to each located
-                # series and return closest
                 mindist = np.inf
                 best_id = ""
                 for item in ts_list:
