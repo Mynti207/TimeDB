@@ -388,3 +388,7 @@ class test_webinterface(asynctest.TestCase):
         # visualize tree representation
         results = self.web_interface.isax_tree()
         assert isinstance(results, str)
+
+
+if __name__ == '__main__':
+    unittest.main()

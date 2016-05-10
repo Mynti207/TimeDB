@@ -462,3 +462,6 @@ class test_client(asynctest.TestCase):
         status, payload = await self.client.isax_tree()
         assert status == TSDBStatus.OK
         assert isinstance(payload, str)
+
+if __name__ == '__main__':
+    unittest.main()
