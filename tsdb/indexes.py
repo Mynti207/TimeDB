@@ -2,6 +2,7 @@ import pickle
 import os
 
 from bintrees import FastAVLTree
+from bitmap import BitMap
 
 
 class Index:
@@ -69,4 +70,12 @@ class BinTreeIndex(Index):
 
 
 # TODO
-# class BitMapIndex:
+class BitMapIndex(Index):
+    '''Bitmap index for low cardinality fields.
+    use bitmap package https://pypi.python.org/pypi/bitmap
+    '''
+
+    def __init__(self, field, directory, maxnum=32):
+        super().__init__(field, directory)
+        self.index = BitMap(maxnum)
+
