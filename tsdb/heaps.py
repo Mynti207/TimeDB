@@ -44,14 +44,14 @@ class Heap:
         Write the byte_array to disk and return its offset.
         '''
         self.fd.seek(self.writeptr)
-        ts_offset = self.fd.tell()
+        offset = self.fd.tell()
         self.fd.write(byte_array)
         # Go to end of file
         self.fd.seek(0, 2)
         # Update the write pointer
         self.writeptr = self.fd.tell()
 
-        return ts_offset
+        return offset
 
     def _read(self, offset):
         self.fd.seek(offset)
@@ -80,7 +80,6 @@ class TSHeap(Heap):
             ts_len_bytes = ts_length.to_bytes(LENGTH_OFFSET,
                                               byteorder="little")
             self._write(ts_len_bytes)
-            print('New writeptr is: ', self.writeptr)
         else:
             # Read ts length 
             self.fd.seek(0)
@@ -128,14 +127,15 @@ class MetaHeap(Heap):
         Build the format string to pack fields into bytes
         '''
         fields = sorted(list(self.schema.keys()))
-        fields.remove("pk")  # pk is stored in primary index dictionary
-        fields.remove("ts")  # ts is stored in TS heap, instead we store ts_offset
+        # we add the 'pk' in the meta after reading them
+        fields.remove("pk")
+        # ts is stored in TS heap
+        fields.remove("ts")
         # To keep track of the order we use list
-        # Initialization with the field to store the offset of ts
-        self.fields = ["ts_offset"]
-        self.default_values = [0]
+        self.fields = []
+        self.default_values = []
         # Initialize the format string
-        self.fmt = "i"
+        self.fmt = ""
         for field in fields:
             field_type = self.schema[field]["type"]
             # Update lists

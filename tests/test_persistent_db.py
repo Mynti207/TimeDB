@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
 from collections import defaultdict
 import numpy as np
+import os
 import pytest
 
-from tsdb import DictDB
+from tsdb import PersistantDB
 from timeseries import TimeSeries
 
 __author__ = "Mynti207"
@@ -20,20 +22,26 @@ def test_tsdb_dictdb():
 
     identity = lambda x: x
 
+    # index: 1 is binary tree index, 2 is bitmap index
     schema = {
-      'pk':         {'convert': identity,   'index': None},
-      'ts':         {'convert': identity,   'index': None},
-      'order':      {'convert': int,        'index': 1},
-      'blarg':      {'convert': int,        'index': 1},
-      'useless':    {'convert': identity,   'index': None},
-      'mean':       {'convert': float,      'index': 1},
-      'std':        {'convert': float,      'index': 1},
-      'vp':         {'convert': bool,       'index': 1},
-      'deleted':    {'convert': bool,       'index': 1}
+      'pk':         {'type': 'str', 'convert': identity,   'index': None},
+      'ts':         {'type': 'int', 'convert': identity,   'index': None},
+      'order':      {'type': 'int', 'convert': int,        'index': 1},
+      'blarg':      {'type': 'int', 'convert': int,        'index': 1},
+      'useless':    {'type': 'int', 'convert': identity,   'index': None},
+      'mean':       {'type': 'float', 'convert': float,      'index': 1},
+      'std':        {'type': 'float', 'convert': float,      'index': 1},
+      'vp':         {'type': 'bool', 'convert': bool,       'index': 1},
+      'deleted':    {'type': 'bool', 'convert': bool,       'index': 1}
     }
 
-    # create dictionary
-    ddb = DictDB(schema, 'pk')
+    # Delete any default db present (otherwise the db creation will load the previous one...)
+    filelist = [ "db_files/"+f for f in os.listdir("db_files/") if f[:7] == 'default']
+    for f in filelist:
+        os.remove(f)
+
+    # create persistant db
+    ddb = PersistantDB(schema, 'pk', len(t))
 
     # CHECK INSERTION/UPSERTION/DELETION -->
 
@@ -43,22 +51,33 @@ def test_tsdb_dictdb():
     ddb.insert_ts('pk2', a2)
     ddb.upsert_meta('pk2', {'order': 2, 'blarg': 2})
 
+
     # try to insert a duplicate primary key
     with pytest.raises(ValueError):
         ddb.insert_ts('pk2', a2)
 
     # delete a valid time series
     ddb.delete_ts('pk1')
-    print(ddb.indexes)
+    # Check the deletion in the primary index
+    assert ('pk1' not in ddb.pks.keys())
+    # Check the deletion in other index
+    for field, index in ddb.indexes.items():
+        if field == 'deleted':
+            continue
+        for value in index.values():
+            assert ('pk1' not in value)
 
-    # check that it isn't present any more
+    # # check that it isn't present any more
     pk, selected = ddb.select({'pk': 'pk1'}, [], None)
     assert pk == []
     assert len(selected) == 0
+    pk, selected = ddb.select({'pk': 'pk2'}, [], None)
+    assert pk == ['pk2']
+    assert len(selected) == 1
 
     # add the time series back in
     ddb.insert_ts('pk1', a1)
-
+    
     # Test consecutives meta upsert
     ddb.upsert_meta('pk1', {'order': 2, 'blarg': 3})
     for k, v in ddb.indexes['order'].items():
@@ -87,11 +106,11 @@ def test_tsdb_dictdb():
         ddb.upsert_meta('pk3', {'order': 2, 'blarg': 2})
 
     # extract database entries for testing
-    db_rows = ddb.rows
+    db_rows = {pk: ddb._get_meta(pk) for pk in ddb.pks.keys()}
     idx = sorted(db_rows.keys())  # sorted primary keys
 
     # check primary keys
-    assert idx == ['0DELETED_pk1', 'pk1', 'pk2']
+    assert idx == ['pk1', 'pk2']
 
     # check metadata
     assert db_rows['pk1']['order'] == 1
@@ -140,5 +159,5 @@ def test_tsdb_dictdb():
     ddb.index_bulk()
     check_indexes = ['blarg', 'deleted', 'mean', 'order', 'std', 'vp']
     assert sorted(ddb.indexes.keys()) == check_indexes
-    for v in ddb.indexes.values():
-        assert isinstance(v, defaultdict)
+
+test_tsdb_dictdb()
