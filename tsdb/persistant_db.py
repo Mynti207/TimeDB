@@ -3,16 +3,15 @@ from operator import and_
 from functools import reduce
 from .indexes import PrimaryIndex, BinTreeIndex
 from .heaps import TSHeap, MetaHeap
-import timeseries
 import operator
 import os
 import sys
 import pickle
 
-# this dictionary will help you in writing a generic select operation
+# dictionary that maps operator functions, useful for select operations
 OPMAP = {
     '<': operator.lt,
-    '>': operator.le,
+    '>': operator.gt,
     '==': operator.eq,
     '!=': operator.ne,
     '<=': operator.le,
@@ -31,8 +30,9 @@ class PersistantDB:
             making it easier to encode the binary file.
         - MetaHeap to store the metadata for each timeserie present in the db.
             We choose to initialize all the fields for each new insertion, then
-            the use can call upsert_meta to update the fields
-        - PrimaryIndex to store the mapping {'pk': 'offset_in_MetaHeap'}
+            the user can call upsert_meta to update the fields
+        - PrimaryIndex to store the mapping {'pk': ('offset_in_TSHeap',
+            'offset_in_MetaHeap')}
         - BinaryTreeIndex/BitMap index for other fields in the schema labelled
             with an index. Store as key the field name and as value
             pk
@@ -40,7 +40,8 @@ class PersistantDB:
     Files on disk: [All the files are saved in the directory 'data_dir']
         - TSHeap:
             {'db_name'}_hts stores in a binary file the raw timeseries
-            sequentially with ts_length stored at the beginning of the file
+            sequentially with ts_length stored at the beginning of the file.
+            offset_in_TSHeap for each timeseries is stored in PrimaryIndex
         - MetaHeap:
             {'db_name'}_hmeta stores in a binary file the all the fields in
             meta and offset_in_TSHeap for each timeseries.
@@ -48,10 +49,15 @@ class PersistantDB:
         - PrimaryIndex:
             {'db_name'}_pk.idx
         - BinaryTreeIndex/BitMap index:
-            {'db_name'}_{'field'}.idx        
+            {'db_name'}_{'field'}.idx
+
+    NB:
+        - For the deletion, we update the meta field 'deleted' in the meta heap
+            but we then remove the pk from the indexes,both primary index and
+            other. As a result, the field deleted will actually never be used
+            when set to true as it's not indexed in that case.
 
     TODO:
-        - finish to implement and test the basic behavior of DB (select, trigger)
         - extend to the vantage point
         - extend to isax support
         - implement the BitMap indices
@@ -141,12 +147,12 @@ class PersistantDB:
         # Insert ts
         ts_offset = self.ts_heap.write_ts(ts)
 
-        # Create metadata for the new timeseries
+        # Create default metadata for the new timeseries
         # (using the helper because creation of meta)
-        pk_offset = self._upsert_meta({'ts_offset': ts_offset}, offset=None)
+        pk_offset = self._upsert_meta({})
 
-        # Set the primary key index with the pk_offset
-        self.pks[pk] = pk_offset
+        # Set the primary key index with the offsets tuple
+        self.pks[pk] = (ts_offset, pk_offset)
 
         self.update_indices(pk)
 
@@ -170,13 +176,16 @@ class PersistantDB:
         self._valid_pk(pk)
         self._check_presence(pk, present=False)
 
+        # Extract meta to update later the index
+        meta = self._get_meta(pk)
+
         # mark as deleted
-        self._upsert_meta({'deleted': True}, self.pks[pk])
+        self._upsert_meta({'deleted': True}, offset=self.pks[pk][1])
 
         # pop from primary key index
-        self.pks.remove(pk)
-
-        # TODO: update index structures
+        self.pks.remove_pk(pk)
+        # remove from other indexed fields (deleted field included)
+        self.remove_indices(pk, meta)
 
     def commit(self):
         '''
@@ -193,10 +202,13 @@ class PersistantDB:
         self._valid_pk(pk)
         self._check_presence(pk, present=False)
 
-        self._upsert_meta(meta, self.pks[pk])
-        self.update_indices(pk)
+        # Read previous meta
+        prev_meta = self._get_meta(pk)
 
-    def _upsert_meta(self, meta, offset):
+        self._upsert_meta(meta, offset=self.pks[pk][1])
+        self.update_indices(pk, prev_meta=prev_meta)
+
+    def _upsert_meta(self, meta, offset=None):
         '''
         Helper to upsert meta in the heap.
         '''
@@ -207,28 +219,83 @@ class PersistantDB:
         '''
         Helper to get meta from the pk
         '''
-        offset = self.pks[pk]
-        return self.meta_heap.read_meta(offset)
+        offset = self.pks[pk][1]
+        # Extract meta from heap
+        meta = self.meta_heap.read_meta(offset)
+        # Add the pkfield
+        meta[self.pkfield] = pk
+
+        return meta
+
+    def _get_ts(self, pk):
+        '''
+        Helper to get raw timeseries from the pk
+        '''
+        offset = self.pks[pk][0]
+        return self.ts_heap.read_ts(offset)
 
     def index_bulk(self, pks=[]):
         if len(pks) == 0:
             pks = self.pks.index.keys()
-        for pkid in self.pks:
-            self.update_indices(pkid)
+        for pk in pks:
+            self.update_indices(pk)
 
-    def update_indices(self, pk):
+    def update_indices(self, pk, prev_meta=None):
         '''
-        Update the field indices other than self.pks
+        Updates inverse-lookup index dictionary for a given database entry.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the database entry
+        prev_meta: dictionary of metadata
+            Previous values, need to be removed from the indices
+
+        Returns
+        -------
+        Nothing, modifies in-place.
         '''
         # Read meta
         meta = self._get_meta(pk)
+
+        # check that prev_meta is a dictionary
+        if prev_meta is not None:
+            if not isinstance(prev_meta, dict):
+                raise ValueError('Prev_meta need to be a dictionary instead of {}'.format(type(prev_meta)))
+            for field, index in self.indexes.items():
+                # Remove previous index if changed
+                if prev_meta[field] != meta[field]:
+                    index.remove_pk(prev_meta[field], pk)
 
         for field, index in self.indexes.items():
             # Create a new Node if needed
             if meta[field] not in index:
                 index[meta[field]] = set()
-            # add the offset to the index
+            # add pk to the index
             index[meta[field]].add(pk)
+
+    def remove_indices(self, pk, meta):
+        '''
+        Updates inverse-lookup index dictionary for a database entry deletion.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the former database entry
+        meta : dictionary
+            The time series and metadata for the deleted entry
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        for field, value in meta.items():
+            # Check if field is indexed
+            if field in self.indexes.keys():
+                index = self.indexes[field]
+                # remove pk for the previous value
+                index.remove_pk(meta[field], pk)
 
     # TODO: still being debugged
     def select(self, meta, fields, additional):
@@ -250,15 +317,8 @@ class PersistantDB:
             Selected primary keys; entire selected data
         '''
 
-        # start with the set of all primary keys
+        # start with the set of all primary keys present in the db
         pks = set(self.pks.index.keys())
-        print('Select init ', pks)
-
-        # remove those that have been deleted
-        print('deleted ', self.indexes['deleted'][False])
-        not_deleted = set(self.indexes['deleted'][False])
-        pks = pks.intersection(not_deleted)
-        print('Select not deleted ', pks)
 
         # loop through each specified metadata criterion
         for field, value in meta.items():
@@ -305,10 +365,12 @@ class PersistantDB:
 
                     # if the index is not present
                     else:
-                        selected = set([pk for pk in pks
-                                        if field in self.rows[pk] and
-                                        self.rows[pk][field]
-                                        in converted_values])
+                        selected = set()
+                        for pk in pks:
+                            # need to load the meta
+                            meta = self._get_meta(pk)
+                            if field in meta.keys() and meta[field] in converted_values:
+                                selected.add(pk)
 
                     # update the set of primary keys by applying an
                     # AND with the selected primary keys
@@ -316,7 +378,6 @@ class PersistantDB:
 
                 # case 3: the metadata criterion is a precise value
                 elif isinstance(value, (int, float, str)):
-                    print('here with value: {} and field: {}'.format(value, field))
                     # case field is pk
                     if field == self.pkfield:
                         if conversion(value) in self.pks:
@@ -326,7 +387,7 @@ class PersistantDB:
                         else:
                             pks = set()
                             break
-                    # case the index is present
+                    # case field is an index (not the primary key)
                     elif field in self.indexes:
                         if conversion(value) in self.indexes[field]:
                             selected = set(self.indexes[field][conversion(value)])
@@ -335,18 +396,19 @@ class PersistantDB:
                             pks = set()
                             break
 
-                    # if the index is not present
+                    # case field is not indexed
+                    # TODO: merge this case with the previous one
                     else:
-                        selected = set([pk for pk in pks
-                                        if field in self.rows[pk] and
-                                        self.rows[pk][field] ==
-                                        conversion(value)])
+                        selected = set()
+                        for pk in pks:
+                            # need to load the meta
+                            meta = self._get_meta(pk)
+                            if field in meta.keys() and meta[field] == conversion(value):
+                                selected.add(pk)
 
                     # update the set of primary keys by applying an
                     # AND with the selected primary keys
-                    print('selected is ', selected)
                     pks = pks.intersection(selected)
-                    print('pks is ', pks)
 
                 # case 4: some other incorrect type - return nothing
                 else:
@@ -377,10 +439,18 @@ class PersistantDB:
                             predicate != self.pkfield)):
                     raise ValueError('Additional field {} not in schema or in '
                                      'indexes'.format(predicate))
-
-                # in-place sorting
-                pks.sort(key=lambda pk: self.rows[pk][predicate],
-                         reverse=reverse)
+                # case predicate is pkfield
+                if predicate == self.pkfield:
+                    pks.sort(reverse=reverse)
+                # case predicate field of schema
+                # TODO: improve sorting for indexed field
+                else:
+                    # Loading the meta
+                    # TODO: improve because need only one meta
+                    metas = {pk: self._get_meta(pk) for pk in pks}
+                    # in-place sorting
+                    pks.sort(key=lambda pk: metas[pk][predicate],
+                             reverse=reverse)
 
                 # limit the number of return values
                 # assume this only applies when sorting, e.g. return the top 10
@@ -394,12 +464,12 @@ class PersistantDB:
         else:
             if not len(fields):
                 if self.verbose: print('S> D> ALL FIELDS')
-                matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
+                matchedfielddicts = [{k: v for k, v in self._get_meta(pk).items()
                                       if k != 'ts' and k != 'deleted'}
                                      for pk in pks]  # remove ts
             else:
                 if self.verbose: print('S> D> FIELDS {}'.format(fields))
-                matchedfielddicts = [{k: v for k, v in self.rows[pk].items()
+                matchedfielddicts = [{k: v for k, v in self._get_meta(pk).items()
                                       if k in fields} for pk in pks]
 
         # return output of select statament

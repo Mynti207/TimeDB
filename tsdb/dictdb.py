@@ -345,12 +345,16 @@ class DictDB:
         # use helper function to extract metadata for upsertion
         mf = metafiltered(meta, self.schema)
 
-        # add filtered metadata
+        # add filtered metadata and remember the previous meta updated
+        prev_meta = {}
         for field in mf:
+            # Case old value present for the upserted field
+            if field in row:
+                prev_meta[field] = row[field]
             row[field] = mf[field]
 
         # update inverse-lookup index dictionary
-        self.update_indices(pk)
+        self.update_indices(pk, prev_meta=prev_meta)
 
     def index_bulk(self, pks=[]):
         '''
@@ -378,7 +382,7 @@ class DictDB:
             # update indices
             self.update_indices(pkid)
 
-    def update_indices(self, pk):
+    def update_indices(self, pk, prev_meta=None):
         '''
         Updates inverse-lookup index dictionary for a given database entry.
 
@@ -386,6 +390,8 @@ class DictDB:
         ----------
         pk : any hashable type
             Primary key for the database entry
+        prev_meta: dictionary of metadata
+            Previous values, need to be removed from the indices
 
         Returns
         -------
@@ -396,18 +402,25 @@ class DictDB:
         if not isinstance(pk, collections.Hashable):
             raise ValueError('Primary key is not a hashable type.')
 
+        # Remove indices associated to the prev_meta
+        if prev_meta is not None:
+            # check that prev_meta is a dictionary
+            if not isinstance(prev_meta, dict):
+                raise ValueError('Prev_meta need to be a dictionary instead of {}'.format(type(prev_meta)))
+            # Remove indices associated to prev_meta
+            self.remove_indices(pk, prev_meta)
+
         # extract data for the given primary key
         row = self.rows[pk]
 
         # loop through the data fields, and add to the inverse-lookup
         # dictionary if the field has an index value
-        for field in row:
-            v = row[field]
+        for field, value in row.items():
             if self.schema[field]['index'] is not None:
                 if field not in self.indexes:
                     self.indexes[field] = defaultdict(set)
                 idx = self.indexes[field]
-                idx[v].add(pk)
+                idx[value].add(pk)
 
     def remove_indices(self, pk, row):
         '''
@@ -431,11 +444,13 @@ class DictDB:
 
         # loop through the data fields, and remove from the inverse-lookup
         # dictionary if the field has an index value
-        for field in row:
-            v = row[field]
+        for field, value in row.items():
             if self.schema[field]['index'] is not None:
                 idx = self.indexes[field]
-                idx[v].remove(pk)
+                idx[value].remove(pk)
+                # Remove the node if now empty
+                if len(idx[value]) == 0:
+                    idx.pop(value)
 
     def select(self, meta, fields, additional):
         '''

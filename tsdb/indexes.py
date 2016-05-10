@@ -21,14 +21,23 @@ class Index:
     def __getitem__(self, key):
         return self.index[key]
 
-    def __contains__(self, key):
-        return key in self.index.keys()
-
     def __setitem__(self, key, value):
         self.index[key] = value
         # TODO: add a log to commit the changes by batch and not at each
         # insertion
         self.commit()
+
+    def __contains__(self, key):
+        return key in self.index.keys()
+
+    def keys(self):
+        return self.index.keys()
+
+    def values(self):
+        return self.index.values()
+
+    def items(self):
+        return self.index.items()
 
     def commit(self):
         '''
@@ -46,8 +55,11 @@ class PrimaryIndex(Index):
     def __init__(self, field, directory):
         super().__init__(field, directory)
 
-    def remove(self, key):
-        self.index.pop(key)
+    def remove_pk(self, pk):
+        '''
+        Remove pk in the index.
+        '''
+        self.index.pop(pk)
         # TODO: add a log to commit the changes by batch and not at each
         # insertion
         self.commit()
@@ -64,6 +76,22 @@ class BinTreeIndex(Index):
 
     def __init__(self, field, directory):
         super().__init__(field, directory)
+
+    def remove_pk(self, value, pk):
+        '''
+        Remove pk for field in the index. Used only to delete element
+        from the db, no need to re assign a default to pk for this field.
+        '''
+        if value in self.index:
+            self.index[value].remove(pk)
+            # Remove the node if empty
+            if len(self.index[value]) == 0:
+                self.index.pop(value)
+        else:
+            raise ValueError('Value {} not present in the index keys'.format(value))
+        # TODO: add a log to commit the changes by batch and not at each
+        # insertion
+        self.commit()
 
 
 
