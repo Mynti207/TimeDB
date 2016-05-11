@@ -560,9 +560,10 @@ def test_server():
     assert payload is None
 
     # check all triggers
-    triggers = [t for t in server.triggers if len(server.triggers[t]) > 0]
+    triggers = [t for t in server.db.triggers
+                if len(server.db.triggers[t]) > 0]
     assert triggers == ['insert_ts']
-    assert (sorted([t[0] for t in server.triggers['insert_ts']]) ==
+    assert (sorted([t[0] for t in server.db.triggers['insert_ts']]) ==
             ['junk', 'stats'])
 
     ########################################

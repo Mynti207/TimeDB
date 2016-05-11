@@ -81,7 +81,7 @@ class TSHeap(Heap):
                                               byteorder="little")
             self._write(ts_len_bytes)
         else:
-            # Read ts length 
+            # Read ts length
             self.fd.seek(0)
             self.ts_length = int.from_bytes(self.fd.read(LENGTH_OFFSET),
                                             byteorder="little")

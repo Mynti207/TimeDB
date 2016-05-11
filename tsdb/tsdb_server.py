@@ -540,8 +540,8 @@ class TSDBProtocol(asyncio.Protocol):
         trigger_arg = op['arg']
 
         # update trigger list
-        self.server.triggers[trigger_onwhat].append(
-            (trigger_proc, storedproc, trigger_arg, trigger_target))
+        self.server.db.add_trigger(trigger_onwhat, trigger_proc, storedproc,
+                                   trigger_arg, trigger_target)
 
         # return status and payload
         return TSDBOp_Return(TSDBStatus.OK, op['op'])
@@ -574,44 +574,18 @@ class TSDBProtocol(asyncio.Protocol):
         # the field(s) to which the result of the coroutine is applied
         trigger_target = op['target']
 
-        # delete all triggers associated with the action and coroutine
-        if trigger_target is None:
+        # remove trigger at db-level
+        try:
 
-            # look up all triggers associated with that operation
-            trigs = self.server.triggers[trigger_onwhat]
-
-            # keep track of number of triggers removed
-            removed = 0
-
-            # remove all instances of the particular coroutine associated
-            # with that operation
-            for t in trigs:
-                if t[0] == trigger_proc:
-                    trigs.remove(t)
-                    removed += 1
-
-            # confirm that at least one trigger has been removed
-            if removed == 0:
-                return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
+            self.server.db.remove_trigger(
+                trigger_proc, trigger_onwhat, trigger_target)
 
             # return status and payload
             return TSDBOp_Return(TSDBStatus.OK, op['op'])
 
-        # only remove a particular trigger
-        # (used to delete vantage point representation)
-        else:
-
-            # look up all triggers associated with that operation
-            trigs = self.server.triggers[trigger_onwhat]
-
-            # delete the relevant trigger
-            for t in trigs:
-                if t[0] == trigger_proc:  # matches coroutine
-                    if t[3] == trigger_target:  # matches target
-                        trigs.remove(t)
-
-            # return status and payload
-            return TSDBOp_Return(TSDBStatus.OK, op['op'])
+        # no triggers removed
+        except ValueError:
+            return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
     def _run_trigger(self, opname, rowmatch):
         '''
@@ -631,7 +605,7 @@ class TSDBProtocol(asyncio.Protocol):
         '''
 
         # look up the triggers associated with the network operation
-        lot = self.server.triggers[opname]
+        lot = self.server.db.triggers[opname]
 
         # loop through all relevant trigger coroutines
         for tname, t, arg, target in lot:
@@ -750,9 +724,6 @@ class TSDBServer(object):
         '''
         self.port = port
         self.db = db
-        self.triggers = defaultdict(list)
-        self.trigger_arg_cache = defaultdict(dict)
-        self.autokeys = {}
 
     def exception_handler(self, loop, context):
         '''

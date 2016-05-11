@@ -653,6 +653,8 @@ class TSDBOp_RemoveTrigger(TSDBOp):
             Name of the module in procs that defines the trigger action
         onwhat : string
             Operation that triggers the coroutine (e.g. 'insert_ts')
+        target : string
+            Field name where coroutine result will be stored
 
         Returns
         -------

@@ -28,7 +28,7 @@ class Index:
         # intialize index properties
         self.field = field
         self.directory = directory
-        self.file = self.directory + '_' + self.field + '.idx'
+        self.file = self.directory + '/' + self.field + '.idx'
 
         # load if already present
         if os.path.exists(self.file):
@@ -276,7 +276,7 @@ class BinTreeIndex(Index):
         # initialize index properties
         self.field = field
         self.directory = directory
-        self.file = self.directory + '_' + self.field + '.idx'
+        self.file = self.directory + '/' + self.field + '.idx'
 
         # load if already present
         if os.path.exists(self.file):
@@ -414,8 +414,8 @@ class BitMapIndex(Index):
 
         # file locations for persistence
         self.directory = directory
-        self.file = self.directory + '_' + self.field + '.idx'
-        self.file_pks = self.directory + '_' + self.field + '_pks.idx'
+        self.file = self.directory + '/' + self.field + '.idx'
+        self.file_pks = self.directory + '/' + self.field + '_pks.idx'
 
         # load existing index data
         if os.path.exists(self.file):

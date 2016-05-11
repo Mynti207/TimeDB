@@ -75,9 +75,14 @@ class PersistentDB:
         '''
 
         self.db_name = db_name
-        # Directory to save files
+
+        # directory to save files
         self.data_dir = data_dir + '/' + db_name
         self.schema = schema
+
+        # set up directory for db data
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
 
         self.ts_length = ts_length
         self.pkfield = pkfield
@@ -102,16 +107,12 @@ class PersistentDB:
                 else:
                     raise ValueError('Wrong index field in schema')
 
-        # set up directory for db data
-        if not os.path.exists(self.data_dir):
-            os.makedirs(self.data_dir)
-
         # Raw time series stored in TSHeap file at ts_offset stored
         # in field 'ts' of metadata
         # Metdata stored in MetaHeap file at pk_offset stored in the
         # primary key index pks as value
-        self.meta_heap = MetaHeap(self.data_dir + '_hmeta', schema)
-        self.ts_heap = TSHeap(self.data_dir + '_hts', self.ts_length)
+        self.meta_heap = MetaHeap(self.data_dir + '/hmeta', schema)
+        self.ts_heap = TSHeap(self.data_dir + '/hts', self.ts_length)
 
         # whether status updates are printed
         self.verbose = verbose

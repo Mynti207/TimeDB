@@ -114,6 +114,9 @@ class DictDB:
         # includes pointer to file structure
         self.tree = iSaxTree('root')
 
+        # triggers (originally stored server-side)
+        self.triggers = defaultdict(list)
+
     def insert_vp(self, pk):
         '''
         Adds a vantage point (i.e. an existing time series) to the database.
@@ -376,6 +379,84 @@ class DictDB:
 
         # update inverse-lookup index dictionary
         self.update_indices(pk, prev_meta=prev_meta)
+
+    def add_trigger(self, onwhat, proc, storedproc, arg, target):
+        '''
+        Adds a trigger (similar to an event loop in asynchronous programming,
+        i.e. will take some action when a certain event occurs.)
+
+        Parameters
+        ----------
+        onwhat : string
+            Operation that triggers the coroutine (e.g. 'insert_ts')
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        storedproc : function
+            Function that defines the action to take when the trigger is met
+        arg : string
+            Possible additional arguments for the function
+        target : string
+            Array of field names to which to apply the results of the coroutine
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # assumes all error-checking has been done at server-level
+        self.triggers[onwhat].append((proc, storedproc, arg, target))
+
+    def remove_trigger(self, proc, onwhat, target):
+        '''
+        Removes a previously-set trigger.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs that defines the trigger action
+        onwhat : string
+            Operation that triggers the coroutine (e.g. 'insert_ts')
+        target : string
+            Field name where coroutine result will be stored
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # delete all triggers associated with the action and coroutine
+        if target is None:
+
+            # look up all triggers associated with that operation
+            trigs = self.triggers[onwhat]
+
+            # keep track of number of triggers removed
+            removed = 0
+
+            # remove all instances of the particular coroutine associated
+            # with that operation
+            for t in trigs:
+                if t[0] == proc:
+                    trigs.remove(t)
+                    removed += 1
+
+            # confirm that at least one trigger has been removed
+            if removed == 0:
+                raise ValueError('No triggers removed.')
+
+        # only remove a particular trigger
+        # (used to delete vantage point representation)
+        else:
+
+            # look up all triggers associated with that operation
+            trigs = self.triggers[onwhat]
+
+            # delete the relevant trigger
+            for t in trigs:
+                if t[0] == proc:  # matches coroutine
+                    if t[3] == target:  # matches target
+                        trigs.remove(t)
 
     def index_bulk(self, pks=[]):
         '''
