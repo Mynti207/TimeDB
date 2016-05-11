@@ -50,8 +50,17 @@ class Index:
     def add_field(self, field):
         self.index[field] = set()
 
-    def add_pk(self, pk, value):
+    def add_pk(self, value, pk):
         self.index[value].add(pk)
+        # TODO: add a log to commit the changes by batch and not at each
+        # insertion
+        self.commit()
+
+    def remove_pk(self, value, pk):
+        '''
+        Remove pk in the index.
+        '''
+        self.index[value].pop(pk)
         # TODO: add a log to commit the changes by batch and not at each
         # insertion
         self.commit()
@@ -65,17 +74,12 @@ class PrimaryIndex(Index):
     def __init__(self, field, directory):
         super().__init__(field, directory)
 
-    def remove_pk(self, pk):
-        '''
-        Remove pk in the index.
-        '''
-        self.index.pop(pk)
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
-        self.commit()
+    def add_pk(self, value, pk):
+        self.index[pk] = value
 
+    def remove_pk(self, value, pk):
+        del self.index[pk]
 
-# TODO
 
 class BinTreeIndex(Index):
     '''
@@ -85,27 +89,33 @@ class BinTreeIndex(Index):
     '''
 
     def __init__(self, field, directory):
-        super().__init__(field, directory)
+
+        # initialize index properties
+        self.field = field
+        self.directory = directory
+        self.file = self.directory + '_' + self.field + '.idx'
+
+        # load if already present
+        if os.path.exists(self.file):
+            with open(self.file, "rb", buffering=0) as fd:
+                self.index = pickle.load(fd)
+
+        # otherwise initialize
+        else:
+            self.index = FastAVLTree()
+
+    def add_field(self, field):
+        # initialize new field index as an empty set
+        # will contain all pks that match this value
+        self.index[field] = set()
+
+    def add_pk(self, value, pk):
+        self.index[value].add(pk)
 
     def remove_pk(self, value, pk):
-        '''
-        Remove pk for field in the index. Used only to delete element
-        from the db, no need to re assign a default to pk for this field.
-        '''
-        if value in self.index:
-            self.index[value].remove(pk)
-            # Remove the node if empty
-            if len(self.index[value]) == 0:
-                self.index.pop(value)
-        else:
-            raise ValueError('Value {} not present in the index keys'.
-                             format(value))
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
-        self.commit()
+        self.index[value].discard(pk)
 
 
-# TODO
 class BitMapIndex(Index):
     '''
     Bitmap index for low cardinality fields.
@@ -162,7 +172,15 @@ class BitMapIndex(Index):
             # list position for next new data
             self.max_position = 0
 
-    def add_pk(self, pk, value):
+    def add_field(self, field):
+
+        # initialize to zero for all primary keys
+        self.index[field] = '0' * len(self.pks)
+        # TODO: add a log to commit the changes by batch and not at each
+        # insertion
+        self.commit()
+
+    def add_pk(self, value, pk):
 
         # update value if the primary key is already present
         if pk in self.pks:
@@ -184,7 +202,6 @@ class BitMapIndex(Index):
 
             # update primary key locations
             self.pks[pk] = self.max_position
-            # self.inverse_pks[self.max_position] = pk
             self.max_position += 1
 
             # add binary values
@@ -220,16 +237,7 @@ class BitMapIndex(Index):
         # deletion
         self.commit()
 
-    def add_field(self, field):
-
-        # initialize to zero for all primary keys
-        self.index[field] = '0' * len(self.pks)
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
-        self.commit()
-
     def __getitem__(self, key):
-
         # build up result
         result = set()
 

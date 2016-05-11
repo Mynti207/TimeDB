@@ -53,14 +53,13 @@ class PersistentDB:
 
     NB:
         - For the deletion, we update the meta field 'deleted' in the meta heap
-            but we then remove the pk from the indexes,both primary index and
+            but we then remove the pk from the indexes, both primary index and
             other. As a result, the field deleted will actually never be used
             when set to true as it's not indexed in that case.
 
     TODO:
         - extend to the vantage point
         - extend to isax support
-        - implement the BitMap indices
         - modify the way to store on disk to use a log and commit by batch
             instead of element by element. Changes to do in indexes.py, could use
             a temporary log on memory keeping track of the last uncommited changes.
@@ -77,7 +76,7 @@ class PersistentDB:
 
         self.db_name = db_name
         # Directory to save files
-        self.data_dir = data_dir+"/"+db_name
+        self.data_dir = data_dir + '/' + db_name
         self.schema = schema
 
         self.ts_length = ts_length
@@ -184,7 +183,7 @@ class PersistentDB:
         self._upsert_meta({'deleted': True}, offset=self.pks[pk][1])
 
         # pop from primary key index
-        self.pks.remove_pk(pk)
+        self.pks.remove_pk(False, pk)
 
         # remove from other indexed fields (deleted field included)
         self.remove_indices(pk, meta)
@@ -277,7 +276,7 @@ class PersistentDB:
                 # index[meta[field]] = set()
             # add pk to the index
             # updated so we have a single method that can be overridden
-            index.add_pk(pk, meta[field])
+            index.add_pk(meta[field], pk)
             # index[meta[field]].add(pk)
 
     def remove_indices(self, pk, meta):
