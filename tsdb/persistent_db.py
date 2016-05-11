@@ -58,6 +58,8 @@ class PersistentDB:
         - modify the way to store on disk to use a log and commit by batch
             instead of element by element. Changes to do in indexes.py, could use
             a temporary log on memory keeping track of the last uncommited changes.
+        - implement atomic transactions, with appropriate exception handling
+            and rollback on fail
 
     '''
 
@@ -253,6 +255,125 @@ class PersistentDB:
         # (used to delete vantage point representation)
         else:
             self.triggers.remove_one_trigger(onwhat, proc, target)
+
+    def insert_vp(self, pk):
+        '''
+        Adds a vantage point (i.e. an existing time series) to the database.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the new database entry
+
+        Returns
+        -------
+        dix : string
+            ID of the field that will store the distance to the vantage point
+        pk : string
+            The primary key of the vantage point
+        ts : TimeSeries
+            The time series data of the vantage point
+        '''
+
+        # TODO
+        pass
+
+        # # check that pk is a hashable type
+        # self._valid_pk(pk)
+        #
+        # # check that the primary key is present in the database
+        # self._check_presence(pk, present=False)
+        #
+        # # check that the primary key is not already set as a vantage point
+        # if pk in self.indexes['vp'][True]:
+        #     raise ValueError('Primary key is already set as vantage point.')
+        #
+        # # mark time series as vantage point
+        # self._upsert_meta({'vp': True}, offset=self.pks[pk][1])
+        #
+        # # get field name for distance to vantage point
+        # didx = 'd_vp_' + pk
+
+        # add distance field to schema
+        # self.schema[didx] = {'convert': float, 'index': 1}
+
+        # update inverse-lookup index dictionary
+        # self.index_bulk()
+
+        # fields for additional server-side operations:
+        # add trigger to calculate distance when a new time series is added
+        # calculate distance for all existing time series
+        # return didx, pk, self.rows[pk]['ts']
+
+    def delete_vp(self, pk, raise_error=True):
+        '''
+        Unmarks a time series as a vantage point.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the new database entry
+        raise_error : boolean
+            Determines whether a ValueError is raised when trying to unmark
+            a time series that is not actually marked as a vantage point.
+            Used when deleting time series, to check whether it needs to
+            also be unmarked.
+
+        Returns
+        -------
+        dix : string
+            ID of the field that previously stored the distance to the
+            vantage point
+        '''
+
+        # TODO
+        pass
+
+        # # check that pk is a hashable type
+        # try:
+        #     self._valid_pk(pk)
+        # except ValueError:
+        #     if raise_error:
+        #         raise ValueError('Primary key is not a hashable type.')
+        #     else:
+        #         return
+        #
+        # # check that the primary key is present in the database
+        # try:
+        #     self._check_presence(pk, present=False)
+        # except ValueError:
+        #     if raise_error:
+        #         raise ValueError('Primary key not present.')
+        #     else:
+        #         return
+        #
+        # # check that the primary key is set as a vantage point
+        # if pk in self.indexes['vp'][False]:
+        #     if raise_error:
+        #         raise ValueError('Primary key is not set as a vantage point.')
+        #     else:
+        #         return
+        #
+        # # remove time series marker as vantage point
+        # self._upsert_meta({'vp': False}, offset=self.pks[pk][1])
+        #
+        # # get vantage point id
+        # didx = 'd_vp_' + pk
+        #
+        # # delete from schema
+        # del self.schema[didx]
+        #
+        # # update inverse-lookup index dictionary
+        # del self.indexes[didx]
+        #
+        # # remove previously calculated distances from database
+        # for r in self.rows:
+        #     if self.rows[r]['deleted'] is False:
+        #         del self.rows[r][didx]
+        #
+        # # additional server-side operation:
+        # # remove trigger to calculate distance when a new time series is added
+        # return didx
 
     def upsert_meta(self, pk, meta):
         '''

@@ -1,5 +1,6 @@
 import pickle
 import os
+import copy
 
 from bintrees import FastAVLTree
 
@@ -71,8 +72,8 @@ class Index:
         Set of primary keys associated with the index key.
         '''
         self.index[key] = value
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def __contains__(self, key):
@@ -180,6 +181,9 @@ class Index:
         '''
         del self.index[key]
 
+        # TODO: add a log to commit the changes by batch
+        self.commit()
+
     def add_pk(self, key, pk):
         '''
         Adds a primary key to an index key (i.e. metadata field value).
@@ -202,8 +206,7 @@ class Index:
 
         self.index[key].add(pk)
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def remove_pk(self, key, pk):
@@ -223,8 +226,7 @@ class Index:
         '''
         self.index[key].pop(pk)
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
 
@@ -282,13 +284,10 @@ class TriggerIndex(Index):
         super().__init__(field, directory)
 
     def __getitem__(self, key):
-        print('key', key)
-        print('index', self.index)
         if key in self.index:
             return self.index[key]
         else:
             return []
-
 
     def add_key(self, key):
         '''
@@ -344,8 +343,7 @@ class TriggerIndex(Index):
 
         self.index[key].append(pk)
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def remove_all_triggers(self, key, proc):
@@ -382,8 +380,7 @@ class TriggerIndex(Index):
         if removed == 0:
             raise ValueError('No triggers removed.')
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def remove_one_trigger(self, key, proc, target):
@@ -414,8 +411,7 @@ class TriggerIndex(Index):
                 if t[3] == target:  # matches target
                     trigs.remove(t)
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
 
@@ -491,6 +487,9 @@ class BinTreeIndex(Index):
         '''
         self.index[key].add(pk)
 
+        # TODO: add a log to commit the changes by batch
+        self.commit()
+
     def remove_pk(self, key, pk):
         '''
         Removes a primary key from an index key (i.e. metadata field value).
@@ -507,6 +506,13 @@ class BinTreeIndex(Index):
         Nothing, modifies in-place.
         '''
         self.index[key].discard(pk)
+
+        # clear key if no further primary keys left
+        if len(self.index[key]) == 0:
+            self.remove_key(key)
+
+        # TODO: add a log to commit the changes by batch
+        self.commit()
 
     def keys(self):
         '''
@@ -597,7 +603,7 @@ class BitMapIndex(Index):
             self.possible_values = list(self.index.keys())
 
             # keep track of primary key location {pk: position}
-            with open(self.file, "rb", buffering=0) as fd:
+            with open(self.file_pks, "rb", buffering=0) as fd:
                 self.pks = pickle.load(fd)
 
             # list position for next new data
@@ -641,8 +647,7 @@ class BitMapIndex(Index):
         # initialize to zero for all primary keys
         self.index[key] = '0' * len(self.pks)
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def add_pk(self, key, pk):
@@ -690,8 +695,7 @@ class BitMapIndex(Index):
                 else:
                     self.index[v] += '0'
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def remove_pk(self, key, pk):
@@ -726,8 +730,7 @@ class BitMapIndex(Index):
         # log reduction in bitmap size
         self.max_position -= 1
 
-        # TODO: add a log to commit the changes by batch and not at each
-        # deletion
+        # TODO: add a log to commit the changes by batch
         self.commit()
 
     def __getitem__(self, key):
@@ -753,7 +756,7 @@ class BitMapIndex(Index):
                 result.add(pk)
         return result
 
-    def items(self):
+    def keys(self):
         '''
         Returns the primary key values associated with all index keys.
 
@@ -765,7 +768,9 @@ class BitMapIndex(Index):
         -------
         Index dictionary values (formatted as set of pks)
         '''
-        return [(k, self.__getitem__(k)) for k in self.index.keys()]
+        result = [(k, self.__getitem__(k)) for k in self.index.keys()]
+        result = [r[0] for r in result if len(r[1]) > 0]
+        return result
 
     def values(self):
         '''
@@ -780,7 +785,25 @@ class BitMapIndex(Index):
         -------
         Index dictionary items (formatted as set of pks)
         '''
-        return [self.__getitem__(k) for k in self.index.keys()]
+        result = [self.__getitem__(k) for k in self.index.keys()]
+        result = [r for r in result if len(r) > 0]
+        return result
+
+    def items(self):
+        '''
+        Returns the primary key values associated with all index keys.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Index dictionary values (formatted as set of pks)
+        '''
+        result = [(k, self.__getitem__(k)) for k in self.index.keys()]
+        result = [r for r in result if len(r[1]) > 0]
+        return result
 
     def commit(self):
         '''

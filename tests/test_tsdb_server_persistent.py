@@ -630,13 +630,13 @@ def test_server():
     # payload_fields = list(payload[list(payload.keys())[0]].keys())
     # assert 'mean' in payload_fields
     # assert 'std' in payload_fields
+
+    ########################################
     #
-    # ########################################
-    # #
-    # # test vantage point representation
-    # #
-    # ########################################
+    # test vantage point representation
     #
+    ########################################
+
     # # pick a new time series to add as a vantage point
     #
     # # randomly choose time series as vantage points
@@ -658,7 +658,7 @@ def test_server():
     #     # test that return values are as expected
     #     assert status == TSDBStatus.OK
     #     assert payload is None
-    #
+
     # # check that the distance fields are now in the database
     #
     # # package the operation
