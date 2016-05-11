@@ -8,11 +8,11 @@ schema = {
   'ts':         {'convert': identity,   'index': None},
   'order':      {'convert': int,        'index': 1},
   'blarg':      {'convert': int,        'index': 1},
-  'useless':    {'convert': identity,   'index': None},
+  'useless':    {'convert': identity,   'index': 1},
   'mean':       {'convert': float,      'index': 1},
   'std':        {'convert': float,      'index': 1},
-  'vp':         {'convert': bool,       'index': 1},
-  'deleted':    {'convert': bool,       'index': 1}
+  'vp':         {'convert': bool,       'index': 2},
+  'deleted':    {'convert': bool,       'index': 2}
 }
 
 ########################################

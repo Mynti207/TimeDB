@@ -1,15 +1,17 @@
+#!/usr/bin/env python3
 from collections import defaultdict
 import numpy as np
+import os
 import pytest
 
-from tsdb import DictDB
+from tsdb import PersistentDB
 from timeseries import TimeSeries
 
 __author__ = "Mynti207"
 __copyright__ = "Mynti207"
 
 
-def test_tsdb_dictdb():
+def test_tsdb_persistentdb():
 
     # synthetic data
     t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
@@ -20,20 +22,34 @@ def test_tsdb_dictdb():
 
     identity = lambda x: x
 
+    # index: 1 is binary tree index, 2 is bitmap index
     schema = {
-      'pk':         {'convert': identity,   'index': None},
-      'ts':         {'convert': identity,   'index': None},
-      'order':      {'convert': int,        'index': 1},
-      'blarg':      {'convert': int,        'index': 1},
-      'useless':    {'convert': identity,   'index': None},
-      'mean':       {'convert': float,      'index': 1},
-      'std':        {'convert': float,      'index': 1},
-      'vp':         {'convert': bool,       'index': 1},
-      'deleted':    {'convert': bool,       'index': 1}
+      'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
+      'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
+      'order': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+      'blarg': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+      'useless': {'type': 'int', 'convert': identity, 'index': 1, 'values': None},
+      'mean': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+      'std': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+      'vp': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]},
+      'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
     }
 
-    # create dictionary
-    ddb = DictDB(schema, 'pk')
+    data_dir = 'db_files/'
+
+    # set up directory for db data
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    # Delete any default db present (otherwise the db creation will load
+    # the previous one...)
+    filelist = [data_dir + f for f in os.listdir(data_dir)
+                if f[:7] == 'default']
+    for f in filelist:
+        os.remove(f)
+
+    # create persistent db
+    ddb = PersistentDB(schema, 'pk', len(t))
 
     # CHECK INSERTION/UPSERTION/DELETION -->
 
@@ -49,12 +65,22 @@ def test_tsdb_dictdb():
 
     # delete a valid time series
     ddb.delete_ts('pk1')
-    print(ddb.indexes)
+    # Check the deletion in the primary index
+    assert ('pk1' not in ddb.pks.keys())
+    # Check the deletion in other index
+    for field, index in ddb.indexes.items():
+        if field == 'deleted':
+            continue
+        for value in index.values():
+            assert ('pk1' not in value)
 
-    # check that it isn't present any more
+    # # check that it isn't present any more
     pk, selected = ddb.select({'pk': 'pk1'}, [], None)
     assert pk == []
     assert len(selected) == 0
+    pk, selected = ddb.select({'pk': 'pk2'}, [], None)
+    assert pk == ['pk2']
+    assert len(selected) == 1
 
     # add the time series back in
     ddb.insert_ts('pk1', a1)
@@ -87,11 +113,11 @@ def test_tsdb_dictdb():
         ddb.upsert_meta('pk3', {'order': 2, 'blarg': 2})
 
     # extract database entries for testing
-    db_rows = ddb.rows
+    db_rows = {pk: ddb._get_meta(pk) for pk in ddb.pks.keys()}
     idx = sorted(db_rows.keys())  # sorted primary keys
 
     # check primary keys
-    assert idx == ['0DELETED_pk1', 'pk1', 'pk2']
+    assert idx == ['pk1', 'pk2']
 
     # check metadata
     assert db_rows['pk1']['order'] == 1
@@ -138,7 +164,33 @@ def test_tsdb_dictdb():
 
     # bulk update of indices
     ddb.index_bulk()
-    check_indexes = ['blarg', 'deleted', 'mean', 'order', 'std', 'vp']
-    assert sorted(ddb.indexes.keys()) == check_indexes
-    for v in ddb.indexes.values():
-        assert isinstance(v, defaultdict)
+    check = ['blarg', 'deleted', 'mean', 'order', 'std', 'useless', 'vp']
+    assert sorted(ddb.indexes.keys()) == check
+
+    # CHECK BITMAP INDICES -->
+
+    # insert more data
+    ddb.insert_ts('pk3', a1)
+    ddb.insert_ts('pk4', a1)
+    ddb.insert_ts('pk5', a1)
+    ddb.insert_ts('pk6', a1)
+
+    # boolean fields should be initialized as negative
+    assert len(ddb.indexes['deleted'][True]) == 0
+    assert len(ddb.indexes['vp'][True]) == 0
+
+    # swap one
+    ddb.upsert_meta('pk4', {'vp': True})
+    assert len(ddb.indexes['vp'][True]) == 1
+    assert len(ddb.indexes['vp'][False]) == 5
+    assert list(ddb.indexes['vp'][True])[0] == 'pk4'
+
+    # swap back
+    ddb.upsert_meta('pk4', {'vp': False})
+    assert len(ddb.indexes['vp'][True]) == 0
+    assert len(ddb.indexes['vp'][False]) == 6
+
+    # delete entry
+    ddb.delete_ts('pk6')
+    for (k, v) in ddb.indexes['vp'].items():
+        assert 'pk6' not in v

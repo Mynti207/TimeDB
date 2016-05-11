@@ -18,13 +18,11 @@ install:
   - conda update -q conda
   # useful for debugging any issues with conda
   - conda info -a
-
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install pip nose numpy scipy pytest coverage
   # conda doesn't have access to all packages
-  - pip install python-coveralls nose-cov ply aiohttp asynctest
-  - pip install bintrees bitmap
+  - pip install python-coveralls nose-cov ply aiohttp asynctest bintrees
   - python setup.py install
 
 # command to run tests
