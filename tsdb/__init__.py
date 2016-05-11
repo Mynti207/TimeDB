@@ -1,7 +1,7 @@
 import pkg_resources
 
 from .dictdb import *
-from .persistant_db import *
+from .persistent_db import *
 from .heaps import *
 from .indexes import *
 from .tsdb_client import *

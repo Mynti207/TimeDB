@@ -4,7 +4,7 @@ import numpy as np
 import os
 import pytest
 
-from tsdb import PersistantDB
+from tsdb import PersistentDB
 from timeseries import TimeSeries
 
 __author__ = "Mynti207"
@@ -24,24 +24,26 @@ def test_tsdb_dictdb():
 
     # index: 1 is binary tree index, 2 is bitmap index
     schema = {
-      'pk':         {'type': 'str', 'convert': identity,   'index': None},
-      'ts':         {'type': 'int', 'convert': identity,   'index': None},
-      'order':      {'type': 'int', 'convert': int,        'index': 1},
-      'blarg':      {'type': 'int', 'convert': int,        'index': 1},
-      'useless':    {'type': 'int', 'convert': identity,   'index': None},
-      'mean':       {'type': 'float', 'convert': float,      'index': 1},
-      'std':        {'type': 'float', 'convert': float,      'index': 1},
-      'vp':         {'type': 'bool', 'convert': bool,       'index': 1},
-      'deleted':    {'type': 'bool', 'convert': bool,       'index': 1}
+      'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
+      'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
+      'order': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+      'blarg': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+      'useless': {'type': 'int', 'convert': identity, 'index': 1, 'values': None},
+      'mean': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+      'std': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+      'vp': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]},
+      'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
     }
 
-    # Delete any default db present (otherwise the db creation will load the previous one...)
-    filelist = [ "db_files/"+f for f in os.listdir("db_files/") if f[:7] == 'default']
+    # Delete any default db present (otherwise the db creation will load
+    # the previous one...)
+    filelist = ["db_files/" + f for f in os.listdir("db_files/")
+                if f[:7] == 'default']
     for f in filelist:
         os.remove(f)
 
-    # create persistant db
-    ddb = PersistantDB(schema, 'pk', len(t))
+    # create persistent db
+    ddb = PersistentDB(schema, 'pk', len(t))
 
     # CHECK INSERTION/UPSERTION/DELETION -->
 
@@ -50,7 +52,6 @@ def test_tsdb_dictdb():
     ddb.upsert_meta('pk1', {'order': 1, 'blarg': 2})
     ddb.insert_ts('pk2', a2)
     ddb.upsert_meta('pk2', {'order': 2, 'blarg': 2})
-
 
     # try to insert a duplicate primary key
     with pytest.raises(ValueError):
@@ -64,8 +65,8 @@ def test_tsdb_dictdb():
     for field, index in ddb.indexes.items():
         if field == 'deleted':
             continue
-        for value in index.values():
-            assert ('pk1' not in value)
+        for k in index.keys():
+            assert ('pk1' not in index[k])
 
     # # check that it isn't present any more
     pk, selected = ddb.select({'pk': 'pk1'}, [], None)
@@ -77,7 +78,7 @@ def test_tsdb_dictdb():
 
     # add the time series back in
     ddb.insert_ts('pk1', a1)
-    
+
     # Test consecutives meta upsert
     ddb.upsert_meta('pk1', {'order': 2, 'blarg': 3})
     for k, v in ddb.indexes['order'].items():
@@ -157,7 +158,32 @@ def test_tsdb_dictdb():
 
     # bulk update of indices
     ddb.index_bulk()
-    check_indexes = ['blarg', 'deleted', 'mean', 'order', 'std', 'vp']
-    assert sorted(ddb.indexes.keys()) == check_indexes
+    check = ['blarg', 'deleted', 'mean', 'order', 'std', 'useless', 'vp']
+    assert sorted(ddb.indexes.keys()) == check
 
-test_tsdb_dictdb()
+    ########################################
+    #
+    # testing bitmap indices
+    #
+    ########################################
+
+    # insert more data
+    ddb.insert_ts('pk3', a1)
+    ddb.insert_ts('pk4', a1)
+    ddb.insert_ts('pk5', a1)
+    ddb.insert_ts('pk6', a1)
+
+    # boolean fields should be initialized as negative
+    assert len(ddb.indexes['deleted'][True]) == 0
+    assert len(ddb.indexes['vp'][True]) == 0
+
+    # swap one
+    ddb.upsert_meta('pk4', {'vp': True})
+    assert len(ddb.indexes['vp'][True]) == 1
+    assert len(ddb.indexes['vp'][False]) == 5
+    assert list(ddb.indexes['vp'][True])[0] == 'pk4'
+
+    # swap back
+    ddb.upsert_meta('pk4', {'vp': False})
+    assert len(ddb.indexes['vp'][True]) == 0
+    assert len(ddb.indexes['vp'][False]) == 6

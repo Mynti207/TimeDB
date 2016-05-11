@@ -1,7 +1,7 @@
 from collections import defaultdict
 from operator import and_
 from functools import reduce
-from .indexes import PrimaryIndex, BinTreeIndex
+from .indexes import PrimaryIndex, BinTreeIndex, BitMapIndex
 from .heaps import TSHeap, MetaHeap
 import operator
 import os
@@ -19,7 +19,7 @@ OPMAP = {
 }
 
 
-class PersistantDB:
+class PersistentDB:
 
     '''
     Database implementation with persistency.
@@ -93,12 +93,13 @@ class PersistantDB:
         for field, value in self.schema.items():
             if value['index'] is not None:
                 # Index structure depends on its cardinality
-                if value['index'] == 1:
+                if value['index'] == 1:  # any other cardinality
+                    self.indexes[field] = BinTreeIndex(field, self.data_dir)
+                elif value['index'] == 2:  # boolean
                     # TODO
-                    # self.indexes[field] = BMaskIndex(field)
-                    self.indexes[field] = BinTreeIndex(field, self.data_dir)
-                elif value['index'] == 2:
-                    self.indexes[field] = BinTreeIndex(field, self.data_dir)
+                    self.indexes[field] = BitMapIndex(
+                        field, self.data_dir, value['values'])
+                    # self.indexes[field] = BinTreeIndex(field, self.data_dir)
                 else:
                     raise ValueError('Wrong index field in schema')
 
@@ -184,6 +185,7 @@ class PersistantDB:
 
         # pop from primary key index
         self.pks.remove_pk(pk)
+
         # remove from other indexed fields (deleted field included)
         self.remove_indices(pk, meta)
 
@@ -270,9 +272,13 @@ class PersistantDB:
         for field, index in self.indexes.items():
             # Create a new Node if needed
             if meta[field] not in index:
-                index[meta[field]] = set()
+                # updated so we have a single method that can be overridden
+                index.add_field(meta[field])
+                # index[meta[field]] = set()
             # add pk to the index
-            index[meta[field]].add(pk)
+            # updated so we have a single method that can be overridden
+            index.add_pk(pk, meta[field])
+            # index[meta[field]].add(pk)
 
     def remove_indices(self, pk, meta):
         '''
