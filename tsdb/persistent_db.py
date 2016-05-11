@@ -103,8 +103,8 @@ class PersistentDB:
                     raise ValueError('Wrong index field in schema')
 
         # set up directory for db data
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir)
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
 
         # Raw time series stored in TSHeap file at ts_offset stored
         # in field 'ts' of metadata

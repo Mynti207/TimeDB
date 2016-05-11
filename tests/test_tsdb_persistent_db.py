@@ -35,9 +35,15 @@ def test_tsdb_persistentdb():
       'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
     }
 
+    data_dir = 'db_files/'
+
+    # set up directory for db data
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
     # Delete any default db present (otherwise the db creation will load
     # the previous one...)
-    filelist = ["db_files/" + f for f in os.listdir("db_files/")
+    filelist = [data_dir + f for f in os.listdir(data_dir)
                 if f[:7] == 'default']
     for f in filelist:
         os.remove(f)
