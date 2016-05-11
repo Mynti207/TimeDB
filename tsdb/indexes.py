@@ -28,7 +28,7 @@ class Index:
         # intialize index properties
         self.field = field
         self.directory = directory
-        self.file = self.directory + '/' + self.field + '.idx'
+        self.file = self.directory + self.field + '.idx'
 
         # load if already present
         if os.path.exists(self.file):
@@ -148,7 +148,7 @@ class Index:
         with open(self.file, "wb", buffering=0) as fd:
             pickle.dump(self.index, fd)
 
-    def add_field(self, key):
+    def add_key(self, key):
         '''
         Adds a new index key (i.e. possible metadata field value) and
         initializes as empty (i.e. primary keys associated with it).
@@ -163,6 +163,22 @@ class Index:
         Nothing, modifies in-place.
         '''
         self.index[key] = set()
+
+    def remove_key(self, key):
+        '''
+        Removes an index key (i.e. possible metadata field value) and
+        all primary keys associated with it.
+
+        Parameters
+        ----------
+        key : str
+            The metadata field value
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        del self.index[key]
 
     def add_pk(self, key, pk):
         '''
@@ -179,7 +195,13 @@ class Index:
         -------
         Nothing, modifies in-place.
         '''
+
+        # defaultdict behavior
+        if key not in self.index:
+            self.add_key(key)
+
         self.index[key].add(pk)
+
         # TODO: add a log to commit the changes by batch and not at each
         # insertion
         self.commit()
@@ -250,6 +272,153 @@ class PrimaryIndex(Index):
         self.commit()
 
 
+class TriggerIndex(Index):
+    '''
+    Simple dictionary structure for making triggers persistent.
+    Defined as index to facilitate commit behavior.
+    '''
+
+    def __init__(self, field, directory):
+        super().__init__(field, directory)
+
+    def __getitem__(self, key):
+        print('key', key)
+        print('index', self.index)
+        if key in self.index:
+            return self.index[key]
+        else:
+            return []
+
+
+    def add_key(self, key):
+        '''
+        Adds a new index key (i.e. possible metadata field value) and
+        initializes as empty (i.e. primary keys associated with it).
+
+        Parameters
+        ----------
+        key : str
+            The metadata field value
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        self.index[key] = []
+
+    def remove_key(self, key):
+        '''
+        Removes an index key (i.e. possible metadata field value) and
+        all primary keys associated with it.
+
+        Parameters
+        ----------
+        key : str
+            The metadata field value
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        del self.index[key]
+
+    def add_trigger(self, key, pk):
+        '''
+        Adds a new trigger. Equivalent to adding a primary key to an index key.
+
+        Parameters
+        ----------
+        key : str
+            Action that triggers the coroutine
+        pk : tuple
+            Coroutine specifications
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # defaultdict behavior
+        if key not in self.index:
+            self.add_key(key)
+
+        self.index[key].append(pk)
+
+        # TODO: add a log to commit the changes by batch and not at each
+        # insertion
+        self.commit()
+
+    def remove_all_triggers(self, key, proc):
+        '''
+        Removes all triggers associated with a particular database action
+        and coroutine.
+
+        Parameters
+        ----------
+        key : str
+            Action that triggers the coroutine
+        proc : str
+            Coroutine name
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # look up all triggers associated with that operation
+        trigs = self.index[key]
+
+        # keep track of number of triggers removed
+        removed = 0
+
+        # remove all instances of the particular coroutine associated
+        # with that operation
+        for t in trigs:
+            if t[0] == proc:
+                trigs.remove(t)
+                removed += 1
+
+        # confirm that at least one trigger has been removed
+        if removed == 0:
+            raise ValueError('No triggers removed.')
+
+        # TODO: add a log to commit the changes by batch and not at each
+        # insertion
+        self.commit()
+
+    def remove_one_trigger(self, key, proc, target):
+        '''
+        Removes a specific instance of a trigger associated with a particular
+        database action and coroutine.
+
+        Parameters
+        ----------
+        key : str
+            Action that triggers the coroutine
+        proc : str
+            Coroutine name
+        target : list
+            Database fields that store result of running coroutine
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # look up all triggers associated with that operation
+        trigs = self.index[key]
+
+        # delete the relevant trigger
+        for t in trigs:
+            if t[0] == proc:  # matches coroutine
+                if t[3] == target:  # matches target
+                    trigs.remove(t)
+
+        # TODO: add a log to commit the changes by batch and not at each
+        # insertion
+        self.commit()
+
+
 class BinTreeIndex(Index):
     '''
     Binary tree to index high cardinality fields.
@@ -276,7 +445,7 @@ class BinTreeIndex(Index):
         # initialize index properties
         self.field = field
         self.directory = directory
-        self.file = self.directory + '/' + self.field + '.idx'
+        self.file = self.directory + self.field + '.idx'
 
         # load if already present
         if os.path.exists(self.file):
@@ -287,7 +456,7 @@ class BinTreeIndex(Index):
         else:
             self.index = FastAVLTree()
 
-    def add_field(self, key):
+    def add_key(self, key):
         '''
         Adds a new index key (i.e. possible metadata field value) and
         initializes as empty (i.e. primary keys associated with it).
@@ -414,8 +583,8 @@ class BitMapIndex(Index):
 
         # file locations for persistence
         self.directory = directory
-        self.file = self.directory + '/' + self.field + '.idx'
-        self.file_pks = self.directory + '/' + self.field + '_pks.idx'
+        self.file = self.directory + self.field + '.idx'
+        self.file_pks = self.directory + self.field + '_pks.idx'
 
         # load existing index data
         if os.path.exists(self.file):
@@ -449,12 +618,12 @@ class BitMapIndex(Index):
 
             # populate index dictionary for all possible values
             for v in self.possible_values:
-                self.add_field(v)
+                self.add_key(v)
 
             # list position for next new data
             self.max_position = 0
 
-    def add_field(self, key):
+    def add_key(self, key):
         '''
         Adds a new index key (i.e. possible metadata field value) and
         initializes as empty (i.e. primary keys associated with it).

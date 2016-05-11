@@ -1,12 +1,7 @@
-from collections import defaultdict
-from operator import and_
-from functools import reduce
-from .indexes import PrimaryIndex, BinTreeIndex, BitMapIndex
+from .indexes import PrimaryIndex, BinTreeIndex, BitMapIndex, TriggerIndex
 from .heaps import TSHeap, MetaHeap
 import operator
 import os
-import sys
-import pickle
 
 # dictionary that maps operator functions, useful for select operations
 OPMAP = {
@@ -88,8 +83,8 @@ class PersistentDB:
         self.pkfield = pkfield
 
         # Intialize primary key index
-        self.pks = PrimaryIndex(pkfield, self.data_dir)
-        print('After init pks: ', self.pks.index)
+        self.pks = PrimaryIndex(pkfield, self.data_dir + '/')
+        # print('After init pks: ', self.pks.index)
 
         # TODO
         # Initialize indexes defined in schema
@@ -98,12 +93,12 @@ class PersistentDB:
             if value['index'] is not None:
                 # Index structure depends on its cardinality
                 if value['index'] == 1:  # any other cardinality
-                    self.indexes[field] = BinTreeIndex(field, self.data_dir)
+                    self.indexes[field] = BinTreeIndex(
+                        field, self.data_dir + '/index_')
                 elif value['index'] == 2:  # boolean
                     # TODO
                     self.indexes[field] = BitMapIndex(
-                        field, self.data_dir, value['values'])
-                    # self.indexes[field] = BinTreeIndex(field, self.data_dir)
+                        field, self.data_dir + '/index_', value['values'])
                 else:
                     raise ValueError('Wrong index field in schema')
 
@@ -111,11 +106,15 @@ class PersistentDB:
         # in field 'ts' of metadata
         # Metdata stored in MetaHeap file at pk_offset stored in the
         # primary key index pks as value
-        self.meta_heap = MetaHeap(self.data_dir + '/hmeta', schema)
-        self.ts_heap = TSHeap(self.data_dir + '/hts', self.ts_length)
+        self.meta_heap = MetaHeap(self.data_dir + '/heap_meta', schema)
+        self.ts_heap = TSHeap(self.data_dir + '/heap_ts', self.ts_length)
 
         # whether status updates are printed
         self.verbose = verbose
+
+        # triggers associated with database operations
+        # dictionary of sets, defined as Index to facilitate commits
+        self.triggers = TriggerIndex('triggers', self.data_dir + '/')
 
     def _valid_pk(self, pk):
         '''
@@ -143,7 +142,7 @@ class PersistentDB:
         self._check_presence(pk)
 
         # DEBUG
-        print('Before insert, state of pks: ', self.pks.index)
+        # print('Before insert, state of pks: ', self.pks.index)
 
         # Insert ts
         ts_offset = self.ts_heap.write_ts(ts)
@@ -158,7 +157,7 @@ class PersistentDB:
         self.update_indices(pk)
 
         # DEBUG
-        print('After insert, state of pks: ', self.pks.index)
+        # print('After insert, state of pks: ', self.pks.index)
 
     def delete_ts(self, pk):
         '''
@@ -195,6 +194,65 @@ class PersistentDB:
         Saving the heaps and indexes.
         '''
         pass
+
+    def add_trigger(self, onwhat, proc, storedproc, arg, target):
+        '''
+        Adds a trigger (similar to an event loop in asynchronous programming,
+        i.e. will take some action when a certain event occurs.)
+
+        Note: assumes that all error-checking has already been done at
+        server-level before calling this function.
+
+        Parameters
+        ----------
+        onwhat : string
+            Operation that triggers the coroutine (e.g. 'insert_ts')
+        proc : string
+            Name of the module in procs with a coroutine that defines the
+            action to take when the trigger is met
+        storedproc : function
+            Function that defines the action to take when the trigger is met
+        arg : string
+            Possible additional arguments for the function
+        target : string
+            Array of field names to which to apply the results of the coroutine
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        self.triggers.add_trigger(onwhat, (proc, storedproc, arg, target))
+
+    def remove_trigger(self, proc, onwhat, target):
+        '''
+        Removes a previously-set trigger.
+
+        Note: assumes that all error-checking has already been done at
+        server-level before calling this function.
+
+        Parameters
+        ----------
+        proc : string
+            Name of the module in procs that defines the trigger action
+        onwhat : string
+            Operation that triggers the coroutine (e.g. 'insert_ts')
+        target : string
+            Field name where coroutine result will be stored
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+
+        # delete all triggers associated with the action and coroutine
+        if target is None:
+            self.triggers.remove_all_triggers(onwhat, proc)
+
+        # only remove a particular trigger
+        # (used to delete vantage point representation)
+        else:
+            self.triggers.remove_one_trigger(onwhat, proc, target)
 
     def upsert_meta(self, pk, meta):
         '''
@@ -273,7 +331,7 @@ class PersistentDB:
             # Create a new Node if needed
             if meta[field] not in index:
                 # updated so we have a single method that can be overridden
-                index.add_field(meta[field])
+                index.add_key(meta[field])
                 # index[meta[field]] = set()
             # add pk to the index
             # updated so we have a single method that can be overridden
