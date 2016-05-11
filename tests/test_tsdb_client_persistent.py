@@ -459,24 +459,24 @@ class test_client(asynctest.TestCase):
 #         assert status == TSDBStatus.OK
 #         assert len(payload) == 1
 #         assert list(payload)[0] == idx
-#
-#         ########################################
-#         #
-#         # test isax functions
-#         #
-#         ########################################
-#
-#         # run similarity search on an existing time series
-#         # -> should return itself
-#         idx = np.random.choice(list(tsdict.keys()))
-#         status, payload = await self.client.isax_similarity_search(tsdict[idx])
-#         assert status == TSDBStatus.OK
-#         assert list(payload)[0] == idx
-#
-#         # visualize tree representation
-#         status, payload = await self.client.isax_tree()
-#         assert status == TSDBStatus.OK
-#         assert isinstance(payload, str)
+
+        ########################################
+        #
+        # test isax functions
+        #
+        ########################################
+
+        # run similarity search on an existing time series
+        # -> should return itself
+        idx = np.random.choice(list(tsdict.keys()))
+        status, payload = await self.client.isax_similarity_search(tsdict[idx])
+        assert status == TSDBStatus.OK
+        assert list(payload)[0] == idx
+
+        # visualize tree representation
+        status, payload = await self.client.isax_tree()
+        assert status == TSDBStatus.OK
+        assert isinstance(payload, str)
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,6 +2,7 @@ from .indexes import PrimaryIndex, BinTreeIndex, BitMapIndex, TriggerIndex
 from .heaps import TSHeap, MetaHeap
 import operator
 import os
+from .isax import *
 
 # dictionary that maps operator functions, useful for select operations
 OPMAP = {
@@ -30,21 +31,25 @@ class PersistentDB:
             'offset_in_MetaHeap')}
         - BinaryTreeIndex/BitMap index for other fields in the schema labelled
             with an index. Store as key the field name and as value
-            pk
+            pk or pk bitmap.
 
-    Files on disk: [All the files are saved in the directory 'data_dir']
+    Files on disk: [All the files are saved in the directory 'data_dir',
+        under the sub-directory 'db_name']
         - TSHeap:
-            {'db_name'}_hts stores in a binary file the raw timeseries
+            heap_ts stores in a binary file the raw timeseries
             sequentially with ts_length stored at the beginning of the file.
             offset_in_TSHeap for each timeseries is stored in PrimaryIndex
         - MetaHeap:
-            {'db_name'}_hmeta stores in a binary file the all the fields in
+            heap_meta stores in a binary file the all the fields in
             meta and offset_in_TSHeap for each timeseries.
             offset_in_MetaHeap for each timeseries is stored in PrimaryIndex
         - PrimaryIndex:
-            {'db_name'}_pk.idx
-        - BinaryTreeIndex/BitMap index:
-            {'db_name'}_{'field'}.idx
+            pk.idx
+        - BinaryTreeIndex index:
+            index_{'field'}.idx
+        - BitMap index:
+            index_{'field'}.idx (bitmap encoding)
+            index_{'field'}_pks.idx (for conversion to/from bitmap)
 
     NB:
         - For the deletion, we update the meta field 'deleted' in the meta heap
@@ -88,7 +93,6 @@ class PersistentDB:
         self.pks = PrimaryIndex(pkfield, self.data_dir + '/')
         # print('After init pks: ', self.pks.index)
 
-        # TODO
         # Initialize indexes defined in schema
         self.indexes = {}
         for field, value in self.schema.items():
@@ -113,6 +117,21 @@ class PersistentDB:
 
         # whether status updates are printed
         self.verbose = verbose
+
+        # initializes file structure for isax tree
+        self.fs = TreeFileStructure()
+
+        # initializes isax tree
+        # includes pointer to file structure
+        self.tree = iSaxTree('root')
+
+        # populates isax tree with any data already in memory
+        for pk in self.pks.keys():
+            try:
+                self.tree.insert(self._get_ts(pk).values(),
+                                 tsid=pk, fs=self.fs)
+            except ValueError:  # shouldn't happen - data came from memory
+                return ValueError('Not compatible with tree structure.')
 
         # triggers associated with database operations
         # dictionary of sets, defined as Index to facilitate commits
@@ -156,7 +175,14 @@ class PersistentDB:
         # Set the primary key index with the offsets tuple
         self.pks[pk] = (ts_offset, pk_offset)
 
+        # update indices for primary key
         self.update_indices(pk)
+
+        # insert into isax tree
+        try:
+            self.tree.insert(ts.values(), tsid=pk, fs=self.fs)
+        except ValueError:
+            return ValueError('Not compatible with tree structure.')
 
         # DEBUG
         # print('After insert, state of pks: ', self.pks.index)
@@ -177,6 +203,12 @@ class PersistentDB:
         # check that pk is a hashable type
         self._valid_pk(pk)
         self._check_presence(pk, present=False)
+
+        # delete from isax tree
+        try:
+            self.tree.delete(self._get_ts(pk).values(), fs=self.fs)
+        except ValueError:
+            return ValueError('Not compatible with tree structure.')
 
         # Extract meta to update later the index
         meta = self._get_meta(pk)
