@@ -56,6 +56,7 @@ class Index:
         # insertion
         self.commit()
 
+
 class PrimaryIndex(Index):
     '''
     Primary index classes using dictionary {'pk': offset}
@@ -128,7 +129,7 @@ class BitMapIndex(Index):
                 self.index = pickle.load(fd)
 
             # list of possible values that the field can take
-            self.values = self.index.keys()
+            self.values = list(self.index.keys())
 
             # keep track of primary key location {pk: position}
             with open(self.file, "rb", buffering=0) as fd:
