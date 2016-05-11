@@ -101,8 +101,8 @@ class TSHeap(Heap):
     def read_ts(self, offset):
         buf = self._read(offset)
         items = struct.unpack(self.fmt, buf)
-        times = items[self.ts_length:]
-        values = items[:self.ts_length]
+        times = items[:self.ts_length]
+        values = items[self.ts_length:]
         return TimeSeries(times, values)
 
 

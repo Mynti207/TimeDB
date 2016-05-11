@@ -1,5 +1,6 @@
 import asyncio
 from .dictdb import DictDB
+from .persistent_db import PersistentDB
 from importlib import import_module
 from collections import defaultdict, OrderedDict
 from .tsdb_serialization import Deserializer, serialize
@@ -330,10 +331,24 @@ class TSDBProtocol(asyncio.Protocol):
         mod = import_module('procs.'+proc)
         storedproc = getattr(mod, 'proc_main')
         results = []
-        for pk in loids:
-            row = self.server.db.rows[pk]
-            result = storedproc(pk, row, arg)
-            results.append(dict(zip(target, result)))
+
+        # look up directly for non-persistent db
+        if isinstance(self.server.db, DictDB):
+            for pk in loids:
+                row = self.server.db.rows[pk]
+                result = storedproc(pk, row, arg)
+                results.append(dict(zip(target, result)))
+
+        # extract from heaps for persistent db
+        elif isinstance(self.server.db, PersistentDB):
+            for pk in loids:
+                # start with metadata
+                row = self.server.db._get_meta(pk)
+                # add in time series data
+                row['ts'] = self.server.db._get_ts(pk)
+                # run trigger coroutine
+                result = storedproc(pk, row, arg)
+                results.append(dict(zip(target, result)))
 
         # return status and payload
         return TSDBOp_Return(TSDBStatus.OK, op['op'],
@@ -612,12 +627,28 @@ class TSDBProtocol(asyncio.Protocol):
 
             # loop through all applicable primary keys
             # and apply the trigger coroutine
-            for pk in rowmatch:
-                row = self.server.db.rows[pk]
-                task = asyncio.ensure_future(t(pk, row, arg))
-                task.add_done_callback(
-                    trigger_callback_maker(pk, target,
-                                           self.server.db.upsert_meta))
+
+            # loop up directly for non-persistent db
+            if isinstance(self.server.db, DictDB):
+                for pk in rowmatch:
+                    row = self.server.db.rows[pk]
+                    task = asyncio.ensure_future(t(pk, row, arg))
+                    task.add_done_callback(
+                        trigger_callback_maker(pk, target,
+                                               self.server.db.upsert_meta))
+
+            # extract from heaps for persistent db
+            elif isinstance(self.server.db, PersistentDB):
+                for pk in rowmatch:
+                    # start with metadata
+                    row = self.server.db._get_meta(pk)
+                    # add in time series data
+                    row['ts'] = self.server.db._get_ts(pk)
+                    # run trigger coroutine
+                    task = asyncio.ensure_future(t(pk, row, arg))
+                    task.add_done_callback(
+                        trigger_callback_maker(pk, target,
+                                               self.server.db.upsert_meta))
 
     def connection_made(self, conn):
         '''

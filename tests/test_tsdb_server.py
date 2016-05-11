@@ -621,6 +621,10 @@ def test_server():
     payload_fields = list(payload[list(payload.keys())[0]].keys())
     assert 'mean' in payload_fields
     assert 'std' in payload_fields
+    assert (np.round(payload['test']['mean'], 4) ==
+            np.round(tsdict['ts-1'].mean(), 4))
+    assert (np.round(payload['test']['std'], 4) ==
+            np.round(tsdict['ts-1'].std(), 4))
 
     ########################################
     #

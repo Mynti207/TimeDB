@@ -574,62 +574,66 @@ def test_server():
     assert (sorted([t[0] for t in server.db.triggers['insert_ts']]) ==
             ['junk', 'stats'])
 
-    # ########################################
-    # #
-    # # test augmented select operations
-    # #
-    # ########################################
+    ########################################
     #
-    # # remove trigger
+    # test augmented select operations
     #
-    # op = {'op': 'remove_trigger', 'proc': 'stats', 'onwhat': 'insert_ts',
-    #       'target': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_RemoveTrigger('stats', 'insert_ts', None)
-    # # run operation
-    # result = protocol._remove_trigger(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert payload is None
+    ########################################
+
+    # remove trigger
+
+    op = {'op': 'remove_trigger', 'proc': 'stats', 'onwhat': 'insert_ts',
+          'target': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_RemoveTrigger('stats', 'insert_ts', None)
+    # run operation
+    result = protocol._remove_trigger(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
+    # add a new time series
+
+    # package the operation
+    op = {'op': 'insert_ts', 'pk': 'test', 'ts': tsdict['ts-1']}
+    # test that this is packaged as expected
+    assert op == TSDBOp_InsertTS('test', tsdict['ts-1'])
+    # run operation
+    result = protocol._insert_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
+    ########################################
     #
-    # # add a new time series
+    # test augmented select
     #
-    # # package the operation
-    # op = {'op': 'insert_ts', 'pk': 'test', 'ts': tsdict['ts-1']}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_InsertTS('test', tsdict['ts-1'])
-    # # run operation
-    # result = protocol._insert_ts(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert payload is None
-    #
-    # ########################################
-    # #
-    # # test augmented select
-    # #
-    # ########################################
-    #
-    # # package the operation
-    # op = {'op': 'augmented_select', 'proc': 'stats', 'target': ['mean', 'std'],
-    #       'arg': None, 'md': {'pk': 'test'}, 'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_AugmentedSelect(
-    #     'stats', ['mean', 'std'], None, {'pk': 'test'}, None)
-    # # run operation
-    # result = protocol._augmented_select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 1
-    # payload_fields = list(payload[list(payload.keys())[0]].keys())
-    # assert 'mean' in payload_fields
-    # assert 'std' in payload_fields
+    ########################################
+
+    # package the operation
+    op = {'op': 'augmented_select', 'proc': 'stats', 'target': ['mean', 'std'],
+          'arg': None, 'md': {'pk': 'test'}, 'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_AugmentedSelect(
+        'stats', ['mean', 'std'], None, {'pk': 'test'}, None)
+    # run operation
+    result = protocol._augmented_select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+    payload_fields = list(payload[list(payload.keys())[0]].keys())
+    assert 'mean' in payload_fields
+    assert 'std' in payload_fields
+    assert (np.round(payload['test']['mean'], 4) ==
+            np.round(tsdict['ts-1'].mean(), 4))
+    assert (np.round(payload['test']['std'], 4) ==
+            np.round(tsdict['ts-1'].std(), 4))
 
     ########################################
     #
