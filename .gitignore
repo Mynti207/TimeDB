@@ -1,3 +1,9 @@
+# auto-generated files
+*.idx
+db_files/
+pype/parsetab.py
+pype/parser.out
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
