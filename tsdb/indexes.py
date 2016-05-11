@@ -152,9 +152,9 @@ class BitMapIndex(Index):
             # each dictionary entry will represent a one-hot encoding
             # for all primary keys
             # e.g. if pk1 and pk2 are 1, and pk3 is 2, and pk4 is 3 then
-            # {1: [1100], 2: [0010], 3: [0001]}
+            # {1: '1100', 2: '0010', 3: '0001'}
             for v in self.values:
-                self.index[v] = []
+                self.index[v] = ''
 
             # keep track of primary key location {pk: position}
             self.pks = {}
@@ -167,12 +167,17 @@ class BitMapIndex(Index):
         # update value if the primary key is already present
         if pk in self.pks:
 
+            # offset position to change
+            idx = self.pks[pk]
+
             # update binary values
             for v in self.values:
                 if v == value:
-                    self.index[v][self.pks[pk]] = 1
+                    self.index[v] = (self.index[v][:idx] + '1' +
+                                     self.index[v][idx+1:])
                 else:
-                    self.index[v][self.pks[pk]] = 0
+                    self.index[v] = (self.index[v][:idx] + '0' +
+                                     self.index[v][idx+1:])
 
         # insert if not already present
         else:
@@ -185,24 +190,15 @@ class BitMapIndex(Index):
             # add binary values
             for v in self.values:
                 if v == value:
-                    self.index[v].append(1)
+                    self.index[v] += '1'
                 else:
-                    self.index[v].append(0)
+                    self.index[v] += '0'
 
         # TODO: add a log to commit the changes by batch and not at each
         # insertion
         self.commit()
 
     def remove_pk(self, value, pk):
-
-        # lazy approach: can result in a lot of dead data
-
-        # # only delete the value from the dictionaries
-        # # don't need to worry about deleting the binary codes
-        # # del self.inverse_pks[self.pks[pk]]
-        # del self.pks[pk]
-
-        # smarter approach :)
 
         # bitmap position to remove
         idx = self.pks[pk]
@@ -227,7 +223,7 @@ class BitMapIndex(Index):
     def add_field(self, field):
 
         # initialize to zero for all primary keys
-        self.index[field] = [0] * len(self.pks)
+        self.index[field] = '0' * len(self.pks)
         # TODO: add a log to commit the changes by batch and not at each
         # insertion
         self.commit()
@@ -239,17 +235,18 @@ class BitMapIndex(Index):
 
         # loop through primary keys, will exclude deleted data
         for pk in self.pks:
-            if self.index[key][self.pks[pk]] == 1:
+            if self.index[key][self.pks[pk]] == '1':
                 result.add(pk)
         return result
 
+    def keys(self):
+        return self.index.keys()
+
     def values(self):
-        # TODO
-        pass
+        return self.index.values()
 
     def items(self):
-        # TODO
-        pass
+        return self.index.items()
 
     def commit(self):
         '''
