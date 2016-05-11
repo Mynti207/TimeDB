@@ -11,7 +11,7 @@ __author__ = "Mynti207"
 __copyright__ = "Mynti207"
 
 
-def test_tsdb_dictdb():
+def test_tsdb_persistentdb():
 
     # synthetic data
     t = np.array([1, 1.5, 2, 2.5, 10, 11, 12])
@@ -65,8 +65,8 @@ def test_tsdb_dictdb():
     for field, index in ddb.indexes.items():
         if field == 'deleted':
             continue
-        for k in index.keys():
-            assert ('pk1' not in index[k])
+        for value in index.values():
+            assert ('pk1' not in value)
 
     # # check that it isn't present any more
     pk, selected = ddb.select({'pk': 'pk1'}, [], None)
@@ -161,11 +161,7 @@ def test_tsdb_dictdb():
     check = ['blarg', 'deleted', 'mean', 'order', 'std', 'useless', 'vp']
     assert sorted(ddb.indexes.keys()) == check
 
-    ########################################
-    #
-    # testing bitmap indices
-    #
-    ########################################
+    # CHECK BITMAP INDICES -->
 
     # insert more data
     ddb.insert_ts('pk3', a1)
@@ -187,3 +183,8 @@ def test_tsdb_dictdb():
     ddb.upsert_meta('pk4', {'vp': False})
     assert len(ddb.indexes['vp'][True]) == 0
     assert len(ddb.indexes['vp'][False]) == 6
+
+    # delete entry
+    ddb.delete_ts('pk6')
+    for (k, v) in ddb.indexes['vp'].items():
+        assert 'pk6' not in v
