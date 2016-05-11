@@ -1,5 +1,6 @@
 # auto-generated files
 *.idx
+dbfiles/
 pype/parsetab.py
 pype/parser.out
 
