@@ -61,6 +61,7 @@ def main(ts_length, db_name, data_dir):
     # initialize & run the server
     server = TSDBServer(db)
     server.run()
+    db.close()
 
 
 def unpack_args(argv):
