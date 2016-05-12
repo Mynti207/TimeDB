@@ -57,7 +57,8 @@ class Index:
 
     def __setitem__(self, key, value):
         '''
-        Sets an index key equal to a given value (i.e. primary key cluster)
+        Sets an index key equal to a given value (i.e. primary key cluster).
+        Set on memory, need to call commit to save on disk.
 
         Parameters
         ----------
@@ -72,9 +73,6 @@ class Index:
         Set of primary keys associated with the index key.
         '''
         self.index[key] = value
-
-        # TODO: add a log to commit the changes by batch
-        self.commit()
 
     def __contains__(self, key):
         '''
@@ -181,9 +179,6 @@ class Index:
         '''
         del self.index[key]
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def add_pk(self, key, pk):
         '''
         Adds a primary key to an index key (i.e. metadata field value).
@@ -206,9 +201,6 @@ class Index:
 
         self.index[key].add(pk)
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def remove_pk(self, key, pk):
         '''
         Removes a primary key from an index key (i.e. metadata field value).
@@ -225,9 +217,6 @@ class Index:
         Nothing, modifies in-place.
         '''
         self.index[key].pop(pk)
-
-        # TODO: add a log to commit the changes by batch
-        self.commit()
 
 
 class PrimaryIndex(Index):
@@ -268,10 +257,6 @@ class PrimaryIndex(Index):
         Nothing, modifies in-place.
         '''
         del self.index[pk]
-
-        # TODO: add a log to commit the changes by batch and not at each
-        # insertion
-        self.commit()
 
 
 class TriggerIndex(Index):
@@ -343,9 +328,6 @@ class TriggerIndex(Index):
 
         self.index[key].append(pk)
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def remove_all_triggers(self, key, proc):
         '''
         Removes all triggers associated with a particular database action
@@ -380,9 +362,6 @@ class TriggerIndex(Index):
         if removed == 0:
             raise ValueError('No triggers removed.')
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def remove_one_trigger(self, key, proc, target):
         '''
         Removes a specific instance of a trigger associated with a particular
@@ -410,9 +389,6 @@ class TriggerIndex(Index):
             if t[0] == proc:  # matches coroutine
                 if t[3] == target:  # matches target
                     trigs.remove(t)
-
-        # TODO: add a log to commit the changes by batch
-        self.commit()
 
 
 class BinTreeIndex(Index):
@@ -487,9 +463,6 @@ class BinTreeIndex(Index):
         '''
         self.index[key].add(pk)
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def remove_pk(self, key, pk):
         '''
         Removes a primary key from an index key (i.e. metadata field value).
@@ -510,9 +483,6 @@ class BinTreeIndex(Index):
         # clear key if no further primary keys left
         if len(self.index[key]) == 0:
             self.remove_key(key)
-
-        # TODO: add a log to commit the changes by batch
-        self.commit()
 
     def keys(self):
         '''
@@ -647,9 +617,6 @@ class BitMapIndex(Index):
         # initialize to zero for all primary keys
         self.index[key] = '0' * len(self.pks)
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def add_pk(self, key, pk):
         '''
         Adds a primary key to an index key (i.e. metadata field value).
@@ -695,9 +662,6 @@ class BitMapIndex(Index):
                 else:
                     self.index[v] += '0'
 
-        # TODO: add a log to commit the changes by batch
-        self.commit()
-
     def remove_pk(self, key, pk):
         '''
         Removes a primary key from an index key (i.e. metadata field value).
@@ -729,9 +693,6 @@ class BitMapIndex(Index):
 
         # log reduction in bitmap size
         self.max_position -= 1
-
-        # TODO: add a log to commit the changes by batch
-        self.commit()
 
     def __getitem__(self, key):
         '''
