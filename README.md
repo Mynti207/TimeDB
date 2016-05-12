@@ -151,6 +151,7 @@ Please refer to our database function demonstration below for full details on th
 * [Database function demonstration](docs/demo.ipynb)
 * [Database persistence demonstration](docs/persistence_demo.ipynb)
 * Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
+* [Presentation](docs/presentation.ipynb)
 
 
 
