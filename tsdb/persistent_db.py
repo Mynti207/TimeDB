@@ -244,7 +244,7 @@ class PersistentDB:
 
         # check that the time series is the correct length
         if len(ts) != self.ts_length:
-            assert ValueError('Time series is the wrong length.')
+            raise ValueError('Time series is the wrong length.')
 
         # DEBUG
         # print('Before insert, state of pks: ', self.pks.index)

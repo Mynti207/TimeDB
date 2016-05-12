@@ -1,5 +1,7 @@
+
 Mynti207:
 ================================================
+
 
 Persistent Time Series Database
 ------------------------------------------------
@@ -36,19 +38,10 @@ This package implements a persistent time series database. Our sample use case i
 
 ### Additional Feature: iSAX Similarity Searches
 
-A time series of fixed length can be reduced in dimensionality using a SAX
-encoding. The collective encodings for a time series can be used to index
-multiple time series, which can then be represented by an iSAX tree.
-(see e.g. http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf) This tree structure
-effectively clusters like time series according to some distance measure
-(e.g. Euclidean distance). We implemented a modified version of the iSAX tree
-using a true n-ary tree structure (i.e. n splits are permitted at all internal
-nodes rather than the binary splits of a typical iSAX tree) thus alleviating
-certain balancing concerns associated with the original iSAX tree model.
-Functionality that utilizes the iSAX tree structure includes returning a
-time series that is similar to an input time series, as well as outputting a
-hierarchical representation of the contents of the iSAX tree that illustrates
-the clustering of similar time series as indexed by the tree.
+A time series of fixed length can be reduced in dimensionality using a SAX encoding. The collective encodings for a time series can be used to index multiple time series, which can then be represented by an iSAX tree (see, e.g. [http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf](http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf)). This tree structure effectively clusters "similar" time series according to some distance measure, such as
+Euclidean distance.
+
+We implemented a modified version of the iSAX tree using a true n-ary tree structure (i.e. n splits are permitted at all internal nodes rather than the binary splits of a typical iSAX tree), thus alleviating certain balancing concerns associated with the original iSAX tree model. Database functionality that utilizes the iSAX tree structure includes returning a time series that is similar to an input time series, as well as outputting a hierarchical representation of the contents of the iSAX tree that illustrates the clustering of similar time series as indexed by the tree.
 
 ### REST API
 
@@ -93,6 +86,7 @@ Please refer to our database function demonstration below for full details on th
 ### Examples
 * [Database function demonstration](docs/demo.ipynb)
 * Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
+
 
 
 Developers
