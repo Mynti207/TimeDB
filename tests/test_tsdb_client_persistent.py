@@ -311,6 +311,15 @@ class test_client(asynctest.TestCase):
         assert status == TSDBStatus.OK
         assert len(payload) > 0
 
+        # check time series select
+        # need to cast result as we don't really expect to query
+        # the client directly
+        idx = np.random.choice(list(tsdict.keys()))
+        status, payload = await self.client.select({'pk': idx}, ['ts'])
+        assert status == TSDBStatus.OK
+        assert len(payload) == 1
+        assert TimeSeries(*payload[idx]['ts']) == tsdict[idx]
+
         ########################################
         #
         # test augmented select operations

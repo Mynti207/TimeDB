@@ -21,6 +21,10 @@ This package implements a persistent time series database. Our sample use case i
 
 
 
+![Database structure diagram](docs/img/db_structure.png)
+
+
+
 ### Persistence Architecture
 
 **Heaps**
@@ -143,6 +147,7 @@ Please refer to our database function demonstration below for full details on th
 
 ### Examples
 * [Database function demonstration](docs/demo.ipynb)
+* [Database persistence demonstration](docs/persistence_demo.ipynb)
 * Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
 
 

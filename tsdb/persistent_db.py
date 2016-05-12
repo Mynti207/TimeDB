@@ -851,8 +851,15 @@ class PersistentDB:
                                      for pk in pks]  # remove ts
             else:
                 if self.verbose: print('S> D> FIELDS {}'.format(fields))
+
+                # start with metadata (most common use case)
                 matchedfielddicts = [{k: v for k, v in self._get_meta(pk).items()
                                       if k in fields} for pk in pks]
+
+                # add in time series if necessary
+                if 'ts' in fields:
+                    for idx, pk in enumerate(pks):
+                        matchedfielddicts[idx]['ts'] = self._get_ts(pk)
 
         # return output of select statament
         return pks, matchedfielddicts

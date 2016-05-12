@@ -248,7 +248,7 @@ def test_server():
     status, payload = result['status'], result['payload']
     # test that return values are as expected
     assert status == TSDBStatus.INVALID_KEY
-    assert payload is None   
+    assert payload is None
 
     ########################################
     #
@@ -454,6 +454,24 @@ def test_server():
     # test that return values are as expected
     assert status == TSDBStatus.OK
     assert len(payload) > 0
+
+    # check time series select
+
+    # pick a random time series
+    idx = np.random.choice(list(tsdict.keys()))
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': idx}, 'fields': ['ts'],
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': idx}, ['ts'], None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+    assert payload[idx]['ts'] == tsdict[idx]
 
     ########################################
     #

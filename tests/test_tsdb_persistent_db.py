@@ -166,6 +166,12 @@ def test_tsdb_persistentdb():
     check = ['blarg', 'deleted', 'mean', 'order', 'std', 'useless', 'vp']
     assert sorted(ddb.indexes.keys()) == check
 
+    # check time series select
+    pk, selected = ddb.select(meta={'pk': 'pk1'}, fields=['ts'],
+                              additional=None)
+    assert len(pk) == 1
+    assert selected[0]['ts'] == a1
+
     # CHECK BITMAP INDICES -->
 
     # insert more data

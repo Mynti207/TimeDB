@@ -287,6 +287,11 @@ class test_webinterface(asynctest.TestCase):
         results = self.web_interface.select({'order': {'<': 10}})
         assert len(results) > 0
 
+        # check time series select
+        results = self.web_interface.select({'pk': idx}, ['ts'])
+        assert len(results) == 1
+        assert results[idx]['ts'] == tsdict[idx]
+
         ########################################
         #
         # test augmented select
@@ -295,6 +300,7 @@ class test_webinterface(asynctest.TestCase):
 
         results = self.web_interface.augmented_select(
             proc='stats', target=['mean', 'std'], md={'pk': 'ts-0'})
+        print(results)
         assert len(results) == 1
         assert 'mean' in results['ts-0']
         assert 'std' in results['ts-0']

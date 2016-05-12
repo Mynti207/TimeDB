@@ -484,7 +484,7 @@ class PrimaryIndex(Index):
             os.remove(self.file)
 
         if os.path.exists(self.file_log):
-            os.remove(self.file_log)           
+            os.remove(self.file_log)
 
 
 class TriggerIndex(Index):

@@ -2,6 +2,7 @@
 import requests
 import json
 from collections import OrderedDict
+from timeseries import TimeSeries
 
 
 class WebInterface():
@@ -341,9 +342,21 @@ class WebInterface():
         # process and return result of database operation
         # error message on failure
         try:
-            return json.loads(r.text, object_pairs_hook=OrderedDict)
+
+            # load result
+            result = json.loads(r.text, object_pairs_hook=OrderedDict)
+
+            # re-cast as time series if necessary
+            if handler == 'select':
+                if msg['fields'] is not None and 'ts' in msg['fields']:
+                    for rt in result:
+                        result[rt]['ts'] = TimeSeries(*result[rt]['ts'])
+
+            # return
+            return result
+
         except:
-            return json.loads(ERROR_PROCESS, object_pairs_hook=OrderedDict)
+            return ERROR_PROCESS
 
     def request_post(self, handler, msg):
         '''
@@ -377,4 +390,4 @@ class WebInterface():
         try:
             return json.loads(r.text, object_pairs_hook=OrderedDict)
         except:
-            return json.loads(ERROR_PROCESS, object_pairs_hook=OrderedDict)
+            return ERROR_PROCESS
