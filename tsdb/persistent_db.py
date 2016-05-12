@@ -58,10 +58,6 @@ class PersistentDB:
             when set to true as it's not indexed in that case.
 
     TODO:
-<<<<<<< HEAD
-        - methods to open/close a db
-=======
->>>>>>> 9ffdf84dbb02edea786dd2f0f626631b015adf77
         - modify the way to store on disk to use a log and commit by batch
             instead of element by element. Changes to do in indexes.py, could use
             a temporary log on memory keeping track of the last uncommited changes.
@@ -259,6 +255,8 @@ class PersistentDB:
 
         # Set the primary key index with the offsets tuple
         self.pks[pk] = (ts_offset, pk_offset)
+        # Commit to disk the index
+        self.pks.commit()
 
         # update indices for primary key
         self.update_indices(pk)
@@ -303,6 +301,8 @@ class PersistentDB:
 
         # pop from primary key index
         self.pks.remove_pk(False, pk)
+        # Commit to disk the index
+        self.pks.commit()
 
         # remove from other indexed fields (deleted field included)
         self.remove_indices(pk, meta)
@@ -427,10 +427,11 @@ class PersistentDB:
 
         # Update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
+        # Commit to disk the update in the primary index
+        self.pks.commit()
 
         # add the new index
         self._init_indexes(didx, value)
-
         # update inverse-lookup index dictionary
         self.index_bulk()
 
@@ -483,8 +484,11 @@ class PersistentDB:
         del self.schema[didx]
         # Update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
+        # Commit to disk the update in the primary index
+        self.pks.commit()
 
-        # update inverse-lookup index dictionary
+        # erase inverse-lookup index for the distance vp
+        self.indexes[didx]._erase()
         del self.indexes[didx]
 
         # additional server-side operation:
@@ -611,6 +615,8 @@ class PersistentDB:
                 index.add_key(meta[field])
             # add pk to the index
             index.add_pk(meta[field], pk)
+            # Commit to disk the update
+            index.commit()
 
     def remove_indices(self, pk, meta):
         '''
@@ -634,6 +640,8 @@ class PersistentDB:
                 index = self.indexes[field]
                 # remove pk for the previous value
                 index.remove_pk(meta[field], pk)
+                # Commit to disk the update
+                index.commit()
 
     def select(self, meta, fields, additional):
         '''
