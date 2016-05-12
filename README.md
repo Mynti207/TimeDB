@@ -23,17 +23,55 @@ This package implements a persistent time series database. Our sample use case i
 
 ### Persistence Architecture
 
-**Indices**
-
-**TODO**
-
-
+Structure:
 
 **Heaps**
 
-**TODO**
+The timeseries and the metadata are stored in heapfiles. When loading or creating a db, the heap files are opened and every operation occurs in the heap. The data are formatted with the python struct library and saved in the two following binary files
+
+- TSHeap to store the raw timeseries:
+
+All the timeseries stored need to have the same length (it's a parameter that need to be set when opening a db and it's checked when loading one). This length is stored at the begining of the heap, follows each time series as the encoded concatenation of the times and the values sequences. The offset of each timeseries is stored in the PrimaryIndex pks of the PersistentDB object. In case of a deletion, the offset is removed from the indexes and the metadata associated has its field 'deleted' updated.
+
+- MetaHeap to store the metadata:
+
+For each timeseries inserted, all the fields of the schema are initialized to their default values and saved into the heap. The size of each struct is directly computed from the schema and is common to each metadata. In case of deletion/insertion into the schema, the heap file is reset with the new struct for each metadata. This decision causes heavy computation but it actually occurs rarely and allows to maintain a memory optimized heapfile. The offset of each element is stored in the PrimaryIndex associated to the corresponding timeseries primary key.
 
 
+**Indices**
+
+A primary index is used by default on the primary key (string in the current implementation) and stores the offset in the heap files. Addtionnal index can be set on fields from the schema by the user. This field can take 3 different values: '1' for a Binary Tree index in case of high cardinality, '2' for a BitMap index in case of low cardinality and 'None' if no index is asked.
+The following indexes are saved on disk with pickle and inherits from the same class Index:
+
+- `PrimaryIndex`: store the primary index in a dictionnary as follows 
+```python
+{'pk': ('offset_in_TSHeap', 'offset_in_MetaHeap')}
+```
+
+- `BinaryTreeIndex`:
+uses the bintrees library from Python https://pypi.python.org/pypi/bintrees/2.0.2
+
+- `BitMapIndex`:
+uses a dictionnary with possible value as key and bitmap vector over the timeseries stored as value.
+
+**Files saved on disk**
+
+All the following files are saved in the local directory 'data_dir' under the sub-directory 'db_name', which is an attribute of the PersistentDB object:
+
+- `TSHeap`
+heap_ts stores in a binary file the raw timeseries sequentially with ts_length stored at the beginning of the file.
+
+- `MetaHeap`
+heap_meta stores in a binary file the all the fields in meta.
+
+- `PrimaryIndex`
+pk.idx
+
+- `BinaryTreeIndex`
+index_{'field'}.idx
+
+- `BitMapIndex`
+index_{'field'}.idx (bitmap encoding) and index_{'field'}_pks.idx (for conversion to/from bitmap)
 
 **Atomic transactions**
 
