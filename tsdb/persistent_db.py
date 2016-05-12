@@ -153,6 +153,10 @@ class PersistentDB:
         Nothing.
         '''
         self._assert_not_closed()
+
+        # commit primary keys
+        self.pks.commit()
+
         # closing files
         self.meta_heap.close()
         self.ts_heap.close()

@@ -913,7 +913,6 @@
 #     status, payload = result['status'], result['payload']
 #     # test that return values are as expected
 #     assert status == TSDBStatus.OK
-#     print('COMPARING', idx, 'WITH', payload)
 #     assert len(payload) == 1
 #     assert list(payload)[0] == idx
 #

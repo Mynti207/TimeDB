@@ -111,7 +111,8 @@ def test_server():
     ts_keys = sorted(tsdict.keys())
 
     # randomly choose time series as vantage points
-    vpkeys = list(np.random.choice(ts_keys, size=num_vps, replace=False))
+    vpkeys = sorted(list(np.random.choice(ts_keys, size=num_vps, replace=False)))
+    vpdist = ['d_vp_{}'.format(i) for i in vpkeys]
 
     ########################################
     #
@@ -224,471 +225,252 @@ def test_server():
         assert status == TSDBStatus.OK
         assert payload[k]['ts'] == tsdict[k]
 
-    # # select all database entries; no metadata fields; sort by primary key
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': None,
-    #       'additional': {'sort_by': '+pk'}}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, None, {'sort_by': '+pk'})
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert list(payload[list(payload.keys())[0]].keys()) == []
-    #     assert list(payload.keys()) == ts_keys
-    #
-    # # select all database entries; all metadata fields
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': [], 'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, [], None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
-    #             ['blarg', 'mean', 'order', 'pk', 'std', 'useless', 'vp'])
-    #     assert sorted(payload.keys()) == ts_keys
-    #
-    # # select all database entries; all invalid metadata fields
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': ['wrong', 'oops'],
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, ['wrong', 'oops'], None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert sorted(list(payload[list(payload.keys())[0]].keys())) == []
-    #     assert sorted(payload.keys()) == ts_keys
-    #
-    # # select all database entries; some invalid metadata fields
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': ['not_there', 'blarg'],
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, ['not_there', 'blarg'], None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert list(payload[list(payload.keys())[0]].keys()) == ['blarg']
-    #     assert sorted(payload.keys()) == ts_keys
-    #
-    # # select all database entries; specific metadata fields
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': ['blarg', 'order'],
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, ['blarg', 'order'], None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
-    #             ['blarg', 'order'])
-    #     assert sorted(payload.keys()) == ts_keys
-    #
-    # # not present based on how time series were generated
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'order': 10}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'order': 10}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 0
-    #
-    # # not present based on how time series were generated
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'blarg': 0}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'blarg': 0}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 0
-    #
-    # # multiple select criteria
-    # # not present based on how time series were generated
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'order': 10, 'blarg': 0}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'order': 10, 'blarg': 0}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 0
-    #
-    # # operator select criteria
-    # # not present based on how time series were generated
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'order': {'>=': 10}}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'order': {'>=': 10}}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 0
-    #
-    # # operator select criteria
-    # # present based on how time series were generated
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'order': {'<': 10}}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'order': {'<': 10}}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) > 0
-    #
-    #
-    # ########################################
-    # #
-    # # test augmented select operations
-    # #
-    # ########################################
-    #
-    # # remove trigger
-    #
-    # op = {'op': 'remove_trigger', 'proc': 'stats', 'onwhat': 'insert_ts',
-    #       'target': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_RemoveTrigger('stats', 'insert_ts', None)
-    # # run operation
-    # result = protocol._remove_trigger(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert payload is None
-    #
-    # # add a new time series
-    #
-    # # package the operation
-    # op = {'op': 'insert_ts', 'pk': 'test', 'ts': tsdict['ts-1']}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_InsertTS('test', tsdict['ts-1'])
-    # # run operation
-    # result = protocol._insert_ts(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert payload is None
-    #
-    # ########################################
-    # #
-    # # test augmented select
-    # #
-    # ########################################
-    #
-    # # package the operation
-    # op = {'op': 'augmented_select', 'proc': 'stats', 'target': ['mean', 'std'],
-    #       'arg': None, 'md': {'pk': 'test'}, 'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_AugmentedSelect(
-    #     'stats', ['mean', 'std'], None, {'pk': 'test'}, None)
-    # # run operation
-    # result = protocol._augmented_select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 1
-    # payload_fields = list(payload[list(payload.keys())[0]].keys())
-    # assert 'mean' in payload_fields
-    # assert 'std' in payload_fields
-    # assert (np.round(payload['test']['mean'], 4) ==
-    #         np.round(tsdict['ts-1'].mean(), 4))
-    # assert (np.round(payload['test']['std'], 4) ==
-    #         np.round(tsdict['ts-1'].std(), 4))
-    #
-    # ########################################
-    # #
-    # # test vantage point representation
-    # #
-    # ########################################
-    #
-    #
-    #
-    #
-    # # check that the distance fields are now in the database
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': distkeys, 'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, distkeys, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
-    #             distkeys)
-    #
-    # # try to add a time series that doesn't exist as a vantage point
-    #
-    # # package the operation
-    # op = {'op': 'insert_vp', 'pk': 'mistake'}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_InsertVP('mistake')
-    # # run operation
-    # result = protocol._insert_vp(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.INVALID_KEY
-    # assert payload is None
-    #
-    # # remove them all
-    #
-    # for i in range(num_vps):
-    #
-    #     # package the operation
-    #     op = {'op': 'delete_vp', 'pk': vpkeys[i]}
-    #     # test that this is packaged as expected
-    #     assert op == TSDBOp_DeleteVP(vpkeys[i])
-    #     # run operation
-    #     result = protocol._delete_vp(op)
-    #     # # unpack results
-    #     status, payload = result['status'], result['payload']
-    #     # test that return values are as expected
-    #     assert status == TSDBStatus.OK
-    #     assert payload is None
-    #
-    # # check that the distance fields are now not in the database
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': distkeys, 'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, distkeys, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert (list(payload[list(payload.keys())[0]].keys()) == [])
-    #
-    # # try to delete a vantage point that doesn't exist
-    #
-    # # package the operation
-    # op = {'op': 'delete_vp', 'pk': 'mistake'}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_DeleteVP('mistake')
-    # # run operation
-    # result = protocol._delete_vp(op)
-    # # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.INVALID_KEY
-    # assert payload is None
-    #
-    # # add them back in
-    #
-    # for i in range(num_vps):
-    #
-    #     # package the operation
-    #     op = {'op': 'insert_vp', 'pk': vpkeys[i]}
-    #     # test that this is packaged as expected
-    #     assert op == TSDBOp_InsertVP(vpkeys[i])
-    #     # run operation
-    #     result = protocol._insert_vp(op)
-    #     # unpack results
-    #     status, payload = result['status'], result['payload']
-    #     # test that return values are as expected
-    #     assert status == TSDBStatus.OK
-    #     assert payload is None
-    #
-    # ########################################
-    # #
-    # # test persistency
-    # #
-    # ########################################
-    #
-    # # Select operation
-    # # package the operation
-    # op = {'op': 'select', 'md': {}, 'fields': None, 'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # selected_keys = sorted(payload.keys())
-    #
-    # # close the db
-    # db.close()
-    #
-    # # Try to do same operation
-    # with pytest.raises(ValueError):
-    #     # run operation
-    #     result = protocol._select(op)
-    #
-    # # Try to reload the db with wrong ts length
-    # with pytest.raises(ValueError):
-    #     db = PersistentDB(schema, 'pk', 50)
-    #
-    # # Reload the db
-    # db = PersistentDB(schema, 'pk', 100)
-    # # Reset server and protocol
-    # server = TSDBServer(db)
-    # protocol = TSDBProtocol(server)
-    #
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # if len(payload) > 0:
-    #     assert list(payload[list(payload.keys())[0]].keys()) == []
-    #     assert sorted(payload.keys()) == selected_keys
-    #
-    # ########################################
-    # #
-    # # test vantage point similarity search
-    # #
-    # ########################################
-    #
-    # # first create a query time series
-    # _, query = tsmaker(np.random.uniform(low=0.0, high=1.0),
-    #                    np.random.uniform(low=0.05, high=0.4),
-    #                    np.random.uniform(low=0.05, high=0.2))
-    #
-    # # single closest time series
-    #
-    # # package the operation
-    # op = {'op': 'vp_similarity_search', 'query': query, 'top': 1}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_VPSimilaritySearch(query, 1)
-    # # run operation
-    # result = protocol._vp_similarity_search(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 1
-    #
-    # # 5 closest time series
-    #
-    # # package the operation
-    # op = {'op': 'vp_similarity_search', 'query': query, 'top': 5}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_VPSimilaritySearch(query, 5)
-    # # run operation
-    # result = protocol._vp_similarity_search(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) <= 5
-    #
-    # # run similarity search on an existing time series - should return itself
-    #
-    # # pick a random time series
-    # idx = np.random.choice(list(tsdict.keys()))
-    # # package the operation
-    # op = {'op': 'vp_similarity_search', 'query': tsdict[idx], 'top': 1}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_VPSimilaritySearch(tsdict[idx], 1)
-    # # run operation
-    # result = protocol._vp_similarity_search(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 1
-    # assert list(payload)[0] == idx
-    #
-    # ########################################
-    # #
-    # # test isax functions
-    # #
-    # ########################################
-    #
-    # # run similarity search on an existing time series - should return itself
-    #
-    # # pick a random time series
-    # idx = np.random.choice(list(tsdict.keys()))
-    # # package the operation
-    # op = {'op': 'isax_similarity_search', 'query': tsdict[idx]}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_iSAXSimilaritySearch(tsdict[idx])
-    # # run operation
-    # result = protocol._isax_similarity_search(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # print('COMPARING', idx, 'WITH', payload)
-    # assert len(payload) == 1
-    # assert list(payload)[0] == idx
-    #
-    # # visualize tree representation
-    #
-    # # package the operation
-    # op = {'op': 'isax_tree'}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_iSAXTree()
-    # # run operation
-    # result = protocol._isax_tree(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert isinstance(payload, str)
+    ########################################
+    #
+    # test that vantage points match
+    #
+    ########################################
+
+    # package the operation
+    op = {'op': 'select', 'md': {'vp': True}, 'fields': None,
+          'additional': {'sort_by': '+pk'}}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'vp': True}, None, {'sort_by': '+pk'})
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert list(payload.keys()) == vpkeys
+
+    ########################################
+    #
+    # test that vantage point distance fields have been created
+    #
+    ########################################
+
+    # package the operation
+    op = {'op': 'select', 'md': {'vp': True}, 'fields': vpdist,
+          'additional': {'sort_by': '+pk', 'limit': 1}}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'vp': True}, vpdist,
+                               {'sort_by': '+pk', 'limit': 1})
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert sorted(list(list(payload.values())[0].keys())) == vpdist
+
+    ########################################
+    #
+    # store similarity search results
+    #
+    ########################################
+
+    # randomly generate query time series
+    _, query = tsmaker(np.random.uniform(low=0.0, high=1.0),
+                       np.random.uniform(low=0.05, high=0.4),
+                       np.random.uniform(low=0.05, high=0.2))
+
+    # vantage point similarity
+
+    # package the operation
+    op = {'op': 'vp_similarity_search', 'query': query, 'top': 1}
+    # test that this is packaged as expected
+    assert op == TSDBOp_VPSimilaritySearch(query, 1)
+    # run operation
+    result = protocol._vp_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+    similarity_vp = payload.copy()
+
+    # isax similarity
+
+    # package the operation
+    op = {'op': 'isax_similarity_search', 'query': query}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXSimilaritySearch(query)
+    # run operation
+    result = protocol._isax_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert ((status == TSDBStatus.OK and len(payload) == 1) or
+            (status == TSDBStatus.NO_MATCH and payload is None))
+    if payload is None:
+        similarity_isax = None
+    else:
+        similarity_isax = payload.copy()
+
+    ########################################
+    #
+    # close database/server
+    #
+    ########################################
+
+    db.close()
+    server = None
+    protocol = None
+
+    ########################################
+    #
+    # restart database/server
+    #
+    ########################################
+
+    # initialize database
+    db = PersistentDB(schema, 'pk', 100)
+
+    # initialize server
+    server = TSDBServer(db)
+    assert server.db == db
+    assert server.port == 9999
+
+    # initialize protocol
+    protocol = TSDBProtocol(server)
+    assert protocol.server == server
+
+    ########################################
+    #
+    # test that all the primary keys are present
+    #
+    ########################################
+
+    # package the operation
+    op = {'op': 'select', 'md': {}, 'fields': None, 'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({}, None, None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == num_ts
+
+    ########################################
+    #
+    # test that all data matches
+    #
+    ########################################
+
+    for k in tsdict:
+
+        # package the operation
+        op = {'op': 'select', 'md': {'pk': k}, 'fields': ['ts'],
+              'additional': None}
+        # test that this is packaged as expected
+        assert op == TSDBOp_Select({'pk': k}, ['ts'], None)
+        # run operation
+        result = protocol._select(op)
+        # unpack results
+        status, payload = result['status'], result['payload']
+        # test that return values are as expected
+        assert status == TSDBStatus.OK
+        assert payload[k]['ts'] == tsdict[k]
+
+    ########################################
+    #
+    # test that vantage points match
+    #
+    ########################################
+
+    # package the operation
+    op = {'op': 'select', 'md': {'vp': True}, 'fields': None,
+          'additional': {'sort_by': '+pk'}}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'vp': True}, None, {'sort_by': '+pk'})
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert list(payload.keys()) == vpkeys
+
+    ########################################
+    #
+    # test that vantage point distance fields have been created
+    #
+    ########################################
+
+    # package the operation
+    op = {'op': 'select', 'md': {'vp': True}, 'fields': vpdist,
+          'additional': {'sort_by': '+pk', 'limit': 1}}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'vp': True}, vpdist,
+                               {'sort_by': '+pk', 'limit': 1})
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert sorted(list(list(payload.values())[0].keys())) == vpdist
+
+    ########################################
+    #
+    # store similarity search results
+    #
+    ########################################
+
+    # vantage point similarity
+
+    # package the operation
+    op = {'op': 'vp_similarity_search', 'query': query, 'top': 1}
+    # test that this is packaged as expected
+    assert op == TSDBOp_VPSimilaritySearch(query, 1)
+    # run operation
+    result = protocol._vp_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+    assert list(payload)[0] == list(similarity_vp)[0]
+
+    # isax similarity
+
+    # package the operation
+    op = {'op': 'isax_similarity_search', 'query': query}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXSimilaritySearch(query)
+    # run operation
+    result = protocol._isax_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert ((status == TSDBStatus.OK and len(payload) == 1) or
+            (status == TSDBStatus.NO_MATCH and payload is None))
+    if status == TSDBStatus.NO_MATCH:
+        assert payload == similarity_isax
+    else:
+        assert list(payload)[0] == list(similarity_isax)[0]
+
+    ########################################
+    #
+    # isax tree
+    #
+    ########################################
+
+    # package the operation
+    op = {'op': 'isax_tree'}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXTree()
+    # run operation
+    result = protocol._isax_tree(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert isinstance(payload, str)
+    assert len(payload) > 0
+    assert payload[:6] != 'ERROR'
 
     ########################################
     #
