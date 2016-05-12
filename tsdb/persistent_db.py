@@ -60,6 +60,7 @@ class PersistentDB:
     TODO:
         - extend to the vantage point
         - extend to isax support
+        - methods to open/close a db
         - modify the way to store on disk to use a log and commit by batch
             instead of element by element. Changes to do in indexes.py, could use
             a temporary log on memory keeping track of the last uncommited changes.
@@ -96,17 +97,7 @@ class PersistentDB:
         # Initialize indexes defined in schema
         self.indexes = {}
         for field, value in self.schema.items():
-            if value['index'] is not None:
-                # Index structure depends on its cardinality
-                if value['index'] == 1:  # any other cardinality
-                    self.indexes[field] = BinTreeIndex(
-                        field, self.data_dir + '/index_')
-                elif value['index'] == 2:  # boolean
-                    # TODO
-                    self.indexes[field] = BitMapIndex(
-                        field, self.data_dir + '/index_', value['values'])
-                else:
-                    raise ValueError('Wrong index field in schema')
+            self._init_indexes(field, value)
 
         # Raw time series stored in TSHeap file at ts_offset stored
         # in field 'ts' of metadata
@@ -136,6 +127,39 @@ class PersistentDB:
         # triggers associated with database operations
         # dictionary of sets, defined as Index to facilitate commits
         self.triggers = TriggerIndex('triggers', self.data_dir + '/')
+
+    def _init_indexes(self, field, value):
+        '''
+        Helper to init an index from schema if needed
+
+        Parameters
+        ----------
+        field : str
+            Field of a schema
+        value : dict
+            Value corresponding to the field in the schema.
+            Key index will determine which index to create.
+
+        Returns
+        -------
+        Nothing, modifies in-place self.index
+        '''
+        # check if index not previously set
+        if field in self.indexes:
+            raise ValueError('Field {} already indexed'.format(field))
+
+        # Check index is needed
+        if value['index'] is not None:
+            # Index structure depends on its cardinality
+            if value['index'] == 1:  # any other cardinality
+                self.indexes[field] = BinTreeIndex(
+                    field, self.data_dir + '/index_')
+            elif value['index'] == 2:  # boolean
+                # TODO
+                self.indexes[field] = BitMapIndex(
+                    field, self.data_dir + '/index_', value['values'])
+            else:
+                raise ValueError('Wrong index field in schema')
 
     def _valid_pk(self, pk):
         '''
@@ -306,36 +330,38 @@ class PersistentDB:
         ts : TimeSeries
             The time series data of the vantage point
         '''
+        # check that pk is a hashable type
+        self._valid_pk(pk)
 
-        # TODO
-        pass
+        # check that the primary key is present in the database
+        self._check_presence(pk, present=False)
 
-        # # check that pk is a hashable type
-        # self._valid_pk(pk)
-        #
-        # # check that the primary key is present in the database
-        # self._check_presence(pk, present=False)
-        #
-        # # check that the primary key is not already set as a vantage point
-        # if pk in self.indexes['vp'][True]:
-        #     raise ValueError('Primary key is already set as vantage point.')
-        #
-        # # mark time series as vantage point
-        # self._upsert_meta({'vp': True}, offset=self.pks[pk][1])
-        #
-        # # get field name for distance to vantage point
-        # didx = 'd_vp_' + pk
+        # check that the primary key is not already set as a vantage point
+        if pk in self.indexes['vp'][True]:
+            raise ValueError('Primary key is already set as vantage point.')
 
-        # add distance field to schema
-        # self.schema[didx] = {'convert': float, 'index': 1}
+        # mark time series as vantage point
+        # Calling upsert meta to updates the indices
+        self.upsert_meta(pk, {'vp': True})
+
+        # Create new field name for distance to vantage point
+        didx = 'd_vp_' + pk
+
+        # add distance field to schema and index it
+        value = {'type': 'float', 'convert': float, 'index': 1}
+        self.schema[didx] = value
+        # Update the meta heap with the new schema
+        self.meta_heap.reset_schema(self.schema, self.pks)
+        # add the new index
+        self._init_indexes(didx, value)
 
         # update inverse-lookup index dictionary
-        # self.index_bulk()
+        self.index_bulk()
 
         # fields for additional server-side operations:
         # add trigger to calculate distance when a new time series is added
         # calculate distance for all existing time series
-        # return didx, pk, self.rows[pk]['ts']
+        return didx, pk, self._get_ts(pk)
 
     def delete_vp(self, pk, raise_error=True):
         '''
@@ -357,55 +383,37 @@ class PersistentDB:
             ID of the field that previously stored the distance to the
             vantage point
         '''
+        # check that pk is a hashable type
+        self._valid_pk(pk)
 
-        # TODO
-        pass
+        # check that the primary key is present in the database
+        self._check_presence(pk, present=False)
 
-        # # check that pk is a hashable type
-        # try:
-        #     self._valid_pk(pk)
-        # except ValueError:
-        #     if raise_error:
-        #         raise ValueError('Primary key is not a hashable type.')
-        #     else:
-        #         return
-        #
-        # # check that the primary key is present in the database
-        # try:
-        #     self._check_presence(pk, present=False)
-        # except ValueError:
-        #     if raise_error:
-        #         raise ValueError('Primary key not present.')
-        #     else:
-        #         return
-        #
-        # # check that the primary key is set as a vantage point
-        # if pk in self.indexes['vp'][False]:
-        #     if raise_error:
-        #         raise ValueError('Primary key is not set as a vantage point.')
-        #     else:
-        #         return
-        #
-        # # remove time series marker as vantage point
-        # self._upsert_meta({'vp': False}, offset=self.pks[pk][1])
-        #
-        # # get vantage point id
-        # didx = 'd_vp_' + pk
-        #
-        # # delete from schema
-        # del self.schema[didx]
-        #
-        # # update inverse-lookup index dictionary
-        # del self.indexes[didx]
-        #
-        # # remove previously calculated distances from database
-        # for r in self.rows:
-        #     if self.rows[r]['deleted'] is False:
-        #         del self.rows[r][didx]
-        #
-        # # additional server-side operation:
-        # # remove trigger to calculate distance when a new time series is added
-        # return didx
+        # check that the primary key is set as a vantage point
+        if pk in self.indexes['vp'][False]:
+            if raise_error:
+                raise ValueError('Primary key is not set as a vantage point.')
+            else:
+                return
+
+        # remove time series marker as vantage point
+        # Calling upsert meta to updates the indices
+        self.upsert_meta(pk, {'vp': False})
+
+        # get vantage point id
+        didx = 'd_vp_' + pk
+
+        # delete from schema
+        del self.schema[didx]
+        # Update the meta heap with the new schema
+        self.meta_heap.reset_schema(self.schema, self.pks)
+
+        # update inverse-lookup index dictionary
+        del self.indexes[didx]
+
+        # additional server-side operation:
+        # remove trigger to calculate distance when a new time series is added
+        return didx
 
     def upsert_meta(self, pk, meta):
         '''
@@ -483,13 +491,9 @@ class PersistentDB:
         for field, index in self.indexes.items():
             # Create a new Node if needed
             if meta[field] not in index:
-                # updated so we have a single method that can be overridden
                 index.add_key(meta[field])
-                # index[meta[field]] = set()
             # add pk to the index
-            # updated so we have a single method that can be overridden
             index.add_pk(meta[field], pk)
-            # index[meta[field]].add(pk)
 
     def remove_indices(self, pk, meta):
         '''

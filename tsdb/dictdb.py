@@ -104,9 +104,6 @@ class DictDB:
             if schema[s]['index'] is not None:
                 self.indexes[s] = defaultdict(set)
 
-        # specifies primary keys of vantage point time series
-        self.vantage_points = []
-
         # initializes file structure for isax tree
         self.fs = TreeFileStructure()
 
@@ -147,7 +144,7 @@ class DictDB:
             raise ValueError('Primary key has been deleted.')
 
         # check that the primary key is not already set as a vantage point
-        if pk in self.vantage_points:
+        if pk in self.indexes['vp'][True]:
             raise ValueError('Primary key is already set as vantage point.')
 
         # mark time series as vantage point
@@ -155,9 +152,6 @@ class DictDB:
 
         # get field name for distance to vantage point
         didx = 'd_vp_' + pk
-
-        # add to vantage point dictionary
-        self.vantage_points.append(pk)
 
         # add distance field to schema
         self.schema[didx] = {'convert': float, 'index': 1}
@@ -211,14 +205,15 @@ class DictDB:
                 return
 
         # check that the primary key is set as a vantage point
-        if pk not in self.vantage_points:
+        if pk not in self.indexes['vp'][True]:
             if raise_error:
                 raise ValueError('Primary key is not set as a vantage point.')
             else:
                 return
 
-        # remove time series marker as vantage point
+        # remove time series marker as vantage point and update index
         self.rows[pk]['vp'] = False
+        self.update_indices(pk, prev_meta={'vp': True})
 
         # get vantage point id
         didx = 'd_vp_' + pk
@@ -233,9 +228,6 @@ class DictDB:
         for r in self.rows:
             if self.rows[r]['deleted'] is False:
                 del self.rows[r][didx]
-
-        # remove from vantage point dictionary
-        self.vantage_points.remove(pk)
 
         # additional server-side operation:
         # remove trigger to calculate distance when a new time series is added
