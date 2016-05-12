@@ -17,61 +17,67 @@ Persistent Time Series Database
 Description
 -----------
 
-This package implements a persistent time series database. Our sample use case involves different types of similarity searches on daily stock market data.
+This package implements a persistent time series database. Our sample use case involves two types of similarity searches on daily stock market data.
 
 
 
 ### Persistence Architecture
 
-Structure:
-
 **Heaps**
 
-The timeseries and the metadata are stored in heapfiles. When loading or creating a db, the heap files are opened and every operation occurs in the heap. The data are formatted with the python struct library and saved in the two following binary files
+The timeseries and the metadata are stored in heap files. When loading or creating a database, the heap files are opened and every operation occurs in the heap. The data are formatted with the python `struct` library and saved in the two following binary files.
 
-- TSHeap to store the raw timeseries:
+- `TSHeap` to store the raw timeseries
 
-All the timeseries stored need to have the same length (it's a parameter that need to be set when opening a db and it's checked when loading one). This length is stored at the begining of the heap, follows each time series as the encoded concatenation of the times and the values sequences. The offset of each timeseries is stored in the PrimaryIndex pks of the PersistentDB object. In case of a deletion, the offset is removed from the indexes and the metadata associated has its field 'deleted' updated.
+All the timeseries stored need to have the same length (this parameter is set when opening a database and is checked when inserting new timeseries). This length is stored at the begining of the heap, followed by each timeseries as the encoded concatenation of the times and values sequences. The offset of each timeseries is stored in the `PrimaryIndex` `pks` of the `PersistentDB` object. In case of a deletion, the offset is removed from the indexes and the `deleted` metadata field associated with the time series is updated.
 
-- MetaHeap to store the metadata:
+- `MetaHeap` to store the metadata:
 
-For each timeseries inserted, all the fields of the schema are initialized to their default values and saved into the heap. The size of each struct is directly computed from the schema and is common to each metadata. In case of deletion/insertion into the schema, the heap file is reset with the new struct for each metadata. This decision causes heavy computation but it actually occurs rarely and allows to maintain a memory optimized heapfile. The offset of each element is stored in the PrimaryIndex associated to the corresponding timeseries primary key.
+For each timeseries that is inserted, all the fields of the schema are initialized to their default values and saved into the heap. The size of each `struct` is directly computed from the schema and is common to each time series' metadata. In case of deletion/insertion into the schema, the heap file is reset with the new `struct` for all the metadata. This design decision causes heavy computation, but it rarely occurs (only upon insertion/deletion of vantage points) and allows a memory optimized heap file to be maintained. The offset of each element is stored in the `PrimaryIndex` associated with the corresponding time series' primary key.
 
 
 **Indices**
 
-A primary index is used by default on the primary key (string in the current implementation) and stores the offset in the heap files. Addtionnal index can be set on fields from the schema by the user. This field can take 3 different values: '1' for a Binary Tree index in case of high cardinality, '2' for a BitMap index in case of low cardinality and 'None' if no index is asked.
-The following indexes are saved on disk with pickle and inherits from the same class Index:
+A primary index is used by default on the primary key (which is a string type in the current implementation) and stores the offsets for the heap files. Additional indexes can be set by the user on schema fields. This field can take 3 different values: `1` for a Binary Tree index in case of high cardinality, `2` for a BitMap index in case of low cardinality and `None` if no index is required.
+The following indexes are saved on disk with pickle and inherit from the same `Index` class:
 
-- `PrimaryIndex`: store the primary index in a dictionnary as follows 
+- `PrimaryIndex`: stores the primary index in a dictionary using the following format: 
 ```python
 {'pk': ('offset_in_TSHeap', 'offset_in_MetaHeap')}
 ```
 
 - `BinaryTreeIndex`:
-uses the bintrees library from Python https://pypi.python.org/pypi/bintrees/2.0.2
+  uses the Python `bintrees` library (https://pypi.python.org/pypi/bintrees/2.0.2).
 
 - `BitMapIndex`:
-uses a dictionnary with possible value as key and bitmap vector over the timeseries stored as value.
+  uses a dictionary with possible values as keys and bitmap vectors over the timeseries as values.
+
+  e.g. if `pk1` and `pk2` are `1`, `pk3` is `2`, and `pk4` is `3`, then the index will be ``{1: '1100', 2: '0010', 3: '0001'}``
+
+- `TriggerIndex`: uses a dictionary with possible trigger actions as keys and a list of tuple as values, where each tuple represents the parameters of a trigger associated with the given database action.
 
 **Files saved on disk**
 
-All the following files are saved in the local directory 'data_dir' under the sub-directory 'db_name', which is an attribute of the PersistentDB object:
+All the following files are saved in the local directory `data_dir` under the sub-directory `db_name`, which is an attribute of the PersistentDB object:
 
 - `TSHeap`
-heap_ts stores in a binary file the raw timeseries sequentially with ts_length stored at the beginning of the file.
+  `heap_ts` stores the raw timeseries sequentially in a binary file, with `ts_length` stored at the beginning of the file.
 
 - `MetaHeap`
-heap_meta stores in a binary file the all the fields in meta.
+  `heap_meta` stores all the metadata fields in a binary file.
 
 - `PrimaryIndex`
-pk.idx
+  `pk.idx`
 
 - `BinaryTreeIndex`
-index_{'field'}.idx
+  `index_{'field'}.idx`
 
 - `BitMapIndex`
-index_{'field'}.idx (bitmap encoding) and index_{'field'}_pks.idx (for conversion to/from bitmap)
+  `index_{'field'}.idx` (bitmap encoding) and `index_{'field'}_pks.idx` (for conversion to/from bitmap)
+
+- `TriggerIndex`
+
+  `triggers.idx`
 
 **Atomic transactions**
 
