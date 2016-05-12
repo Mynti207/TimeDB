@@ -29,7 +29,7 @@ class Heap:
 
     def __init__(self, file_name):
         self.heap_file = file_name
-        # Create it if new else load it
+        # Create it if new, else load it
         if not os.path.exists(file_name):
             self.fd = open(file_name, "xb+", buffering=0)
         else:
@@ -42,6 +42,16 @@ class Heap:
     def _write(self, byte_array):
         '''
         Write the byte_array to disk and return its offset.
+
+        Parameters
+        ----------
+        byte_array: binary data
+            (formatted with struct library)
+
+        Returns
+        -------
+        offset: int
+            offset of the byte_array in heap
         '''
         self.fd.seek(self.writeptr)
         offset = self.fd.tell()
@@ -54,14 +64,49 @@ class Heap:
         return offset
 
     def _read(self, offset):
+        '''
+        Read byte_array from disk at the given offset.
+
+        Parameters
+        ----------
+        offset: int
+            offset of the byte_array on disk
+
+        Returns
+        -------
+        buf: binary data
+            (formatted with struct library)
+        '''
         self.fd.seek(offset)
         buf = self.fd.read(self.len_byte_array)
         return buf
 
     def __del__(self):
+        '''
+        Close file.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Nothing.
+        '''
         self.fd.close()
 
     def close(self):
+        '''
+        Close file.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Nothing.
+        '''
         self.__del__
 
     def clear(self):
@@ -120,11 +165,34 @@ class TSHeap(Heap):
     def write_ts(self, ts):
         '''
         Write ts to the heap on disk, return its offset.
+
+        Parameters
+        ----------
+        ts: TimeSeries
+            Time series to be written to the heap
+
+        Returns
+        -------
+        offset: int
+            offset of the metadata in heapfile
         '''
         byte_array = struct.pack(self.fmt, *ts.timesseq, *ts.valuesseq)
         return self._write(byte_array)
 
     def read_ts(self, offset):
+        '''
+        Read ts from the heap on disk, at the given offset.
+
+        Parameters
+        ----------
+        offset: int
+            offset of the metadata in heapfile
+
+        Returns
+        -------
+        ts: TimeSeries
+            Time series retrieved from the heap
+        '''
         buf = self._read(offset)
         items = struct.unpack(self.fmt, buf)
         times = items[:self.ts_length]
@@ -241,13 +309,13 @@ class MetaHeap(Heap):
         meta_dict: dict
             metadata dictionary
         offset : int
-            offset of the metadata in heapfile,
+            offset of the metadata in heapfile
 
         Returns
         -------
         offset: int
-            offset of the metada in haepfile (same as arg is given, else 
-            new one)
+            offset of the metadata in heapfile if given
+            (same as arg is given, else new one)
         '''
         # Initialize the meta data if new insertion
         if offset is None:
@@ -273,7 +341,7 @@ class MetaHeap(Heap):
         Parameters
         ----------
         offset: int
-            offset in the meta heap file
+            offset of the meta data in the heap file
 
         Returns
         -------
@@ -291,7 +359,7 @@ class MetaHeap(Heap):
         Parameters
         ----------
         offset: int
-            offset in the meta heap file
+            offset of the meta data in the heap file
 
         Returns
         -------
