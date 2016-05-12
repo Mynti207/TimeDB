@@ -218,6 +218,13 @@ class Index:
         '''
         self.index[key].pop(pk)
 
+    def _erase(self):
+        '''
+        Erase from disk the index files if exists.
+        '''
+        if os.path.exists(self.file):
+            os.remove(self.file)
+
 
 class PrimaryIndex(Index):
     '''
