@@ -17,7 +17,7 @@ schema = {
 
 ########################################
 #
-# NOTE: this file initializes the database server. This needs to be run
+# This file initializes the database server. This needs to be run
 # before any other database commands.
 #
 # For basic client functionality, you will also need to initialize a
@@ -25,6 +25,8 @@ schema = {
 #
 # For webserver client functionality (i.e. REST API), you will also need
 # to initialize a WebInterface object.
+#
+# NOTE: This file does not incorporate the persistent database behavior.
 #
 ########################################
 
