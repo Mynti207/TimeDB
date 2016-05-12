@@ -2,9 +2,11 @@ import os
 import pickle
 import sys
 import struct
+import copy
 
 from timeseries import TimeSeries
 
+identity = lambda x: x
 
 # use python struct library to format and save binary data
 # https://docs.python.org/3.4/library/struct.html#struct-format-strings
@@ -30,12 +32,16 @@ class Heap:
     Basic heap structure (binary data). Used to define common heap functions.
     '''
 
-    def __init__(self, file_name):
+    def __init__(self, data_dir, file_name):
         '''
         Initializes the Heap class.
 
         Parameters
         ----------
+        data_dir : str
+            Heap file location
+        file_name : str
+            Heap file name
         file_name : str
             Heap file location
 
@@ -44,13 +50,14 @@ class Heap:
         An initialized Heap object
         '''
 
-        self.heap_file = file_name
+        self.data_dir = data_dir
+        self.heap_file = data_dir + file_name + '.met'
 
         # create it if new, else load it
-        if not os.path.exists(file_name):
-            self.fd = open(file_name, "xb+", buffering=0)
+        if not os.path.exists(self.heap_file):
+            self.fd = open(self.heap_file, "xb+", buffering=0)
         else:
-            self.fd = open(file_name, "r+b", buffering=0)
+            self.fd = open(self.heap_file, "r+b", buffering=0)
 
         self.readptr = self.fd.tell()
         self.fd.seek(0, 2)
@@ -155,14 +162,16 @@ class TSHeap(Heap):
     Heap file used to store raw timeseries
     '''
 
-    def __init__(self, file_name, ts_length):
+    def __init__(self, data_dir, file_name, ts_length):
         '''
         Initializes the TSHeap class.
 
         Parameters
         ----------
-        file_name : str
+        data_dir : str
             Heap file location
+        file_name : str
+            Heap file name
         ts_length : int
             Expected/permitted length of time series
 
@@ -170,7 +179,7 @@ class TSHeap(Heap):
         -------
         An initialized TSHeap object
         '''
-        super().__init__(file_name)
+        super().__init__(data_dir, file_name)
 
         # check if fd is empty (case when new TSHeap)
         # need to write the length of the ts
@@ -238,14 +247,16 @@ class MetaHeap(Heap):
     Heap file used to store metadata
     '''
 
-    def __init__(self, file_name, schema):
+    def __init__(self, data_dir, file_name, schema):
         '''
         Initializes the MetaHeap class.
 
         Parameters
         ----------
-        file_name : str
+        data_dir : str
             Heap file location
+        file_name : str
+            Heap file name
         schema : dictionary
             Metadata fields and attributes
 
@@ -253,16 +264,18 @@ class MetaHeap(Heap):
         -------
         An initialized MetaHeap object
         '''
-        super().__init__(file_name)
+        super().__init__(data_dir, file_name)
         self.schema = schema
-        self.meta_file = file_name+".met"
         # build: fields, default_values, len_byte_array, fmt
         self._build_format_string()
+
+        # save schema for future loads
+        self.save_schema()
 
     def reset_schema(self, schema, pks):
         '''
         Update the schema of the heap and rewrite each pks in the
-        PrimaryIndex pks into it, with the preivous meta updated with
+        PrimaryIndex pks into it, with the previous meta updated with
         the new schema.
 
         Parameters
@@ -300,6 +313,23 @@ class MetaHeap(Heap):
             # inplace update of the offset tuple in pks index
             new_offsets = (pks[pk][0], pk_offset)
             pks[pk] = new_offsets
+
+        # save updated schema to disk
+        self.save_schema()
+
+    def save_schema(self):
+        '''
+        Helper function: saves schema, while dealing with identity function
+        '''
+
+        save_schema = copy.deepcopy(self.schema)
+
+        for field, specs in save_schema.items():
+            if isinstance(specs['convert'], type(identity)):
+                specs['convert'] = 'IDENTITY'
+
+        with open(self.data_dir + '/schema.idx', "wb", buffering=0) as fd:
+            pickle.dump(save_schema, fd)
 
     def _build_format_string(self):
         '''

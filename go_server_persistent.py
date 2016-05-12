@@ -3,9 +3,11 @@ from tsdb import TSDBServer, PersistentDB
 import os
 import sys
 import getopt
+import asyncio
 
 identity = lambda x: x
 
+# default schema
 schema = {
   'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
   'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
@@ -60,8 +62,26 @@ def main(ts_length, db_name, data_dir):
 
     # initialize & run the server
     server = TSDBServer(db)
-    server.run()
-    db.close()
+
+    # initialize ayncio event loop
+    loop = asyncio.get_event_loop()
+
+    # run database server
+    try:
+        loop.run_until_complete(server.run())
+
+    # this script is generally called as a sub-process
+    # make sure that the database is closed and all data committed
+    # if the sub-process is interrupted
+    except RuntimeError:
+        loop.close()
+        db.close()
+    except Exception:
+        loop.close()
+        db.close()
+    except KeyboardInterrupt:
+        loop.close()
+        db.close()
 
 
 def unpack_args(argv):

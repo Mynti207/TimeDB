@@ -3,6 +3,7 @@ from .heaps import TSHeap, MetaHeap
 import operator
 import os
 from .isax import *
+import pickle
 
 # dictionary that maps operator functions, useful for select operations
 OPMAP = {
@@ -13,6 +14,8 @@ OPMAP = {
     '<=': operator.le,
     '>=': operator.ge
 }
+
+identity = lambda x: x
 
 
 class PersistentDB:
@@ -89,7 +92,14 @@ class PersistentDB:
 
         # directory to save files
         self.data_dir = data_dir + '/' + db_name
-        self.schema = schema
+
+        # check if a schema already exists
+        try:
+            self.load_schema()
+
+        # otherwise use provided schema
+        except:
+            self.schema = schema
 
         # set up directory for db data
         if not os.path.exists(self.data_dir):
@@ -110,8 +120,8 @@ class PersistentDB:
         # in field 'ts' of metadata
         # metadata stored in MetaHeap file at pk_offset stored in the
         # primary key index pks as value
-        self.meta_heap = MetaHeap(self.data_dir + '/heap_meta', schema)
-        self.ts_heap = TSHeap(self.data_dir + '/heap_ts', self.ts_length)
+        self.meta_heap = MetaHeap(self.data_dir, '/heap_meta', self.schema)
+        self.ts_heap = TSHeap(self.data_dir, '/heap_ts', self.ts_length)
 
         # set closed to False
         self.closed = False
@@ -139,6 +149,28 @@ class PersistentDB:
         # count the remaining operations before commit
         self.next_commit = commit_step
         self.commit_step = commit_step
+
+    def load_schema(self):
+        '''
+        Helper function: loads schema and fills in identity function.
+
+        Parameters
+        ----------
+        Nothing
+
+        Returns
+        -------
+        Nothing.
+        '''
+
+        # load file
+        with open(self.data_dir + '/schema.idx', "rb", buffering=0) as fd:
+            self.schema = pickle.load(fd)
+
+        # convert identity function where necessary
+        for field, specs in self.schema.items():
+            if specs['convert'] == 'IDENTITY':
+                specs['convert'] = identity
 
     def close(self):
         '''
