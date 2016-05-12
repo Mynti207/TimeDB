@@ -164,7 +164,7 @@ class DictDB:
         # calculate distance for all existing time series
         return didx, pk, self.rows[pk]['ts']
 
-    def delete_vp(self, pk, raise_error=True):
+    def delete_vp(self, pk,):
         '''
         Unmarks a time series as a vantage point.
 
@@ -172,11 +172,6 @@ class DictDB:
         ----------
         pk : any hashable type
             Primary key for the new database entry
-        raise_error : boolean
-            Determines whether a ValueError is raised when trying to unmark
-            a time series that is not actually marked as a vantage point.
-            Used when deleting time series, to check whether it needs to
-            also be unmarked.
 
         Returns
         -------
@@ -187,29 +182,17 @@ class DictDB:
 
         # check that pk is a hashable type
         if not isinstance(pk, collections.Hashable):
-            if raise_error:
-                raise ValueError('Primary key is not a hashable type.')
-            else:
-                return
+            raise ValueError('Primary key is not a hashable type.')
 
         # check that the primary key is present in the database
         if pk not in self.rows:
-            if raise_error:
-                raise ValueError('Primary key not present.')
-            else:
-                return
+            raise ValueError('Primary key not present.')
         if self.rows[pk]['deleted'] is True:
-            if raise_error:
-                raise ValueError('Primary key has been deleted.')
-            else:
-                return
+            raise ValueError('Primary key has been deleted.')
 
         # check that the primary key is set as a vantage point
         if pk not in self.indexes['vp'][True]:
-            if raise_error:
-                raise ValueError('Primary key is not set as a vantage point.')
-            else:
-                return
+            raise ValueError('Primary key is not set as a vantage point.')
 
         # remove time series marker as vantage point and update index
         self.rows[pk]['vp'] = False
