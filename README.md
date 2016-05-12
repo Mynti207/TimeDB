@@ -12,10 +12,13 @@ Persistent Time Series Database
 **Note:** Unit tests are carried out by loading the server and webserver as sub-processes, which are not reflected in the coverage statistics. We estimate that our unit tests achieve at least 90% coverage when taking into consideration code that is run via sub-processes.
 
 
+
 Description
 -----------
 
 This package implements a persistent time series database. Our sample use case involves different types of similarity searches on daily stock market data.
+
+
 
 ### Persistence Architecture
 
@@ -36,6 +39,8 @@ This package implements a persistent time series database. Our sample use case i
 **TODO**
 
 
+
+
 ### Additional Feature: iSAX Similarity Searches
 
 A time series of fixed length can be reduced in dimensionality using a SAX encoding. The collective encodings for a time series can be used to index multiple time series, which can then be represented by an iSAX tree (see, e.g. [http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf](http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf)). This tree structure effectively clusters "similar" time series according to some distance measure, such as
@@ -43,9 +48,13 @@ Euclidean distance.
 
 We implemented a modified version of the iSAX tree using a true n-ary tree structure (i.e. n splits are permitted at all internal nodes rather than the binary splits of a typical iSAX tree), thus alleviating certain balancing concerns associated with the original iSAX tree model. Database functionality that utilizes the iSAX tree structure includes returning a time series that is similar to an input time series, as well as outputting a hierarchical representation of the contents of the iSAX tree that illustrates the clustering of similar time series as indexed by the tree.
 
+
+
 ### REST API
 
 **TODO**
+
+
 
 
 ## Technical Details
@@ -57,12 +66,14 @@ The package can be installed by running `python setup.py install` from the root 
 Installation will make the following packages available: `procs`, `pype`, `timeseries`, `tsdb` and `webserver`.
 
 
+
+
 ### Running the Server
-The database server can be loaded by running **<TODO.SH>**. This will load our database of daily stock price data, which includes a year of daily price data for 379 S&P 500 stocks (source: [www.stockwiz.com](http://www.stockwiz.com) ).
+The database server can be loaded by running `python go_server_persistent.py` (with the appropriate arguments), followed by `python go_webserver.py`. Please refer to our documentation for examples and more detailed instructions.
+
+For example, `python go_server_persistent.py --ts_length 244 --db_name 'stock_prices'` followed by `python go_webserver.py` will load our database of daily stock price data, which includes a year of daily price data for 379 S&P 500 stocks (source: [www.stockwiz.com](http://www.stockwiz.com)).
 
 We recommend using our web interface to interact with the REST API. Available functions, each of which represents a database operation, are listed below. Our database function demonstration provides more detail on how to load and use the web interface to interact with the REST API.
-
-**REMEMBER TO PUSH DB FILES**
 
 
 
@@ -83,9 +94,12 @@ We recommend using our web interface to interact with the REST API. Available fu
 Please refer to our database function demonstration below for full details on the function signatures and usage.
 
 
+
+
 ### Examples
 * [Database function demonstration](docs/demo.ipynb)
 * Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
+
 
 
 
