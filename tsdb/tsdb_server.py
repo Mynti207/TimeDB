@@ -370,7 +370,7 @@ class TSDBProtocol(asyncio.Protocol):
         '''
 
         # check whether there are any vantage points - won't work otherwise!
-        if len(self.server.db.vantage_points) == 0:
+        if len(self.server.db.indexes['vp'][True]) == 0:
             return TSDBOp_Return(TSDBStatus.INVALID_OPERATION, op['op'])
 
         # compute distance to the query time series -->
@@ -402,7 +402,7 @@ class TSDBProtocol(asyncio.Protocol):
             return TSDBOp_Return(TSDBStatus.UNKNOWN_ERROR, op['op'])
 
         # step 2: pick closest vantage point
-        vpkeys = self.server.db.vantage_points
+        vpkeys = list(self.server.db.indexes['vp'][True])
         vpdist = {v: payload[v]['vpdist'] for v in vpkeys}
         nearest_vp = min(vpkeys, key=lambda v: vpdist[v])
 

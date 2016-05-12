@@ -64,6 +64,29 @@ class Heap:
     def close(self):
         self.__del__
 
+    def clear(self):
+        '''
+        Clear the file_name and reset the read/write pointer.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        # Create it if new else load it
+        if not os.path.exists(self.heap_file):
+            raise ValueError('File {} not found'.format(self.heap_file))
+        else:
+            # We clear the content of the file with arg: w+b
+            self.fd = open(self.heap_file, "w+b", buffering=0)
+
+        # Read and write at the begining of the new empty file
+        self.readptr = self.fd.tell()
+        self.writeptr = self.fd.tell()
+
 
 class TSHeap(Heap):
     '''
@@ -121,6 +144,48 @@ class MetaHeap(Heap):
         self.meta_file = file_name+".met"
         # Build: fields, default_values, len_byte_array, fmt
         self._build_format_string()
+
+    def reset_schema(self, schema, pks):
+        '''
+        Update the schema of the heap and rewrite each pks in the
+        PrimaryIndex pks into it, with the preivous meta updated with
+        the new schema.
+
+        Parameters
+        ----------
+        schema : dictionary
+            New schema
+        pks : PrimaryIndex
+            Primary index of a db, used to rewrite the previous content
+            of the heap in the new one.
+
+        Returns
+        -------
+        Nothing, modifies in-place pks with the new offset
+        '''
+        # Load previous meta for each pks
+        # Store them in metas: {pk: old_offset}
+        metas = {}
+        for pk, tup in pks.items():
+            # Read raw values
+            metas[pk] = self.read_meta(tup[1])
+
+        # Reset schema
+        self.schema = schema
+        # Update the parameters for binary file based on new schema
+        self._build_format_string()
+        # Reset heap file
+        self.clear()
+
+        # Populate the new heap file according to the new schema
+        for pk, meta in metas.items():
+            # The deleted fields previously present won't be written to the
+            # heap as they are not in self.fields anymore
+            pk_offset = self.write_meta(meta, offset=None)
+
+            # Inplace update of the offset tuple in pks index
+            new_offsets = (pks[pk][0], pk_offset)
+            pks[pk] = new_offsets
 
     def _build_format_string(self):
         '''
