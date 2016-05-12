@@ -424,6 +424,7 @@ class PersistentDB:
         # add distance field to schema and index it
         value = {'type': 'float', 'convert': float, 'index': 1}
         self.schema[didx] = value
+
         # Update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
         # Commit to disk the update in the primary index

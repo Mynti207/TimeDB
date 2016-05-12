@@ -100,9 +100,15 @@ class TSDBProtocol(asyncio.Protocol):
         TSDBOp_Return: status and payload; result of running the TSDB operation
         '''
 
-        # first try to delete the time series as a vantage point
-        # don't raise errors, as the time series may not be a vantage point
-        self.server.db.delete_vp(op['pk'], raise_error=False)
+        # first check if the time series needs to be deleted as a vantage point
+        if isinstance(self.server.db, DictDB):
+            if op['pk'] in self.server.db.rows:
+                if op['pk'] in self.server.db.indexes['vp'][True]:
+                    self.server.db.delete_vp(op['pk'])
+        elif isinstance(self.server.db, PersistentDB):
+            if op['pk'] in self.server.db.pks.keys():
+                if op['pk'] in self.server.db.indexes['vp'][True]:
+                    self.server.db.delete_vp(op['pk'])
 
         # try to delete the time series, raise value error if the
         # primary key is invalid
