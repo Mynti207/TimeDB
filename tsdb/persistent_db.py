@@ -239,6 +239,9 @@ class PersistentDB:
         -------
         Nothing, modifies in-place.
         '''
+        # check db open
+        self._assert_not_closed()
+
         # check that pk is a hashable type and not already present
         self._valid_pk(pk)
         self._check_presence(pk)
@@ -283,6 +286,9 @@ class PersistentDB:
         -------
         Nothing, modifies in-place.
         '''
+        # check db open
+        self._assert_not_closed()
+
         # check that pk is a hashable type
         self._valid_pk(pk)
         self._check_presence(pk, present=False)
@@ -404,6 +410,9 @@ class PersistentDB:
         ts : TimeSeries
             The time series data of the vantage point
         '''
+        # check db open
+        self._assert_not_closed()
+
         # check that pk is a hashable type
         self._valid_pk(pk)
 
@@ -460,6 +469,9 @@ class PersistentDB:
             ID of the field that previously stored the distance to the
             vantage point
         '''
+        # check db open
+        self._assert_not_closed()
+
         # check that pk is a hashable type
         self._valid_pk(pk)
 
@@ -511,6 +523,9 @@ class PersistentDB:
         -------
         Nothing, modifies in-place.
         '''
+        # check db open
+        self._assert_not_closed()
+
         # check that pk is a hashable type
         self._valid_pk(pk)
         self._check_presence(pk, present=False)
@@ -661,6 +676,8 @@ class PersistentDB:
         (pks, matchedfielddicts) : (list, dictionary)
             Selected primary keys; entire selected data
         '''
+        # check db open
+        self._assert_not_closed()
 
         # start with the set of all primary keys present in the db
         pks = set(self.pks.index.keys())

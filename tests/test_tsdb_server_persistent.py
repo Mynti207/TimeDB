@@ -758,6 +758,49 @@ def test_server():
 
     ########################################
     #
+    # test persistency
+    #
+    ########################################
+
+    # Select operation
+    # package the operation
+    op = {'op': 'select', 'md': {}, 'fields': None, 'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({}, None, None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    selected_keys = sorted(payload.keys())
+
+    # close the db
+    db.close()
+
+    # Try to do same operation
+    with pytest.raises(ValueError):
+        # run operation
+        result = protocol._select(op)
+
+    # Reload the db
+    db = PersistentDB(schema, 'pk', 100)
+    # Reset server and protocol
+    server = TSDBServer(db)
+    protocol = TSDBProtocol(server)
+
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    if len(payload) > 0:
+        assert list(payload[list(payload.keys())[0]].keys()) == []
+        assert sorted(payload.keys()) == selected_keys
+
+    ########################################
+    #
     # test vantage point similarity search
     #
     ########################################
