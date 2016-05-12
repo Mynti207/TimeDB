@@ -154,85 +154,85 @@ def test_server():
     assert status == TSDBStatus.INVALID_KEY
     assert payload is None
 
-    # ########################################
-    # #
-    # # test time series deletion
-    # #
-    # ########################################
+    ########################################
     #
-    # idx = np.random.choice(list(tsdict.keys()))
+    # test time series deletion
     #
-    # # delete a valid time series
-    #
-    # # package the operation
-    # op = {'op': 'delete_ts', 'pk': idx}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_DeleteTS(idx)
-    # # run operation
-    # result = protocol._delete_ts(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert payload is None
-    #
-    # # check that it isn't present any more
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'pk': idx}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'pk': idx}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 0
-    #
-    # # add it back in
-    #
-    # # package the operation
-    # op = {'op': 'insert_ts', 'pk': idx, 'ts': tsdict[idx]}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_InsertTS(idx, tsdict[idx])
-    # # run operation
-    # result = protocol._insert_ts(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert payload is None
-    #
-    # # check that it's present now
-    #
-    # # package the operation
-    # op = {'op': 'select', 'md': {'pk': idx}, 'fields': None,
-    #       'additional': None}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_Select({'pk': idx}, None, None)
-    # # run operation
-    # result = protocol._select(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # assert len(payload) == 1
-    #
-    # # delete an invalid time series
-    #
-    # # package the operation
-    # op = {'op': 'delete_ts', 'pk': 'mistake'}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_DeleteTS('mistake')
-    # # run operation
-    # result = protocol._delete_ts(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.INVALID_KEY
-    # assert payload is None
+    ########################################
+
+    idx = np.random.choice(list(tsdict.keys()))
+
+    # delete a valid time series
+
+    # package the operation
+    op = {'op': 'delete_ts', 'pk': idx}
+    # test that this is packaged as expected
+    assert op == TSDBOp_DeleteTS(idx)
+    # run operation
+    result = protocol._delete_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
+    # check that it isn't present any more
+
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': idx}, 'fields': None,
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': idx}, None, None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 0
+
+    # add it back in
+
+    # package the operation
+    op = {'op': 'insert_ts', 'pk': idx, 'ts': tsdict[idx]}
+    # test that this is packaged as expected
+    assert op == TSDBOp_InsertTS(idx, tsdict[idx])
+    # run operation
+    result = protocol._insert_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
+    # check that it's present now
+
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': idx}, 'fields': None,
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': idx}, None, None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+
+    # delete an invalid time series
+
+    # package the operation
+    op = {'op': 'delete_ts', 'pk': 'mistake'}
+    # test that this is packaged as expected
+    assert op == TSDBOp_DeleteTS('mistake')
+    # run operation
+    result = protocol._delete_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.INVALID_KEY
+    assert payload is None
 
     ########################################
     #

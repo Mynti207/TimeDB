@@ -178,38 +178,38 @@ class test_webinterface(asynctest.TestCase):
         results = self.web_interface.insert_ts(idx, tsdict[idx])
         assert results != 'ERROR: INVALID KEY'
 
-        # ########################################
-        # #
-        # # test time series deletion
-        # #
-        # ########################################
+        ########################################
         #
-        # # pick a random time series
-        # idx = np.random.choice(list(tsdict.keys()))
+        # test time series deletion
         #
-        # # check that the time series is there now
-        # results = self.web_interface.select({'pk': idx})
-        # assert len(results) == 1
-        #
-        # # delete an existing time series
-        # results = self.web_interface.delete_ts(idx)
-        # assert results == 'OK'
-        #
-        # # check that the time series is no longer there
-        # results = self.web_interface.select({'pk': idx})
-        # assert len(results) == 0
-        #
-        # # add the time series back in
-        # results = self.web_interface.insert_ts(idx, tsdict[idx])
-        # assert results == 'OK'
-        #
-        # # check that the time series is there now
-        # results = self.web_interface.select({'pk': idx})
-        # assert len(results) == 1
-        #
-        # # delete an invalid time series
-        # results = self.web_interface.delete_ts('mistake')
-        # assert results == 'ERROR: INVALID_KEY'
+        ########################################
+
+        # pick a random time series
+        idx = np.random.choice(list(tsdict.keys()))
+
+        # check that the time series is there now
+        results = self.web_interface.select({'pk': idx})
+        assert len(results) == 1
+
+        # delete an existing time series
+        results = self.web_interface.delete_ts(idx)
+        assert results == 'OK'
+
+        # check that the time series is no longer there
+        results = self.web_interface.select({'pk': idx})
+        assert len(results) == 0
+
+        # add the time series back in
+        results = self.web_interface.insert_ts(idx, tsdict[idx])
+        assert results == 'OK'
+
+        # check that the time series is there now
+        results = self.web_interface.select({'pk': idx})
+        assert len(results) == 1
+
+        # delete an invalid time series
+        results = self.web_interface.delete_ts('mistake')
+        assert results == 'ERROR: INVALID_KEY'
 
         ########################################
         #
@@ -303,93 +303,93 @@ class test_webinterface(asynctest.TestCase):
         assert (np.round(results['ts-0']['std'], 4) ==
                 np.round(tsdict['ts-0'].std(), 4))
 
-        # ########################################
-        # #
-        # # test vantage point representation
-        # #
-        # ########################################
+        ########################################
         #
-        # # randomly choose time series as vantage points
-        # vpkeys = list(np.random.choice(ts_keys, size=self.num_vps,
-        #                                replace=False))
-        # distkeys = sorted(['d_vp_' + i for i in vpkeys])
+        # test vantage point representation
         #
-        # # add the time series as vantage points
-        # for i in range(self.num_vps):
-        #     self.web_interface.insert_vp(vpkeys[i])
+        ########################################
+
+        # randomly choose time series as vantage points
+        vpkeys = list(np.random.choice(ts_keys, size=self.num_vps,
+                                       replace=False))
+        distkeys = sorted(['d_vp_' + i for i in vpkeys])
+
+        # add the time series as vantage points
+        for i in range(self.num_vps):
+            self.web_interface.insert_vp(vpkeys[i])
+
+        # check that the distance fields are now in the database
+        results = self.web_interface.select(md={}, fields=distkeys)
+        if len(results) > 0:
+            assert (sorted(list(results[list(results.keys())[0]].keys())) ==
+                    distkeys)
+
+        # try to add a time series that doesn't exist as a vantage point
+        self.web_interface.insert_vp('mistake')
+
+        # remove them all
+        for i in range(self.num_vps):
+            self.web_interface.delete_vp(vpkeys[i])
+
+        # check that the distance fields are now not in the database
+        results = self.web_interface.select(md={}, fields=distkeys)
+        if len(results) > 0:
+            assert (list(results[list(results.keys())[0]].keys()) == [])
+
+        # try to delete a vantage point that doesn't exist
+        self.web_interface.delete_vp('mistake')
+
+        # add them back in
+        for i in range(self.num_vps):
+            self.web_interface.insert_vp(vpkeys[i])
+
+        ########################################
         #
-        # # check that the distance fields are now in the database
-        # results = self.web_interface.select(md={}, fields=distkeys)
-        # if len(results) > 0:
-        #     assert (sorted(list(results[list(results.keys())[0]].keys())) ==
-        #             distkeys)
+        # test time series similarity search
         #
-        # # try to add a time series that doesn't exist as a vantage point
-        # self.web_interface.insert_vp('mistake')
-        #
-        # # remove them all
-        # for i in range(self.num_vps):
-        #     self.web_interface.delete_vp(vpkeys[i])
-        #
-        # # check that the distance fields are now not in the database
-        # results = self.web_interface.select(md={}, fields=distkeys)
-        # if len(results) > 0:
-        #     assert (list(results[list(results.keys())[0]].keys()) == [])
-        #
-        # # try to delete a vantage point that doesn't exist
-        # self.web_interface.delete_vp('mistake')
-        #
-        # # add them back in
-        # for i in range(self.num_vps):
-        #     self.web_interface.insert_vp(vpkeys[i])
-        #
-        # ########################################
-        # #
-        # # test time series similarity search
-        # #
-        # ########################################
-        #
-        # # first create a query time series
-        # _, query = self.tsmaker(np.random.uniform(low=0.0, high=1.0),
-        #                    np.random.uniform(low=0.05, high=0.4),
-        #                    np.random.uniform(low=0.05, high=0.2))
-        #
-        # # get distance from query time series to the vantage point
-        # result_distance = self.web_interface.augmented_select(
-        #     proc='corr', target=['vpdist'], arg=query, md={'vp': {'==': True}})
-        # vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
-        # assert len(vpdist) == self.num_vps
-        #
-        # # pick the closest vantage point
-        # nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
-        #
-        # # define circle radius as 2 x distance to closest vantage point
-        # radius = 2 * vpdist[nearest_vp_to_query]
-        #
-        # # find relative index of nearest vantage point
-        # relative_index_vp = vpkeys.index(nearest_vp_to_query)
-        #
-        # # calculate distance to all time series within the circle radius
-        # results = self.web_interface.augmented_select(
-        #     'corr', ['towantedvp'], query,
-        #     {'d_vp-{}'.format(relative_index_vp): {'<=': radius}})
-        #
-        # # find the closest time series
-        # nearestwanted1 = min(results.keys(),
-        #                      key=lambda k: results[k]['towantedvp'])
-        #
-        # # compare to database similarity search
-        # nearestwanted2 = self.web_interface.vp_similarity_search(query, 1)
-        # # compare primary keys
-        # assert nearestwanted1 == list(nearestwanted2.keys())[0]
-        #
-        # # run similarity search on an existing time series
-        # # -> should return itself
-        #
-        # idx = np.random.choice(list(tsdict.keys()))
-        # results = self.web_interface.vp_similarity_search(tsdict[idx], 1)
-        # assert len(results) == 1
-        # assert list(results)[0] == idx
+        ########################################
+
+        # first create a query time series
+        _, query = self.tsmaker(np.random.uniform(low=0.0, high=1.0),
+                                np.random.uniform(low=0.05, high=0.4),
+                                np.random.uniform(low=0.05, high=0.2))
+
+        # get distance from query time series to the vantage point
+        result_distance = self.web_interface.augmented_select(
+            proc='corr', target=['vpdist'], arg=query, md={'vp': {'==': True}})
+        vpdist = {v: result_distance[v]['vpdist'] for v in vpkeys}
+        assert len(vpdist) == self.num_vps
+
+        # pick the closest vantage point
+        nearest_vp_to_query = min(vpkeys, key=lambda v: vpdist[v])
+
+        # define circle radius as 2 x distance to closest vantage point
+        radius = 2 * vpdist[nearest_vp_to_query]
+
+        # find relative index of nearest vantage point
+        relative_index_vp = vpkeys.index(nearest_vp_to_query)
+
+        # calculate distance to all time series within the circle radius
+        results = self.web_interface.augmented_select(
+            'corr', ['towantedvp'], query,
+            {'d_vp-{}'.format(relative_index_vp): {'<=': radius}})
+
+        # find the closest time series
+        nearestwanted1 = min(results.keys(),
+                             key=lambda k: results[k]['towantedvp'])
+
+        # compare to database similarity search
+        nearestwanted2 = self.web_interface.vp_similarity_search(query, 1)
+        # compare primary keys
+        assert nearestwanted1 == list(nearestwanted2.keys())[0]
+
+        # run similarity search on an existing time series
+        # -> should return itself
+
+        idx = np.random.choice(list(tsdict.keys()))
+        results = self.web_interface.vp_similarity_search(tsdict[idx], 1)
+        assert len(results) == 1
+        assert list(results)[0] == idx
 
         ########################################
         #

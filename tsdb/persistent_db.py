@@ -58,8 +58,6 @@ class PersistentDB:
             when set to true as it's not indexed in that case.
 
     TODO:
-        - extend to the vantage point
-        - extend to isax support
         - methods to open/close a db
         - modify the way to store on disk to use a log and commit by batch
             instead of element by element. Changes to do in indexes.py, could use
@@ -350,8 +348,10 @@ class PersistentDB:
         # add distance field to schema and index it
         value = {'type': 'float', 'convert': float, 'index': 1}
         self.schema[didx] = value
+
         # Update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
+
         # add the new index
         self._init_indexes(didx, value)
 
