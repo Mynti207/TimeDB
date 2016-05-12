@@ -1,5 +1,5 @@
 
-Mynti207:
+Mynti207
 ================================================
 
 
@@ -10,6 +10,7 @@ Persistent Time Series Database
 
 
 **Note:** Unit tests are carried out by loading the server and webserver as sub-processes, which are not reflected in the coverage statistics. We estimate that our unit tests achieve at least 90% coverage when taking into consideration code that is run via sub-processes.
+
 
 
 
@@ -99,6 +100,7 @@ Please refer to our database function demonstration below for full details on th
 ### Examples
 * [Database function demonstration](docs/demo.ipynb)
 * Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
+
 
 
 
