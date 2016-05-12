@@ -3,20 +3,21 @@ import numpy as np
 from scipy.stats import norm
 from tsdb import *
 import time
+import pytest
 
 identity = lambda x: x
 
 # index: 1 is binary tree index, 2 is bitmap index
 schema = {
-    'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
-    'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
-    'order': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
-    'blarg': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
-    'useless': {'type': 'int', 'convert': identity, 'index': 1, 'values': None},
-    'mean': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
-    'std': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
-    'vp': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]},
-    'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
+  'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
+  'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
+  'order': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+  'blarg': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+  'useless': {'type': 'int', 'convert': identity, 'index': 1, 'values': None},
+  'mean': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+  'std': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+  'vp': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]},
+  'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
 }
 
 
@@ -63,8 +64,7 @@ def test_server():
 
     # initialize file system
     data_dir = 'db_files/default/'
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
+    if not os.path.exists(data_dir): os.makedirs(data_dir)
     filelist = [data_dir + f for f in os.listdir(data_dir)]
     for f in filelist:
         os.remove(f)
@@ -664,6 +664,7 @@ def test_server():
         assert status == TSDBStatus.OK
         assert payload is None
 
+
     # check that the distance fields are now in the database
 
     # package the operation
@@ -831,6 +832,7 @@ def test_server():
     status, payload = result['status'], result['payload']
     # test that return values are as expected
     assert status == TSDBStatus.OK
+    print('COMPARING', idx, 'WITH', payload)
     assert len(payload) == 1
     assert list(payload)[0] == idx
 

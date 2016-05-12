@@ -58,7 +58,10 @@ class PersistentDB:
             when set to true as it's not indexed in that case.
 
     TODO:
+<<<<<<< HEAD
         - methods to open/close a db
+=======
+>>>>>>> 9ffdf84dbb02edea786dd2f0f626631b015adf77
         - modify the way to store on disk to use a log and commit by batch
             instead of element by element. Changes to do in indexes.py, could use
             a temporary log on memory keeping track of the last uncommited changes.
@@ -70,9 +73,21 @@ class PersistentDB:
     def __init__(self, schema, pkfield, ts_length, db_name="default",
                  data_dir="db_files", verbose=False):
         '''
-        args:
-            schema: schema of the db, if None load from disk
-            ts_length: length of the times/values sequences (all ts need same length)
+        Initializes the PersistentDB class.
+
+        Parameters
+        ----------
+        schema : dictionary
+            Specifies the fields to be included in the database and their
+            formats
+        pkfield : string
+            Specifies the name of the primary key field
+        ts_length : int
+            Length of the time series we will insert (immutable attribute)
+
+        Returns
+        -------
+        An initialized PersistentDB object
         '''
 
         self.db_name = db_name
@@ -103,6 +118,8 @@ class PersistentDB:
         # primary key index pks as value
         self.meta_heap = MetaHeap(self.data_dir + '/heap_meta', schema)
         self.ts_heap = TSHeap(self.data_dir + '/heap_ts', self.ts_length)
+        # Set closed to False
+        self.closed = False
 
         # whether status updates are printed
         self.verbose = verbose
@@ -125,6 +142,41 @@ class PersistentDB:
         # triggers associated with database operations
         # dictionary of sets, defined as Index to facilitate commits
         self.triggers = TriggerIndex('triggers', self.data_dir + '/')
+
+    def close(self):
+        '''
+        Close the files and set closed to True
+
+        Parameters
+        ----------
+        Nothing
+
+        Returns
+        -------
+        Nothing.
+        '''
+        self._assert_not_closed()
+        # Closing files
+        self.meta_heap.close()
+        self.ts_heap.close()
+
+        # Update status
+        self.closed = True
+
+    def _assert_not_closed(self):
+        '''
+        Check if db is closed.
+
+        Parameters
+        ----------
+        Nothing
+
+        Returns
+        -------
+        Nothing
+        '''
+        if self.closed:
+            raise ValueError('Database closed.')
 
     def _init_indexes(self, field, value):
         '''
@@ -178,7 +230,18 @@ class PersistentDB:
 
     def insert_ts(self, pk, ts):
         '''
-        Given a pk and a timeseries, insert them
+        Inserts a time series into the database.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the new database entry
+        ts : TimeSeries
+            Time series to be inserted into the database.
+
+        Returns
+        -------
+        Nothing, modifies in-place.
         '''
         # check that pk is a hashable type and not already present
         self._valid_pk(pk)
@@ -247,9 +310,22 @@ class PersistentDB:
     def commit(self):
         '''
         Changes are final only when commited.
-        Saving the heaps and indexes.
+        Save the current state of the indexes on disk.
+
+        Parameters
+        ----------
+        Nothing
+
+        Returns
+        -------
+        Nothing
         '''
-        pass
+        self._assert_not_closed()
+        # Save primary indexes
+        self.pks.commit()
+        # Save other indexes
+        for index in self.indexes.values():
+            index.commit()
 
     def add_trigger(self, onwhat, proc, storedproc, arg, target):
         '''
@@ -417,7 +493,19 @@ class PersistentDB:
 
     def upsert_meta(self, pk, meta):
         '''
-        Implement upserting field values, as long as fields are in the schema
+        Upserts (inserts/updates) metadata for a database entry. Requires
+        that the metadata fields are in the schema.
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the  database entry
+        meta : dictionary
+            Metadata to be upserted into the database.
+
+        Returns
+        -------
+        Nothing, modifies in-place.
         '''
         # check that pk is a hashable type
         self._valid_pk(pk)
@@ -431,14 +519,34 @@ class PersistentDB:
 
     def _upsert_meta(self, meta, offset=None):
         '''
-        Helper to upsert meta in the heap.
+        Helper to write meta at offset (or append) in the heap file
+
+        Parameters
+        ----------
+        meta : dictionary
+            Metadata to be upserted into the database.
+        [offset : int]
+            Offset where to upsert the meta, if None append to the file.
+
+        Returns
+        -------
+        Nothing, modifies in-place.
         '''
         # Upsert meta (meta already inserted with insert_ts)
         return self.meta_heap.write_meta(meta, offset)
 
     def _get_meta(self, pk):
         '''
-        Helper to get meta from the pk
+        Helper to get meta from the heap
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the  database entry
+
+        Returns
+        -------
+        meta data dictionary
         '''
         offset = self.pks[pk][1]
         # Extract meta from heap
@@ -450,7 +558,16 @@ class PersistentDB:
 
     def _get_ts(self, pk):
         '''
-        Helper to get raw timeseries from the pk
+        Helper to get the timerseries from the heap
+
+        Parameters
+        ----------
+        pk : any hashable type
+            Primary key for the  database entry
+
+        Returns
+        -------
+        TimeSeries object
         '''
         offset = self.pks[pk][0]
         return self.ts_heap.read_ts(offset)
@@ -518,7 +635,6 @@ class PersistentDB:
                 # remove pk for the previous value
                 index.remove_pk(meta[field], pk)
 
-    # TODO: still being debugged
     def select(self, meta, fields, additional):
         '''
         Select database entries based on specified criteria.

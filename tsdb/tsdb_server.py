@@ -103,11 +103,11 @@ class TSDBProtocol(asyncio.Protocol):
         # first check if the time series needs to be deleted as a vantage point
         if isinstance(self.server.db, DictDB):
             if op['pk'] in self.server.db.rows:
-                if self.server.db.rows[op['pk']]['vp']:
+                if op['pk'] in self.server.db.indexes['vp'][True]:
                     self.server.db.delete_vp(op['pk'])
         elif isinstance(self.server.db, PersistentDB):
             if op['pk'] in self.server.db.pks.keys():
-                if self.server.db._get_meta(op['pk'])['vp']:
+                if op['pk'] in self.server.db.indexes['vp'][True]:
                     self.server.db.delete_vp(op['pk'])
 
         # try to delete the time series, raise value error if the

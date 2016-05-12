@@ -136,8 +136,18 @@ class MetaHeap(Heap):
 
     def __init__(self, file_name, schema):
         '''
-        Initialize if needed the format string key to pack/unpack
-        or load it from file.
+        Create a meta heap
+
+        Parameters
+        ----------
+        schema : dictionary
+            New schema
+        file_name : str
+            string where to find the heap file
+
+        Returns
+        -------
+        Nothing, modifies in-place
         '''
         super().__init__(file_name)
         self.schema = schema
@@ -190,6 +200,14 @@ class MetaHeap(Heap):
     def _build_format_string(self):
         '''
         Build the format string to pack fields into bytes
+
+        Parameters
+        ----------
+        Nothing
+
+        Returns
+        -------
+        Nothing, modifies in place.
         '''
         fields = sorted(list(self.schema.keys()))
         # we add the 'pk' in the meta after reading them
@@ -217,13 +235,16 @@ class MetaHeap(Heap):
 
         Parameters
         ----------
-        meta_dict: meta data dictionary
-        offset : offset of the metadata in heapfile,
-            if None create new metadata
+        meta_dict: dict
+            metadata dictionary
+        offset : int
+            offset of the metadata in heapfile,
 
         Returns
         -------
-        offset
+        offset: int
+            offset of the metada in haepfile (same as arg is given, else 
+            new one)
         '''
         # Initialize the meta data if new insertion
         if offset is None:
@@ -244,8 +265,17 @@ class MetaHeap(Heap):
 
     def _read_meta(self, offset):
         '''
-        Read the metadata in the heap at offset.
-        Return the list of values to keep the order.
+        Helper to read the metadata in the heap at offset.
+
+        Parameters
+        ----------
+        offset: int
+            offset in the meta heap file
+
+        Returns
+        -------
+        values: tuple
+            metadata read from heap as a raw tuple of values
         '''
         buf = self._read(offset)
         # Read the list of meta values
@@ -254,7 +284,16 @@ class MetaHeap(Heap):
     def read_meta(self, offset):
         '''
         Read the metadata in the heap at offset.
-        Return the metadata as a dictionary.
+
+        Parameters
+        ----------
+        offset: int
+            offset in the meta heap file
+
+        Returns
+        -------
+        metadata: dict
+            metadata read from heap wraped in a dictionary
         '''
         # Get the values
         values = self._read_meta(offset)
