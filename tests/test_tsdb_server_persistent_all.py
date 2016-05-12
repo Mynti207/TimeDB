@@ -44,7 +44,6 @@ def tsmaker(m, s, j):
     meta['order'] = int(np.random.choice(
         [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]))
     meta['blarg'] = int(np.random.choice([1, 2]))
-    meta['vp'] = False  # initialize vantage point indicator as negative
 
     # generate time series data
     t = np.arange(0.0, 1.0, 0.01)
@@ -212,6 +211,8 @@ def test_server():
 
     for k in tsdict:
 
+        # time series data
+
         # package the operation
         op = {'op': 'select', 'md': {'pk': k}, 'fields': ['ts'],
               'additional': None}
@@ -224,6 +225,20 @@ def test_server():
         # test that return values are as expected
         assert status == TSDBStatus.OK
         assert payload[k]['ts'] == tsdict[k]
+
+        # all other metadata
+
+        op = {'op': 'select', 'md': {'pk': k}, 'fields': [],
+              'additional': None}
+        # test that this is packaged as expected
+        assert op == TSDBOp_Select({'pk': k}, [], None)
+        # run operation
+        result = protocol._select(op)
+        # unpack results
+        status, payload = result['status'], result['payload']
+        # test that return values are as expected
+        for field in metadict[k]:
+            assert metadict[k][field] == payload[k][field]
 
     ########################################
     #
@@ -324,6 +339,10 @@ def test_server():
     #
     ########################################
 
+    # try to initialize with the wrong time series length
+    with pytest.raises(ValueError):
+        db = PersistentDB(schema, 'pk', 101)
+
     # initialize database
     db = PersistentDB(schema, 'pk', 100)
 
@@ -362,6 +381,8 @@ def test_server():
 
     for k in tsdict:
 
+        # time series data
+
         # package the operation
         op = {'op': 'select', 'md': {'pk': k}, 'fields': ['ts'],
               'additional': None}
@@ -374,6 +395,20 @@ def test_server():
         # test that return values are as expected
         assert status == TSDBStatus.OK
         assert payload[k]['ts'] == tsdict[k]
+
+        # all other metadata
+
+        op = {'op': 'select', 'md': {'pk': k}, 'fields': [],
+              'additional': None}
+        # test that this is packaged as expected
+        assert op == TSDBOp_Select({'pk': k}, [], None)
+        # run operation
+        result = protocol._select(op)
+        # unpack results
+        status, payload = result['status'], result['payload']
+        # test that return values are as expected
+        for field in metadict[k]:
+            assert metadict[k][field] == payload[k][field]
 
     ########################################
     #

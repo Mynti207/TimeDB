@@ -114,11 +114,13 @@ The package can be installed by running `python setup.py install` from the root 
 
 Installation will make the following packages available: `procs`, `pype`, `timeseries`, `tsdb` and `webserver`.
 
+**Note**: Python 3.5 is required for this package.
+
 
 
 
 ### Running the Server
-The database server can be loaded by running `python go_server_persistent.py` (with the appropriate arguments), followed by `python go_webserver.py`. Please refer to our documentation for examples and more detailed instructions.
+The database server can be loaded by running `python go_server_persistent.py` (with the appropriate arguments), followed by `python go_webserver.py`. It is good practice to pause for a few seconds after each of those commands, to ensure that the server/webserver has loaded fully. Please refer to our documentation for examples and more detailed instructions.
 
 For example, `python go_server_persistent.py --ts_length 244 --db_name 'stock_prices'` followed by `python go_webserver.py` will load our database of daily stock price data, which includes a year of daily price data for 379 S&P 500 stocks (source: [www.stockwiz.com](http://www.stockwiz.com)).
 
