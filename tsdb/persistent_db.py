@@ -1,4 +1,4 @@
-from .indexes import PrimaryIndex, BinTreeIndex, BitMapIndex, TriggerIndex
+from .indexes_log import PrimaryIndex, BinTreeIndex, BitMapIndex, TriggerIndex
 from .heaps import TSHeap, MetaHeap
 import operator
 import os
@@ -268,7 +268,8 @@ class PersistentDB:
         # set the primary key index with the offsets tuple
         self.pks[pk] = (ts_offset, pk_offset)
         # commit to disk the index
-        if self.next_commit == 0:
+        if self.next_commit == 1:
+            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -316,10 +317,11 @@ class PersistentDB:
         self._upsert_meta({'deleted': True}, offset=self.pks[pk][1])
 
         # pop from primary key index
-        self.pks.remove_pk(False, pk)
+        self.pks.remove_pk(pk)
 
         # commit to disk the index
         if self.next_commit == 0:
+            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -377,6 +379,9 @@ class PersistentDB:
 
         self.triggers.add_trigger(onwhat, (proc, storedproc, arg, target))
 
+        # commit to disk the index (no batch commit as its not that often)
+        self.trigger.commit()
+
     def remove_trigger(self, proc, onwhat, target):
         '''
         Removes a previously-set trigger.
@@ -406,6 +411,9 @@ class PersistentDB:
         # (used to delete vantage point representation)
         else:
             self.triggers.remove_one_trigger(onwhat, proc, target)
+
+        # commit to disk the index (no batch commit as its not that often)
+        self.trigger.commit()
 
     def insert_vp(self, pk):
         '''
@@ -453,6 +461,7 @@ class PersistentDB:
         self.meta_heap.reset_schema(self.schema, self.pks)
         # Commit to disk the index
         if self.next_commit == 0:
+            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -517,6 +526,7 @@ class PersistentDB:
         self.meta_heap.reset_schema(self.schema, self.pks)
         # Commit to disk the index
         if self.next_commit == 0:
+            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:

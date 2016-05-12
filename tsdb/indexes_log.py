@@ -328,14 +328,12 @@ class PrimaryIndex(Index):
     # to be able to first store on disk before updating on memory (and then on disk)
     # the index
 
-    def remove_pk(self, key, pk):
+    def remove_pk(self, pk):
         '''
         Removes a primary key from an index key (i.e. metadata field value).
 
         Parameters
         ----------
-        key : str
-            The metadata field value
         pk : str
             Primary key identifier
 
@@ -452,30 +450,6 @@ class PrimaryIndex(Index):
 
         self.index[key].add(pk)
 
-    def remove_pk(self, key, pk):
-        '''
-        Removes a primary key from an index key (i.e. metadata field value).
-
-        Parameters
-        ----------
-        key : str
-            The metadata field value
-        pk : str
-            Primary key identifier
-
-        Returns
-        -------
-        Nothing, modifies in-place.
-        '''
-        # log is not commited into index anymore
-        self.log['$COMMITED$'] = False
-
-        # persist on the log
-        self.log[key].pop(pk)
-        self.commit_log()
-
-        self.index[key].pop(pk)
-
     def _erase(self):
         '''
         Erase from disk the index files if exists.
@@ -495,6 +469,21 @@ class TriggerIndex(Index):
 
     def __init__(self, field, directory):
         super().__init__(field, directory)
+        # Init log
+        self.file_log = self.directory + self.field + '_log.idx'
+        if os.path.exists(self.file_log):
+            with open(self.file_log, "rb", buffering=0) as fd:
+                self.log = pickle.load(fd)
+            # Check if log was commited into index before closing last session,
+            # else commit it.
+            # This will happen in case of previous failure or if some updates
+            # have not been commited into index in the previous session
+            if not self.log['$COMMITED$']:
+                self.commit_log_to_index()
+
+        # otherwise initialize
+        else:
+            self.log = {}
 
     def __getitem__(self, key):
         if key in self.index:
@@ -516,6 +505,13 @@ class TriggerIndex(Index):
         -------
         Nothing, modifies in-place.
         '''
+        # log is not commited into index anymore
+        self.log['$COMMITED$'] = False
+
+        # persist on the log
+        self.index[key] = []
+        self.commit_log()
+
         self.index[key] = []
 
     def remove_key(self, key):
@@ -532,6 +528,13 @@ class TriggerIndex(Index):
         -------
         Nothing, modifies in-place.
         '''
+        # log is not commited into index anymore
+        self.log['$COMMITED$'] = False
+
+        # persist on the log
+        del self.index[key]
+        self.commit_log()
+
         del self.index[key]
 
         # commit triggers at each change
@@ -552,15 +555,17 @@ class TriggerIndex(Index):
         -------
         Nothing, modifies in-place.
         '''
+        # log is not commited into index anymore
+        self.log['$COMMITED$'] = False
 
-        # defaultdict behavior
-        if key not in self.index:
+        # persist on the log
+        if key not in self.log:
             self.add_key(key)
 
-        self.index[key].append(pk)
+        self.log[key].append(pk)
+        self.commit_log()
 
-        # commit triggers at each change
-        self.commit()
+        self.index[key].append(pk)
 
     def remove_all_triggers(self, key, proc):
         '''
@@ -578,9 +583,13 @@ class TriggerIndex(Index):
         -------
         Nothing, modifies in-place.
         '''
+        # log is not commited into index anymore
+        self.log['$COMMITED$'] = False
+
+        # Persist on log first
 
         # look up all triggers associated with that operation
-        trigs = self.index[key]
+        trigs = self.log[key]
 
         # keep track of number of triggers removed
         removed = 0
@@ -596,8 +605,21 @@ class TriggerIndex(Index):
         if removed == 0:
             raise ValueError('No triggers removed.')
 
-        # commit triggers at each change
-        self.commit()
+        self.commit_log()
+
+        # Change index
+        # look up all triggers associated with that operation
+        trigs = self.index[key]
+
+        # keep track of number of triggers removed
+        removed = 0
+
+        # remove all instances of the particular coroutine associated
+        # with that operation
+        for t in trigs:
+            if t[0] == proc:
+                trigs.remove(t)
+                removed += 1
 
     def remove_one_trigger(self, key, proc, target):
         '''
@@ -617,6 +639,19 @@ class TriggerIndex(Index):
         -------
         Nothing, modifies in-place.
         '''
+        # log is not commited into index anymore
+        self.log['$COMMITED$'] = False
+
+        # persist on the log
+        # look up all triggers associated with that operation
+        trigs = self.log[key]
+
+        # delete the relevant trigger
+        for t in trigs:
+            if t[0] == proc:  # matches coroutine
+                if t[3] == target:  # matches target
+                    trigs.remove(t)
+        self.commit_log()
 
         # look up all triggers associated with that operation
         trigs = self.index[key]
@@ -626,9 +661,6 @@ class TriggerIndex(Index):
             if t[0] == proc:  # matches coroutine
                 if t[3] == target:  # matches target
                     trigs.remove(t)
-
-        # commit triggers at each change
-        self.commit()
 
 
 class BinTreeIndex(Index):
