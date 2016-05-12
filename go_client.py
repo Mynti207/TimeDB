@@ -10,7 +10,8 @@ from scipy.stats import norm
 
 ########################################
 #
-# NOTE: this file can be used to test the client functionality.
+# this file can be used to test the basic client functionality.
+# NOTE: This file does not incorporate the persistent database behavior.
 # For it to work, you will need to first run go_server.py and go_webserver.py.
 #
 ########################################

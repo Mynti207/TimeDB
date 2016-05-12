@@ -67,7 +67,7 @@ class PersistentDB:
     '''
 
     def __init__(self, schema, pkfield, ts_length, db_name="default",
-                 data_dir="db_files", verbose=False, commit_step=10):
+                 data_dir="db_files", commit_step=10):
         '''
         Initializes the PersistentDB class.
 
@@ -98,26 +98,23 @@ class PersistentDB:
         self.ts_length = ts_length
         self.pkfield = pkfield
 
-        # Intialize primary key index
+        # intialize primary key index
         self.pks = PrimaryIndex(pkfield, self.data_dir + '/')
-        # print('After init pks: ', self.pks.index)
 
-        # Initialize indexes defined in schema
+        # initialize indexes defined in schema
         self.indexes = {}
         for field, value in self.schema.items():
             self._init_indexes(field, value)
 
-        # Raw time series stored in TSHeap file at ts_offset stored
+        # raw time series stored in TSHeap file at ts_offset stored
         # in field 'ts' of metadata
-        # Metdata stored in MetaHeap file at pk_offset stored in the
+        # metadata stored in MetaHeap file at pk_offset stored in the
         # primary key index pks as value
         self.meta_heap = MetaHeap(self.data_dir + '/heap_meta', schema)
         self.ts_heap = TSHeap(self.data_dir + '/heap_ts', self.ts_length)
-        # Set closed to False
-        self.closed = False
 
-        # whether status updates are printed
-        self.verbose = verbose
+        # set closed to False
+        self.closed = False
 
         # initializes file structure for isax tree
         self.fs = TreeFileStructure()
@@ -138,8 +135,8 @@ class PersistentDB:
         # dictionary of sets, defined as Index to facilitate commits
         self.triggers = TriggerIndex('triggers', self.data_dir + '/')
 
-        # Local counter for the batch commit of the indexes
-        # Count the remaining operations before commit
+        # local counter for the batch commit of the indexes
+        # count the remaining operations before commit
         self.next_commit = commit_step
         self.commit_step = commit_step
 
@@ -156,11 +153,11 @@ class PersistentDB:
         Nothing.
         '''
         self._assert_not_closed()
-        # Closing files
+        # closing files
         self.meta_heap.close()
         self.ts_heap.close()
 
-        # Update status
+        # update status
         self.closed = True
 
     def _assert_not_closed(self):
@@ -198,14 +195,13 @@ class PersistentDB:
         if field in self.indexes:
             raise ValueError('Field {} already indexed'.format(field))
 
-        # Check index is needed
+        # check index is needed
         if value['index'] is not None:
-            # Index structure depends on its cardinality
+            # index structure depends on its cardinality
             if value['index'] == 1:  # any other cardinality
                 self.indexes[field] = BinTreeIndex(
                     field, self.data_dir + '/index_')
             elif value['index'] == 2:  # boolean
-                # TODO
                 self.indexes[field] = BitMapIndex(
                     field, self.data_dir + '/index_', value['values'])
             else:
@@ -254,18 +250,20 @@ class PersistentDB:
         if len(ts) != self.ts_length:
             raise ValueError('Time series is the wrong length.')
 
-        # INSERTION on heaps
-        # Insert ts
+        # insertion on heaps -->
+
+        # insert ts
         ts_offset = self.ts_heap.write_ts(ts)
 
-        # Insert default metadata
+        # insert default metadata
         pk_offset = self._upsert_meta({})
 
-        # INSERTION on indexes
+        # insertion on indexes -->
+
         # TODO: insertion on log first and then on index by batch
-        # Set the primary key index with the offsets tuple
+        # set the primary key index with the offsets tuple
         self.pks[pk] = (ts_offset, pk_offset)
-        # Commit to disk the index
+        # commit to disk the index
         if self.next_commit == 0:
             self.pks.commit()
             self.next_commit = self.commit_step
@@ -307,7 +305,7 @@ class PersistentDB:
         except ValueError:
             return ValueError('Not compatible with tree structure.')
 
-        # Extract meta to update later the index
+        # extract meta to update later the index
         meta = self._get_meta(pk)
 
         # mark as deleted
@@ -315,7 +313,8 @@ class PersistentDB:
 
         # pop from primary key index
         self.pks.remove_pk(False, pk)
-        # Commit to disk the index
+
+        # commit to disk the index
         if self.next_commit == 0:
             self.pks.commit()
             self.next_commit = self.commit_step
@@ -339,9 +338,9 @@ class PersistentDB:
         Nothing
         '''
         self._assert_not_closed()
-        # Save primary indexes
+        # save primary indexes
         self.pks.commit()
-        # Save other indexes
+        # save other indexes
         for index in self.indexes.values():
             index.commit()
 
@@ -436,17 +435,17 @@ class PersistentDB:
             raise ValueError('Primary key is already set as vantage point.')
 
         # mark time series as vantage point
-        # Calling upsert meta to updates the indices
+        # calling upsert meta to updates the indices
         self.upsert_meta(pk, {'vp': True})
 
-        # Create new field name for distance to vantage point
+        # create new field name for distance to vantage point
         didx = 'd_vp_' + pk
 
         # add distance field to schema and index it
         value = {'type': 'float', 'convert': float, 'index': 1}
         self.schema[didx] = value
 
-        # Update the meta heap with the new schema
+        # update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
         # Commit to disk the index
         if self.next_commit == 0:
@@ -502,7 +501,7 @@ class PersistentDB:
                 return
 
         # remove time series marker as vantage point
-        # Calling upsert meta to updates the indices
+        # calling upsert meta to updates the indices
         self.upsert_meta(pk, {'vp': False})
 
         # get vantage point id
@@ -550,7 +549,7 @@ class PersistentDB:
         self._valid_pk(pk)
         self._check_presence(pk, present=False)
 
-        # Read previous meta
+        # read previous meta
         prev_meta = self._get_meta(pk)
 
         self._upsert_meta(meta, offset=self.pks[pk][1])
@@ -571,7 +570,7 @@ class PersistentDB:
         -------
         Nothing, modifies in-place.
         '''
-        # Upsert meta (meta already inserted with insert_ts)
+        # upsert meta (meta already inserted with insert_ts)
         return self.meta_heap.write_meta(meta, offset)
 
     def _get_meta(self, pk):
@@ -588,9 +587,9 @@ class PersistentDB:
         meta data dictionary
         '''
         offset = self.pks[pk][1]
-        # Extract meta from heap
+        # extract meta from heap
         meta = self.meta_heap.read_meta(offset)
-        # Add the pkfield
+        # add the pkfield
         meta[self.pkfield] = pk
 
         return meta
@@ -632,25 +631,26 @@ class PersistentDB:
         -------
         Nothing, modifies in-place.
         '''
-        # Read meta
+        # read meta
         meta = self._get_meta(pk)
 
         # check that prev_meta is a dictionary
         if prev_meta is not None:
             if not isinstance(prev_meta, dict):
-                raise ValueError('Prev_meta need to be a dictionary instead of {}'.format(type(prev_meta)))
+                raise ValueError(
+                    'Prev_meta need to be a dictionary instead of {}'.format(type(prev_meta)))
             for field, index in self.indexes.items():
                 # Remove previous index if changed
                 if prev_meta[field] != meta[field]:
                     index.remove_pk(prev_meta[field], pk)
 
         for field, index in self.indexes.items():
-            # Create a new Node if needed
+            # create a new Node if needed
             if meta[field] not in index:
                 index.add_key(meta[field])
             # add pk to the index
             index.add_pk(meta[field], pk)
-            # Commit to disk the update
+            # commit to disk the update
             index.commit()
 
     def remove_indices(self, pk, meta):
@@ -670,12 +670,12 @@ class PersistentDB:
         '''
 
         for field, value in meta.items():
-            # Check if field is indexed
+            # check if field is indexed
             if field in self.indexes.keys():
                 index = self.indexes[field]
                 # remove pk for the previous value
                 index.remove_pk(meta[field], pk)
-                # Commit to disk the update
+                # commit to disk the update
                 index.commit()
 
     def select(self, meta, fields, additional):
@@ -841,16 +841,13 @@ class PersistentDB:
 
         # extract the relevant sub-set of fields
         if fields is None:  # no sub-set is specified
-            if self.verbose: print('S> D> NO FIELDS')
             matchedfielddicts = [{} for pk in pks]
         else:
             if not len(fields):
-                if self.verbose: print('S> D> ALL FIELDS')
                 matchedfielddicts = [{k: v for k, v in self._get_meta(pk).items()
                                       if k != 'ts' and k != 'deleted'}
                                      for pk in pks]  # remove ts
             else:
-                if self.verbose: print('S> D> FIELDS {}'.format(fields))
 
                 # start with metadata (most common use case)
                 matchedfielddicts = [{k: v for k, v in self._get_meta(pk).items()

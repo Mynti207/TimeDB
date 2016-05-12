@@ -26,10 +26,27 @@ LENGTH_OFFSET = 4
 
 
 class Heap:
+    '''
+    Basic heap structure (binary data). Used to define common heap functions.
+    '''
 
     def __init__(self, file_name):
+        '''
+        Initializes the Heap class.
+
+        Parameters
+        ----------
+        file_name : str
+            Heap file location
+
+        Returns
+        -------
+        An initialized Heap object
+        '''
+
         self.heap_file = file_name
-        # Create it if new, else load it
+
+        # create it if new, else load it
         if not os.path.exists(file_name):
             self.fd = open(file_name, "xb+", buffering=0)
         else:
@@ -56,9 +73,9 @@ class Heap:
         self.fd.seek(self.writeptr)
         offset = self.fd.tell()
         self.fd.write(byte_array)
-        # Go to end of file
+        # go to end of file
         self.fd.seek(0, 2)
-        # Update the write pointer
+        # update the write pointer
         self.writeptr = self.fd.tell()
 
         return offset
@@ -121,14 +138,14 @@ class Heap:
         -------
         Nothing, modifies in-place.
         '''
-        # Create it if new else load it
+        # create it if new else load it
         if not os.path.exists(self.heap_file):
             raise ValueError('File {} not found'.format(self.heap_file))
         else:
-            # We clear the content of the file with arg: w+b
+            # we clear the content of the file with arg: w+b
             self.fd = open(self.heap_file, "w+b", buffering=0)
 
-        # Read and write at the begining of the new empty file
+        # read and write at the begining of the new empty file
         self.readptr = self.fd.tell()
         self.writeptr = self.fd.tell()
 
@@ -139,27 +156,43 @@ class TSHeap(Heap):
     '''
 
     def __init__(self, file_name, ts_length):
+        '''
+        Initializes the TSHeap class.
+
+        Parameters
+        ----------
+        file_name : str
+            Heap file location
+        ts_length : int
+            Expected/permitted length of time series
+
+        Returns
+        -------
+        An initialized TSHeap object
+        '''
         super().__init__(file_name)
 
-        # Check if fd is empty (case when new TSHeap)
-        # Need to write the length of the ts
+        # check if fd is empty (case when new TSHeap)
+        # need to write the length of the ts
         if self.writeptr == 0:
             self.ts_length = ts_length
             ts_len_bytes = ts_length.to_bytes(LENGTH_OFFSET,
                                               byteorder="little")
             self._write(ts_len_bytes)
         else:
-            # Read ts length
+            # read ts length
             self.fd.seek(0)
             self.ts_length = int.from_bytes(self.fd.read(LENGTH_OFFSET),
                                             byteorder="little")
-            # Check if ts_length matches
+            # check if ts_length matches
             if self.ts_length != ts_length:
-                raise ValueError('Wrong length set in the db, should be {} instead of {}'.format(self.ts_length, ts_length))
+                raise ValueError(
+                    'Wrong length set in the db, should be {} instead of {}'.format(self.ts_length, ts_length))
 
-        # Define length of byte array (lists of times and list of values)
+        # define length of byte array (lists of times and list of values)
         self.len_byte_array = 2 * self.ts_length * INT_BYTES
-        # Define format string
+
+        # define format string
         self.fmt = "<%sd" % (2*self.ts_length)
 
     def write_ts(self, ts):
@@ -207,23 +240,23 @@ class MetaHeap(Heap):
 
     def __init__(self, file_name, schema):
         '''
-        Create a meta heap
+        Initializes the MetaHeap class.
 
         Parameters
         ----------
-        schema : dictionary
-            New schema
         file_name : str
-            string where to find the heap file
+            Heap file location
+        schema : dictionary
+            Metadata fields and attributes
 
         Returns
         -------
-        Nothing, modifies in-place
+        An initialized MetaHeap object
         '''
         super().__init__(file_name)
         self.schema = schema
         self.meta_file = file_name+".met"
-        # Build: fields, default_values, len_byte_array, fmt
+        # build: fields, default_values, len_byte_array, fmt
         self._build_format_string()
 
     def reset_schema(self, schema, pks):
@@ -244,27 +277,27 @@ class MetaHeap(Heap):
         -------
         Nothing, modifies in-place pks with the new offset
         '''
-        # Load previous meta for each pks
-        # Store them in metas: {pk: old_offset}
+        # load previous meta for each pks
+        # store them in metas: {pk: old_offset}
         metas = {}
         for pk, tup in pks.items():
-            # Read raw values
+            # read raw values
             metas[pk] = self.read_meta(tup[1])
 
-        # Reset schema
+        # reset schema
         self.schema = schema
-        # Update the parameters for binary file based on new schema
+        # update the parameters for binary file based on new schema
         self._build_format_string()
-        # Reset heap file
+        # reset heap file
         self.clear()
 
-        # Populate the new heap file according to the new schema
+        # populate the new heap file according to the new schema
         for pk, meta in metas.items():
-            # The deleted fields previously present won't be written to the
+            # the deleted fields previously present won't be written to the
             # heap as they are not in self.fields anymore
             pk_offset = self.write_meta(meta, offset=None)
 
-            # Inplace update of the offset tuple in pks index
+            # inplace update of the offset tuple in pks index
             new_offsets = (pks[pk][0], pk_offset)
             pks[pk] = new_offsets
 
@@ -285,17 +318,17 @@ class MetaHeap(Heap):
         fields.remove("pk")
         # ts is stored in TS heap
         fields.remove("ts")
-        # To keep track of the order we use list
+        # to keep track of the order we use list
         self.fields = []
         self.default_values = []
-        # Initialize the format string
+        # initialize the format string
         self.fmt = ""
         for field in fields:
             field_type = self.schema[field]["type"]
-            # Update lists
+            # update lists
             self.default_values.append(DEFAULT_VALUES[field_type])
             self.fields.append(field)
-            # Update format string
+            # update format string
             self.fmt += STRUCT_TYPES[field_type]
         self.len_byte_array = len(
             struct.pack(self.fmt, *self.default_values))
@@ -317,19 +350,19 @@ class MetaHeap(Heap):
             offset of the metadata in heapfile if given
             (same as arg is given, else new one)
         '''
-        # Initialize the meta data if new insertion
+        # initialize the meta data if new insertion
         if offset is None:
             values = self.default_values
         else:
             self.writeptr = offset
             values = list(self._read_meta(offset))
 
-        # Update the list of values for the fields in both meta heap and meta_dict
+        # update list of values for the fields in both metaheap and meta_dict
         for i, field in enumerate(self.fields):
             if field in meta_dict.keys():
                 values[i] = meta_dict[field]
 
-        # Write the metadata
+        # write the metadata
         byte_array = struct.pack(self.fmt, *values)
 
         return self._write(byte_array)
@@ -349,7 +382,7 @@ class MetaHeap(Heap):
             metadata read from heap as a raw tuple of values
         '''
         buf = self._read(offset)
-        # Read the list of meta values
+        # read the list of meta values
         return struct.unpack(self.fmt, buf)
 
     def read_meta(self, offset):
@@ -366,7 +399,7 @@ class MetaHeap(Heap):
         metadata: dict
             metadata read from heap wraped in a dictionary
         '''
-        # Get the values
+        # get the values
         values = self._read_meta(offset)
 
         return {k: v for k, v in zip(self.fields, values)}

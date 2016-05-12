@@ -12,7 +12,8 @@ from scipy.stats import norm
 
 ########################################
 #
-# NOTE: this file can be used to test the REST API functionality.
+# This file can be used to test the basic REST API functionality.
+# NOTE: This file does not incorporate the persistent database behavior.
 # For it to work, you will need to first run go_server.py to set up the
 # server and go_webserver.py to set up the webserver.
 #
