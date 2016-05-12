@@ -328,6 +328,9 @@ class TriggerIndex(Index):
 
         self.index[key].append(pk)
 
+        # commit triggers at each change
+        self.commit()
+
     def remove_all_triggers(self, key, proc):
         '''
         Removes all triggers associated with a particular database action
@@ -362,6 +365,9 @@ class TriggerIndex(Index):
         if removed == 0:
             raise ValueError('No triggers removed.')
 
+        # commit triggers at each change
+        self.commit()
+
     def remove_one_trigger(self, key, proc, target):
         '''
         Removes a specific instance of a trigger associated with a particular
@@ -389,6 +395,9 @@ class TriggerIndex(Index):
             if t[0] == proc:  # matches coroutine
                 if t[3] == target:  # matches target
                     trigs.remove(t)
+
+        # commit triggers at each change
+        self.commit()
 
 
 class BinTreeIndex(Index):
