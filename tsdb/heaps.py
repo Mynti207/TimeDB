@@ -108,6 +108,9 @@ class TSHeap(Heap):
             self.fd.seek(0)
             self.ts_length = int.from_bytes(self.fd.read(LENGTH_OFFSET),
                                             byteorder="little")
+            # Check if ts_length matches
+            if self.ts_length != ts_length:
+                raise ValueError('Wrong length set in the db, should be {} instead of {}'.format(self.ts_length, ts_length))
 
         # Define length of byte array (lists of times and list of values)
         self.len_byte_array = 2 * self.ts_length * INT_BYTES

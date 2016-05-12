@@ -154,6 +154,22 @@ def test_server():
     assert status == TSDBStatus.INVALID_KEY
     assert payload is None
 
+    # insert a ts with wrong length
+
+    # package the operation
+    test_ts = tsdict["ts-{}".format(num_ts-1)]
+    buggy_ts = TimeSeries(test_ts.timesseq[:-5], test_ts.valuesseq[:-5])
+    op = {'op': 'insert_ts', 'pk': 'new', 'ts': buggy_ts}
+    # test that this is packaged as expected
+    assert op == TSDBOp_InsertTS('new', buggy_ts)
+    # run operation
+    result = protocol._insert_ts(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.INVALID_KEY
+    assert payload is None
+
     ########################################
     #
     # test time series deletion
@@ -232,7 +248,7 @@ def test_server():
     status, payload = result['status'], result['payload']
     # test that return values are as expected
     assert status == TSDBStatus.INVALID_KEY
-    assert payload is None
+    assert payload is None   
 
     ########################################
     #
@@ -782,6 +798,10 @@ def test_server():
     with pytest.raises(ValueError):
         # run operation
         result = protocol._select(op)
+
+    # Try to reload the db with wrong ts length
+    with pytest.raises(ValueError):
+        db = PersistentDB(schema, 'pk', 50)
 
     # Reload the db
     db = PersistentDB(schema, 'pk', 100)

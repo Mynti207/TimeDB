@@ -41,7 +41,7 @@ class PersistentDB:
             offset_in_TSHeap for each timeseries is stored in PrimaryIndex
         - MetaHeap:
             heap_meta stores in a binary file the all the fields in
-            meta and offset_in_TSHeap for each timeseries.
+            meta.
             offset_in_MetaHeap for each timeseries is stored in PrimaryIndex
         - PrimaryIndex:
             pk.idx
@@ -67,7 +67,7 @@ class PersistentDB:
     '''
 
     def __init__(self, schema, pkfield, ts_length, db_name="default",
-                 data_dir="db_files", verbose=False):
+                 data_dir="db_files", verbose=False, commit_step=10):
         '''
         Initializes the PersistentDB class.
 
@@ -137,6 +137,11 @@ class PersistentDB:
         # triggers associated with database operations
         # dictionary of sets, defined as Index to facilitate commits
         self.triggers = TriggerIndex('triggers', self.data_dir + '/')
+
+        # Local counter for the batch commit of the indexes
+        # Count the remaining operations before commit
+        self.next_commit = commit_step
+        self.commit_step = commit_step
 
     def close(self):
         '''
@@ -249,20 +254,23 @@ class PersistentDB:
         if len(ts) != self.ts_length:
             raise ValueError('Time series is the wrong length.')
 
-        # DEBUG
-        # print('Before insert, state of pks: ', self.pks.index)
-
+        # INSERTION on heaps
         # Insert ts
         ts_offset = self.ts_heap.write_ts(ts)
 
-        # Create default metadata for the new timeseries
-        # (using the helper because creation of meta)
+        # Insert default metadata
         pk_offset = self._upsert_meta({})
 
+        # INSERTION on indexes
+        # TODO: insertion on log first and then on index by batch
         # Set the primary key index with the offsets tuple
         self.pks[pk] = (ts_offset, pk_offset)
         # Commit to disk the index
-        self.pks.commit()
+        if self.next_commit == 0:
+            self.pks.commit()
+            self.next_commit = self.commit_step
+        else:
+            self.next_commit -= 1
 
         # update indices for primary key
         self.update_indices(pk)
@@ -272,9 +280,6 @@ class PersistentDB:
             self.tree.insert(ts.values(), tsid=pk, fs=self.fs)
         except ValueError:
             return ValueError('Not compatible with tree structure.')
-
-        # DEBUG
-        # print('After insert, state of pks: ', self.pks.index)
 
     def delete_ts(self, pk):
         '''
@@ -311,7 +316,11 @@ class PersistentDB:
         # pop from primary key index
         self.pks.remove_pk(False, pk)
         # Commit to disk the index
-        self.pks.commit()
+        if self.next_commit == 0:
+            self.pks.commit()
+            self.next_commit = self.commit_step
+        else:
+            self.next_commit -= 1
 
         # remove from other indexed fields (deleted field included)
         self.remove_indices(pk, meta)
@@ -439,8 +448,12 @@ class PersistentDB:
 
         # Update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
-        # Commit to disk the update in the primary index
-        self.pks.commit()
+        # Commit to disk the index
+        if self.next_commit == 0:
+            self.pks.commit()
+            self.next_commit = self.commit_step
+        else:
+            self.next_commit -= 1
 
         # add the new index
         self._init_indexes(didx, value)
@@ -499,8 +512,12 @@ class PersistentDB:
         del self.schema[didx]
         # Update the meta heap with the new schema
         self.meta_heap.reset_schema(self.schema, self.pks)
-        # Commit to disk the update in the primary index
-        self.pks.commit()
+        # Commit to disk the index
+        if self.next_commit == 0:
+            self.pks.commit()
+            self.next_commit = self.commit_step
+        else:
+            self.next_commit -= 1
 
         # erase inverse-lookup index for the distance vp
         self.indexes[didx]._erase()
