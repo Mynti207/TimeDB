@@ -8,15 +8,15 @@ identity = lambda x: x
 
 # index: 1 is binary tree index, 2 is bitmap index
 schema = {
-  'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
-  'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
-  'order': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
-  'blarg': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
-  'useless': {'type': 'int', 'convert': identity, 'index': 1, 'values': None},
-  'mean': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
-  'std': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
-  'vp': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]},
-  'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
+    'pk': {'type': 'str', 'convert': identity, 'index': None, 'values': None},
+    'ts': {'type': 'int', 'convert': identity, 'index': None, 'values': None},
+    'order': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+    'blarg': {'type': 'int', 'convert': int, 'index': 1, 'values': None},
+    'useless': {'type': 'int', 'convert': identity, 'index': 1, 'values': None},
+    'mean': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+    'std': {'type': 'float', 'convert': float, 'index': 1, 'values': None},
+    'vp': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]},
+    'deleted': {'type': 'bool', 'convert': bool, 'index': 2, 'values': [True, False]}
 }
 
 
@@ -63,7 +63,8 @@ def test_server():
 
     # initialize file system
     data_dir = 'db_files/default/'
-    if not os.path.exists(data_dir): os.makedirs(data_dir)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
     filelist = [data_dir + f for f in os.listdir(data_dir)]
     for f in filelist:
         os.remove(f)
@@ -642,15 +643,15 @@ def test_server():
     ########################################
 
     # pick a new time series to add as a vantage point
-    
+
     # randomly choose time series as vantage points
     vpkeys = list(np.random.choice(ts_keys, size=num_vps, replace=False))
     distkeys = sorted(['d_vp_' + i for i in vpkeys])
-    
+
     # add the time series as vantage points
-    
+
     for i in range(num_vps):
-    
+
         # package the operation
         op = {'op': 'insert_vp', 'pk': vpkeys[i]}
         # test that this is packaged as expected
@@ -664,7 +665,7 @@ def test_server():
         assert payload is None
 
     # check that the distance fields are now in the database
-    
+
     # package the operation
     op = {'op': 'select', 'md': {}, 'fields': distkeys, 'additional': None}
     # test that this is packaged as expected
@@ -678,9 +679,9 @@ def test_server():
     if len(payload) > 0:
         assert (sorted(list(payload[list(payload.keys())[0]].keys())) ==
                 distkeys)
-    
+
     # try to add a time series that doesn't exist as a vantage point
-    
+
     # package the operation
     op = {'op': 'insert_vp', 'pk': 'mistake'}
     # test that this is packaged as expected
@@ -692,11 +693,11 @@ def test_server():
     # test that return values are as expected
     assert status == TSDBStatus.INVALID_KEY
     assert payload is None
-    
+
     # remove them all
-    
+
     for i in range(num_vps):
-    
+
         # package the operation
         op = {'op': 'delete_vp', 'pk': vpkeys[i]}
         # test that this is packaged as expected
@@ -708,9 +709,9 @@ def test_server():
         # test that return values are as expected
         assert status == TSDBStatus.OK
         assert payload is None
-    
+
     # check that the distance fields are now not in the database
-    
+
     # package the operation
     op = {'op': 'select', 'md': {}, 'fields': distkeys, 'additional': None}
     # test that this is packaged as expected
@@ -723,9 +724,9 @@ def test_server():
     assert status == TSDBStatus.OK
     if len(payload) > 0:
         assert (list(payload[list(payload.keys())[0]].keys()) == [])
-    
+
     # try to delete a vantage point that doesn't exist
-    
+
     # package the operation
     op = {'op': 'delete_vp', 'pk': 'mistake'}
     # test that this is packaged as expected
@@ -737,11 +738,11 @@ def test_server():
     # test that return values are as expected
     assert status == TSDBStatus.INVALID_KEY
     assert payload is None
-    
+
     # add them back in
-    
+
     for i in range(num_vps):
-    
+
         # package the operation
         op = {'op': 'insert_vp', 'pk': vpkeys[i]}
         # test that this is packaged as expected
@@ -753,20 +754,20 @@ def test_server():
         # test that return values are as expected
         assert status == TSDBStatus.OK
         assert payload is None
-    
+
     ########################################
     #
     # test vantage point similarity search
     #
     ########################################
-    
+
     # first create a query time series
     _, query = tsmaker(np.random.uniform(low=0.0, high=1.0),
                        np.random.uniform(low=0.05, high=0.4),
                        np.random.uniform(low=0.05, high=0.2))
-    
+
     # single closest time series
-    
+
     # package the operation
     op = {'op': 'vp_similarity_search', 'query': query, 'top': 1}
     # test that this is packaged as expected
@@ -778,9 +779,9 @@ def test_server():
     # test that return values are as expected
     assert status == TSDBStatus.OK
     assert len(payload) == 1
-    
+
     # 5 closest time series
-    
+
     # package the operation
     op = {'op': 'vp_similarity_search', 'query': query, 'top': 5}
     # test that this is packaged as expected
@@ -792,9 +793,9 @@ def test_server():
     # test that return values are as expected
     assert status == TSDBStatus.OK
     assert len(payload) <= 5
-    
+
     # run similarity search on an existing time series - should return itself
-    
+
     # pick a random time series
     idx = np.random.choice(list(tsdict.keys()))
     # package the operation
@@ -809,49 +810,48 @@ def test_server():
     assert status == TSDBStatus.OK
     assert len(payload) == 1
     assert list(payload)[0] == idx
+
+    ########################################
     #
-    # ########################################
-    # #
-    # # test isax functions
-    # #
-    # ########################################
+    # test isax functions
     #
-    # # run similarity search on an existing time series - should return itself
+    ########################################
+
+    # run similarity search on an existing time series - should return itself
+
+    # pick a random time series
+    idx = np.random.choice(list(tsdict.keys()))
+    # package the operation
+    op = {'op': 'isax_similarity_search', 'query': tsdict[idx]}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXSimilaritySearch(tsdict[idx])
+    # run operation
+    result = protocol._isax_similarity_search(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert len(payload) == 1
+    assert list(payload)[0] == idx
+
+    # visualize tree representation
+
+    # package the operation
+    op = {'op': 'isax_tree'}
+    # test that this is packaged as expected
+    assert op == TSDBOp_iSAXTree()
+    # run operation
+    result = protocol._isax_tree(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert isinstance(payload, str)
+
+    ########################################
     #
-    # # pick a random time series
-    # idx = np.random.choice(list(tsdict.keys()))
-    # # package the operation
-    # op = {'op': 'isax_similarity_search', 'query': tsdict[idx]}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_iSAXSimilaritySearch(tsdict[idx])
-    # # run operation
-    # result = protocol._isax_similarity_search(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert status == TSDBStatus.OK
-    # print('COMPARING', idx, 'WITH', payload)
-    # assert len(payload) == 1
-    # assert list(payload)[0] == idx
+    # tear down
     #
-    # # visualize tree representation
-    #
-    # # package the operation
-    # op = {'op': 'isax_tree'}
-    # # test that this is packaged as expected
-    # assert op == TSDBOp_iSAXTree()
-    # # run operation
-    # result = protocol._isax_tree(op)
-    # # unpack results
-    # status, payload = result['status'], result['payload']
-    # # test that return values are as expected
-    # assert isinstance(payload, str)
-    #
-    # ########################################
-    # #
-    # # tear down
-    # #
-    # ########################################
+    ########################################
 
     db = None
     server = None
