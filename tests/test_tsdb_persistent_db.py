@@ -193,3 +193,7 @@ def test_tsdb_persistentdb():
     ddb.delete_ts('pk6')
     for (k, v) in ddb.indexes['vp'].items():
         assert 'pk6' not in v
+
+    # try to add a time series of the wrong length
+    with pytest.raises(ValueError):
+        ddb.insert_ts('wrong_length', TimeSeries([1, 2], [3, 4]))

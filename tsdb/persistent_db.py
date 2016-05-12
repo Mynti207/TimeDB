@@ -85,7 +85,6 @@ class PersistentDB:
         -------
         An initialized PersistentDB object
         '''
-
         self.db_name = db_name
 
         # directory to save files
@@ -245,6 +244,10 @@ class PersistentDB:
         # check that pk is a hashable type and not already present
         self._valid_pk(pk)
         self._check_presence(pk)
+
+        # check that the time series is the correct length
+        if len(ts) != self.ts_length:
+            raise ValueError('Time series is the wrong length.')
 
         # DEBUG
         # print('Before insert, state of pks: ', self.pks.index)
