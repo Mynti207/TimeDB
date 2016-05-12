@@ -54,7 +54,7 @@ The following indexes are saved on disk with pickle and inherit from the same `I
 {'pk': ('offset_in_TSHeap', 'offset_in_MetaHeap')}
 ```
 
-- `BinaryTreeIndex`: uses the Python `bintrees` library (https://pypi.python.org/pypi/bintrees/2.0.2).
+- `BinTreeIndex`: uses the Python `bintrees` library (https://pypi.python.org/pypi/bintrees/2.0.2).
 
 - `BitMapIndex`: uses a dictionary with possible values as keys and bitmap vectors over the timeseries as values.
 
@@ -70,8 +70,8 @@ All the following files are saved in the local directory `data_dir` under the su
 - `heap_ts.met`: stores the raw timeseries sequentially in a binary file, with `ts_length` stored at the beginning of the file.
 - `heap_meta.met`: stores all the metadata fields in a binary file.
 - `pk.idx`: stores the `PrimaryIndex`.
-- `index_{'field'}.idx`: stores `BinaryTreeIndex` and `BitMapIndex` objects. In the latter case, an additional file `index_{'field'}_pks.idx` is also saved, which defines the primary key offsets for conversion to/from the bitmap representation.
-- ``triggers.idx`: Stores database triggers as a dictionary with possible trigger actions as keys and a list of tuple as values, where each tuple represents the parameters of a trigger associated with the given database action.`
+- `index_{'field'}.idx`: stores `BinTreeIndex` and `BitMapIndex` objects. In the latter case, an additional file `index_{'field'}_pks.idx` is also saved, which defines the primary key offsets for conversion to/from the bitmap representation.
+- `triggers.idx`: Stores database triggers as a dictionary with possible trigger actions as keys and a list of tuple as values, where each tuple represents the parameters of a trigger associated with the given database action.`
 - `schema.idx`: Stores the database schema, allowing the user to make and store changes to the fields.
 
 
