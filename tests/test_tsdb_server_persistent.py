@@ -827,6 +827,9 @@ def test_server():
     # close the db
     db.close()
 
+    # Break
+    time.sleep(1)
+
     # Try to do same operation
     with pytest.raises(ValueError):
         # run operation
@@ -901,6 +904,9 @@ def test_server():
 
     # close the db
     db.close()
+
+    # Break
+    time.sleep(1)
 
     # Reload the db
     db = PersistentDB(schema, 'pk', 100)
