@@ -78,10 +78,10 @@ All the following files are saved in the local directory `data_dir` under the su
 
 **Atomic transactions**
 
-**TODO**
+A transaction is guaranteed atomics with a logging system. The primary index uses a log which is identical to its dictionary index except for one key (to keep track of synchronization on disk). The writes first occur in the log on memory, then in the log on disk and then only in the index in memory and later on disk by batch (parameter set for as a persistentDB attributes).
+As a result if the system crashes during an insertion when it recovers, the log may differ from the index saved so we can use it to recover the primary index. And we prevent the system from the loss of an index stored only on memory.
 
-
-
+The log is also used for the triggers associated to a persistentDB object as we can't restore them from the Heaps, the secondary indexes are stored on disk and committed at will. It's possible to build them from scratch from both the heaps and the primary keys. So when reloading a db, we load the secondary index files from disk and update them if needed. This may add some overload at initialization in case of previous failure but reduces both the disk storage and the number of logs to keep track of.
 
 ### Additional Feature: iSAX Similarity Searches
 
