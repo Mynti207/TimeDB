@@ -226,9 +226,9 @@ class Index:
             os.remove(self.file)
 
 
-class PrimaryIndex(Index):
+class IndexLog(Index):
     '''
-    Primary index classes using dictionary {'pk': offset}
+    Generic class for index object with log
     '''
 
     def __init__(self, field, directory):
@@ -247,36 +247,7 @@ class PrimaryIndex(Index):
         An initialized PrimaryIndex object
         '''
         super().__init__(field, directory)
-
-        # ONGOING WORK: building the log
-        # The log is identical to the index except for one key but the writes
-        # first occur in the log on memory, then in the log on disk and then
-        # only in the index in memory and later on disk by batch if desired.
-        # So if the systems crashes during an insertion when we recover, the
-        # index saved on disk contains an element only if it has been written
-        # correctly.
-        #
-        # The nex key in log is to track the last commit:
-        # '$COMMITED$' set to TRUE if index on disk == log on memory
-        # else set to False.
-        # i.e. we update '$COMMITED$' to TRUE after commiting the log into the
-        # index and to FALSE after each operation to the log
-        #
-        # load log if already present
-        self.file_log = self.directory + self.field + '_log.idx'
-        if os.path.exists(self.file_log):
-            with open(self.file_log, "rb", buffering=0) as fd:
-                self.log = pickle.load(fd)
-            # Check if log was commited into index before closing last session,
-            # else commit it.
-            # This will happen in case of previous failure or if some updates
-            # have not been commited into index in the previous session
-            if not self.log['$COMMITED$']:
-                self.commit_log_to_index()
-
-        # otherwise initialize
-        else:
-            self.log = {}
+        self._init_log()
 
     def commit_log(self):
         '''
@@ -321,14 +292,71 @@ class PrimaryIndex(Index):
         self.log['$COMMITED$'] = True
         self.commit_log()
 
-    # NOTE: the following operations have been added to try the custom
-    # behavior with the log, they should be simply updated in the INDEX class
-    # and remove from here if possible
-    # The idea is to do all the operation first on the log instead of the index
-    # to be able to first store on disk before updating on memory (and then on disk)
-    # the index
+    def _init_log(self):
+        '''
+        Initialize the log attributes, if loaded commit it to the index if
+        needed
 
-    def remove_pk(self, pk):
+        Parameters
+        -------
+        Nothing
+
+        Returns
+        -------
+        Nothing, modifies in-place.
+        '''
+        # Filename of the log, will be identical to the index
+        self.file_log = self.directory + self.field + '_log.idx'
+        if os.path.exists(self.file_log):
+            with open(self.file_log, "rb", buffering=0) as fd:
+                self.log = pickle.load(fd)
+            # Check if log was commited into index before closing last session,
+            # else commit it.
+            # This will happen in case of previous failure or if some updates
+            # have not been commited into index in the previous session
+            if not self.log['$COMMITED$']:
+                self.commit_log_to_index()
+                self.commit()
+
+        # otherwise initialize
+        else:
+            self.log = {}
+
+    def _erase(self):
+        '''
+        Erase from disk the index and log files if exists.
+        '''
+        if os.path.exists(self.file):
+            os.remove(self.file)
+
+        if os.path.exists(self.file_log):
+            os.remove(self.file_log)
+
+
+class PrimaryIndex(IndexLog):
+    '''
+    Primary index classes using dictionary {'pk': offset}
+    '''
+
+    def __init__(self, field, directory):
+        '''
+        Initializes the PrimaryIndex class.
+
+        Parameters
+        ----------
+        field : str
+            The metadata field name that the index represents
+        directory : str
+            The directory location where the index file will be saved
+
+        Returns
+        -------
+        An initialized PrimaryIndex object
+        '''
+        super().__init__(field, directory)
+        self._init_log()
+
+    def remove_pk(self, key, pk):
         '''
         Removes a primary key from an index key (i.e. metadata field value).
 
@@ -450,18 +478,8 @@ class PrimaryIndex(Index):
 
         self.index[key].add(pk)
 
-    def _erase(self):
-        '''
-        Erase from disk the index files if exists.
-        '''
-        if os.path.exists(self.file):
-            os.remove(self.file)
 
-        if os.path.exists(self.file_log):
-            os.remove(self.file_log)
-
-
-class TriggerIndex(Index):
+class TriggerIndex(IndexLog):
     '''
     Simple dictionary structure for making triggers persistent.
     Defined as index to facilitate commit behavior.
@@ -469,21 +487,6 @@ class TriggerIndex(Index):
 
     def __init__(self, field, directory):
         super().__init__(field, directory)
-        # Init log
-        self.file_log = self.directory + self.field + '_log.idx'
-        if os.path.exists(self.file_log):
-            with open(self.file_log, "rb", buffering=0) as fd:
-                self.log = pickle.load(fd)
-            # Check if log was commited into index before closing last session,
-            # else commit it.
-            # This will happen in case of previous failure or if some updates
-            # have not been commited into index in the previous session
-            if not self.log['$COMMITED$']:
-                self.commit_log_to_index()
-
-        # otherwise initialize
-        else:
-            self.log = {}
 
     def __getitem__(self, key):
         if key in self.index:
@@ -509,7 +512,7 @@ class TriggerIndex(Index):
         self.log['$COMMITED$'] = False
 
         # persist on the log
-        self.index[key] = []
+        self.log[key] = []
         self.commit_log()
 
         self.index[key] = []
@@ -532,13 +535,10 @@ class TriggerIndex(Index):
         self.log['$COMMITED$'] = False
 
         # persist on the log
-        del self.index[key]
+        del self.log[key]
         self.commit_log()
 
         del self.index[key]
-
-        # commit triggers at each change
-        self.commit()
 
     def add_trigger(self, key, pk):
         '''

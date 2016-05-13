@@ -790,6 +790,21 @@ def test_server():
         assert status == TSDBStatus.OK
         assert payload is None
 
+    # Add a trigger on mean/std
+
+    # package the operation
+    op = {'op': 'add_trigger', 'proc': 'stats', 'onwhat': 'insert_ts',
+          'target': ['mean', 'std'], 'arg': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_AddTrigger('stats', 'insert_ts', ['mean', 'std'], None)
+    # run operation
+    result = protocol._add_trigger(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload is None
+
     ########################################
     #
     # test persistency
@@ -836,6 +851,95 @@ def test_server():
     if len(payload) > 0:
         assert list(payload[list(payload.keys())[0]].keys()) == []
         assert sorted(payload.keys()) == selected_keys
+
+    ########################################
+    #
+    # test log
+    #
+    ########################################
+
+    # Select on indexed field
+
+    # BitMap indexes
+    op = {'op': 'select', 'md': {'vp': True}, 'fields': [], 'additional': None}
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    # Retrieve keys
+    vp_keys = sorted(payload.keys())
+
+    # BinTree indexes
+    op = {'op': 'select', 'md': {'blarg': 2}, 'fields': [], 'additional': None}
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    # Retrieve keys
+    blarg_keys = sorted(payload.keys())
+
+    # Select operation with all fields
+
+    # package the operation
+    op = {'op': 'select', 'md': {}, 'fields': [], 'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({}, [], None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    # Pick meta of a random time serie (from previously selected)
+    idx = np.random.choice(vp_keys)
+    meta_idx = payload[idx]
+    selected_keys = sorted(payload.keys())
+
+    # close the db
+    db.close()
+
+    # Reload the db
+    db = PersistentDB(schema, 'pk', 100)
+    # Reset server and protocol
+    server = TSDBServer(db)
+    protocol = TSDBProtocol(server)
+
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    # Checking meta maintained
+    assert meta_idx == payload[idx]
+
+    # Checking indices are conserved
+
+    # BitMap indexes
+    op = {'op': 'select', 'md': {'vp': True}, 'fields': [], 'additional': None}
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    # Retrieve keys
+    assert sorted(payload.keys()) == vp_keys
+
+    # BinTree indexes
+    op = {'op': 'select', 'md': {'blarg': 2}, 'fields': [], 'additional': None}
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    # Retrieve keys
+    assert sorted(payload.keys()) == blarg_keys
 
     ########################################
     #

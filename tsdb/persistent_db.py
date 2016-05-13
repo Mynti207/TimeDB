@@ -108,7 +108,7 @@ class PersistentDB:
         self.ts_length = ts_length
         self.pkfield = pkfield
 
-        # intialize primary key index
+        # initialize primary key index
         self.pks = PrimaryIndex(pkfield, self.data_dir + '/')
 
         # initialize indexes defined in schema
@@ -122,6 +122,10 @@ class PersistentDB:
         # primary key index pks as value
         self.meta_heap = MetaHeap(self.data_dir, '/heap_meta', self.schema)
         self.ts_heap = TSHeap(self.data_dir, '/heap_ts', self.ts_length)
+
+        # Update indices (in case of previous failure, update them based on
+        # the logged index pks)
+        self.index_bulk()
 
         # set closed to False
         self.closed = False
@@ -301,7 +305,6 @@ class PersistentDB:
         self.pks[pk] = (ts_offset, pk_offset)
         # commit to disk the index
         if self.next_commit == 1:
-            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -349,11 +352,10 @@ class PersistentDB:
         self._upsert_meta({'deleted': True}, offset=self.pks[pk][1])
 
         # pop from primary key index
-        self.pks.remove_pk(pk)
+        self.pks.remove_pk(None, pk)
 
         # commit to disk the index
         if self.next_commit == 0:
-            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -412,7 +414,7 @@ class PersistentDB:
         self.triggers.add_trigger(onwhat, (proc, storedproc, arg, target))
 
         # commit to disk the index (no batch commit as its not that often)
-        self.trigger.commit()
+        self.triggers.commit()
 
     def remove_trigger(self, proc, onwhat, target):
         '''
@@ -445,7 +447,7 @@ class PersistentDB:
             self.triggers.remove_one_trigger(onwhat, proc, target)
 
         # commit to disk the index (no batch commit as its not that often)
-        self.trigger.commit()
+        self.triggers.commit()
 
     def insert_vp(self, pk):
         '''
@@ -493,7 +495,6 @@ class PersistentDB:
         self.meta_heap.reset_schema(self.schema, self.pks)
         # Commit to disk the index
         if self.next_commit == 0:
-            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -558,7 +559,6 @@ class PersistentDB:
         self.meta_heap.reset_schema(self.schema, self.pks)
         # Commit to disk the index
         if self.next_commit == 0:
-            print('COMMITTING TO DISK')
             self.pks.commit()
             self.next_commit = self.commit_step
         else:
@@ -697,7 +697,8 @@ class PersistentDB:
             # add pk to the index
             index.add_pk(meta[field], pk)
             # commit to disk the update
-            index.commit()
+            # TOCHANGE
+            # index.commit()
 
     def remove_indices(self, pk, meta):
         '''
@@ -722,7 +723,8 @@ class PersistentDB:
                 # remove pk for the previous value
                 index.remove_pk(meta[field], pk)
                 # commit to disk the update
-                index.commit()
+                # TOCHANGE
+                # index.commit()
 
     def select(self, meta, fields, additional):
         '''
