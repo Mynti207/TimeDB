@@ -442,8 +442,12 @@ class test_client(asynctest.TestCase):
         status, payload = await self.client.vp_similarity_search(
             tsdict[idx], 1)
         assert status == TSDBStatus.OK
-        assert len(payload) == 1
-        assert list(payload)[0] == idx
+
+        # recover the time series for comparison
+        closest_ts = list(payload)[0]
+        status, payload = await self.client.select({'pk': closest_ts}, ['ts'])
+        assert status == TSDBStatus.OK
+        assert TimeSeries(*payload[closest_ts]['ts']) == tsdict[idx]
 
         ########################################
         #
@@ -456,7 +460,12 @@ class test_client(asynctest.TestCase):
         idx = np.random.choice(list(tsdict.keys()))
         status, payload = await self.client.isax_similarity_search(tsdict[idx])
         assert status == TSDBStatus.OK
-        assert list(payload)[0] == idx
+
+        # recover the time series for comparison
+        closest_ts = list(payload)[0]
+        status, payload = await self.client.select({'pk': closest_ts}, ['ts'])
+        assert status == TSDBStatus.OK
+        assert TimeSeries(*payload[closest_ts]['ts']) == tsdict[idx]
 
         # visualize tree representation
         status, payload = await self.client.isax_tree()

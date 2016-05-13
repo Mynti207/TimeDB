@@ -49,7 +49,6 @@ def test_tsdb_dictdb():
 
     # delete a valid time series
     ddb.delete_ts('pk1')
-    print(ddb.indexes)
 
     # check that it isn't present any more
     pk, selected = ddb.select({'pk': 'pk1'}, [], None)

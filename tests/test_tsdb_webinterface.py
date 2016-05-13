@@ -369,8 +369,12 @@ class test_webinterface(asynctest.TestCase):
 
         idx = np.random.choice(list(tsdict.keys()))
         results = self.web_interface.vp_similarity_search(tsdict[idx], 1)
-        assert len(results) == 1
-        assert list(results)[0] == idx
+
+        # recover the time series for comparison
+        closest_ts = list(results)[0]
+        results = self.web_interface.select(
+            md={'pk': closest_ts}, fields=['ts'])
+        assert results[closest_ts]['ts'] == tsdict[idx]
 
         ########################################
         #
@@ -382,8 +386,12 @@ class test_webinterface(asynctest.TestCase):
         # -> should return itself
         idx = np.random.choice(list(tsdict.keys()))
         results = self.web_interface.isax_similarity_search(tsdict[idx])
-        assert len(results) == 1
-        assert list(results)[0] == idx
+
+        # recover the time series for comparison
+        closest_ts = list(results)[0]
+        results = self.web_interface.select(
+            md={'pk': closest_ts}, fields=['ts'])
+        assert results[closest_ts]['ts'] == tsdict[idx]
 
         # visualize tree representation
         results = self.web_interface.isax_tree()

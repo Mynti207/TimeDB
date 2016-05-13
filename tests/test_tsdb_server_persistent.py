@@ -994,8 +994,22 @@ def test_server():
     status, payload = result['status'], result['payload']
     # test that return values are as expected
     assert status == TSDBStatus.OK
-    assert len(payload) == 1
-    assert list(payload)[0] == idx
+
+    # recover the time series for comparison
+    closest_ts = list(payload)[0]
+
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': closest_ts}, 'fields': ['ts'],
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': closest_ts}, ['ts'], None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload[closest_ts]['ts'] == tsdict[idx]
 
     ########################################
     #
@@ -1017,10 +1031,22 @@ def test_server():
     status, payload = result['status'], result['payload']
     # test that return values are as expected
     assert status == TSDBStatus.OK
-    assert len(payload) == 1
-    assert list(payload)[0] == idx
 
-    # visualize tree representation
+    # recover the time series for comparison
+    closest_ts = list(payload)[0]
+
+    # package the operation
+    op = {'op': 'select', 'md': {'pk': closest_ts}, 'fields': ['ts'],
+          'additional': None}
+    # test that this is packaged as expected
+    assert op == TSDBOp_Select({'pk': closest_ts}, ['ts'], None)
+    # run operation
+    result = protocol._select(op)
+    # unpack results
+    status, payload = result['status'], result['payload']
+    # test that return values are as expected
+    assert status == TSDBStatus.OK
+    assert payload[closest_ts]['ts'] == tsdict[idx]
 
     # package the operation
     op = {'op': 'isax_tree'}

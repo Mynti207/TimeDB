@@ -308,8 +308,6 @@ class test_client(asynctest.TestCase):
         status, payload = await self.client.select(
             {'vp': True}, use_keys, {'sort_by': '+pk', 'limit': 1})
         assert status == TSDBStatus.OK
-        print(sorted(list(list(payload.values())[0].keys())))
-        print(vpdist)
         assert sorted(list(list(payload.values())[0].keys())) == vpdist
 
         ########################################

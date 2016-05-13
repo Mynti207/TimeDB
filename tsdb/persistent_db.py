@@ -64,14 +64,6 @@ class PersistentDB:
             other. As a result, the field deleted will actually never be used
             when set to true as it's not indexed in that case.
 
-    TODO:
-        - modify the way to store on disk to use a log and commit by batch
-            instead of element by element. Changes to do in indexes.py, could
-            use a temporary log on memory keeping track of the last uncommited
-            changes.
-        - implement atomic transactions, with appropriate exception handling
-            and rollback on fail
-
     '''
 
     def __init__(self, schema, pkfield, ts_length, db_name="default",
@@ -305,7 +297,6 @@ class PersistentDB:
 
         # insertion on indexes -->
 
-        # TODO: insertion on log first and then on index by batch
         # set the primary key index with the offsets tuple
         self.pks[pk] = (ts_offset, pk_offset)
         # commit to disk the index
@@ -772,7 +763,6 @@ class PersistentDB:
 
                         # identify the operation and the value
                         # e.g. > 2 : the operator is > and the value is 2
-                        # TODO: optimize operation with BST ordering
                         operation = OPMAP[op]
                         val = conversion(value[op])
 
@@ -832,7 +822,6 @@ class PersistentDB:
                             break
 
                     # case field is not indexed
-                    # TODO: merge this case with the previous one
                     else:
                         selected = set()
                         for pk in pks:
@@ -878,10 +867,8 @@ class PersistentDB:
                 if predicate == self.pkfield:
                     pks.sort(reverse=reverse)
                 # case predicate field of schema
-                # TODO: improve sorting for indexed field
                 else:
                     # Loading the meta
-                    # TODO: improve because need only one meta
                     metas = {pk: self._get_meta(pk) for pk in pks}
                     # in-place sorting
                     pks.sort(key=lambda pk: metas[pk][predicate],

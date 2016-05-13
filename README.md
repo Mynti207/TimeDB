@@ -27,8 +27,6 @@ This package implements a persistent time series database. Our sample use case i
 
 ### Persistence Architecture
 
-
-
 **Heaps**
 
 The timeseries and the metadata are stored in heap files. When loading or creating a database, the heap files are opened and every operation occurs in the heap. The data are formatted with the python `struct` library and saved in the two following binary files.
@@ -40,8 +38,6 @@ All the timeseries stored need to have the same length (this parameter is set wh
 - `MetaHeap` to store the metadata:
 
 For each timeseries that is inserted, all the fields of the schema are initialized to their default values and saved into the heap. The size of each `struct` is directly computed from the schema and is common to each time series' metadata. In case of deletion/insertion into the schema, the heap file is reset with the new `struct` for all the metadata. This design decision causes heavy computation, but it rarely occurs (only upon insertion/deletion of vantage points) and allows a memory optimized heap file to be maintained. The offset of each element is stored in the `PrimaryIndex` associated with the corresponding time series' primary key.
-
-
 
 
 **Indices**
@@ -78,10 +74,15 @@ All the following files are saved in the local directory `data_dir` under the su
 
 **Atomic transactions**
 
-A transaction is guaranteed atomics with a logging system. The primary index uses a log which is identical to its dictionary index except for one key (to keep track of synchronization on disk). The writes first occur in the log on memory, then in the log on disk and then only in the index in memory and later on disk by batch (parameter set for as a persistentDB attributes).
-As a result if the system crashes during an insertion when it recovers, the log may differ from the index saved so we can use it to recover the primary index. And we prevent the system from the loss of an index stored only on memory.
+Transactions are guaranteed to be atomic by using a logging system. The `PrimaryKey` index uses a log that is identical to its dictionary index, except for an additional key that keeps track of synchronization on disk. Writes first occur in the log in memory, then in the log on disk, and only then in the index in memory and later on disk (based on a frequency parameter that is set as a `PersistentDB` attribute).
 
-The log is also used for the triggers associated to a persistentDB object as we can't restore them from the Heaps, the secondary indexes are stored on disk and committed at will. It's possible to build them from scratch from both the heaps and the primary keys. So when reloading a db, we load the secondary index files from disk and update them if needed. This may add some overload at initialization in case of previous failure but reduces both the disk storage and the number of logs to keep track of.
+As a result of this architecture, if the system crashes during an insertion then the log may differ from the saved index at the time of recovery. In this case, the log can be used to recover the primary index. We also protect the system from the loss of an index that is only stored in memory.
+
+The log is also used for the triggers that are associated with the `PersistentDB` object, as they cannot be restored from the heap files.
+
+The secondary indexes are stored on disk and are committed at will. These can be rebuilt from scratch using the heaps and the primary keys, so when reloading a database we load the secondary index files from disk and update them if necessary. This may add some overload at initialization in case of previous failure, but it reduces both the disk storage and the number of logs that must be tracked. In addition, the full recovery process should only be necessary on an infrequent basis.
+
+
 
 ### Additional Feature: iSAX Similarity Searches
 
@@ -94,7 +95,69 @@ We implemented a modified version of the iSAX tree using a true n-ary tree struc
 
 ### REST API
 
-**TODO**
+The REST API allows the database client to be accessed through http requests, once the server and webserver are online. We use both `GET` and `POST` requests, transferring data in `JSON` format through the wire. The API is accessible on a web app that was build with the `aiohttp` library and that uses an asynchronous handler to process the requests
+
+We recommend accessing the API through our user-friendly web interface (see demos below), rather than by manually building http requests. This allows users to communicate with the REST API through easy-to-use and robust Python scripts.
+
+Alternatively, the following paths can be used for direct access.
+
+**POST**
+
+- [http://127.0.0.1:8080/tsdb/insert_ts](http://127.0.0.1:8080/tsdb/insert_ts): inserts a new timeseries
+
+  parameters: `pk` (primary key), `ts` (timeseries)
+
+- [http://127.0.0.1:8080/tsdb/upsert_meta](http://127.0.0.1:8080/tsdb/upsert_meta): upserts (inserts/updates) timeseries metadata
+
+  parameters: `pk` (primary key), `md` (metadata)
+
+- [http://127.0.0.1:8080/tsdb/delete_ts](http://127.0.0.1:8080/tsdb/delete_ts): deletes time series and associated metadata
+
+  parameters: `pk` (primary key)
+
+-  [http://127.0.0.1:8080/tsdb/add_trigger](http://127.0.0.1:8080/tsdb/add_trigger): adds a new trigger, that runs a stored procedure when a specified database operation is called
+
+  parameters: `onwhat` (database operation trigger), `proc` (stored procedure name), `target` (fields to store procedure results)
+
+- [http://127.0.0.1:8080/tsdb/remove_trigger](http://127.0.0.1:8080/tsdb/remove_trigger): removes a trigger
+
+  parameters: `onwhat` (database operation trigger), `proc` (stored procedure name), `target` (fields that store procedure results; optional)
+
+- [http://127.0.0.1:8080/tsdb/insert_vp](http://127.0.0.1:8080/tsdb/insert_vp): inserts a vantage point
+
+  parameters: `pk` (primary key)
+
+- [http://127.0.0.1:8080/tsdb/delete_vp](http://127.0.0.1:8080/tsdb/delete_vp): removes a vantage point
+
+  parameters: `pk` (primary key)
+
+
+
+**GET**
+
+- [http://127.0.0.1:8080/tsdb](http://127.0.0.1:8080/tsdb): displays a presentation of the REST API
+
+  parameters: None
+
+- [http://127.0.0.1:8080/tsdb/select](http://127.0.0.1:8080/tsdb/select): selects (queries) time series data
+
+  parameters: `md` (select criteria; optional), `fields` (return fields; optional), `additional` (order by, limit; optional)
+
+- [http://127.0.0.1:8080/tsdb/augmented_select](http://127.0.0.1:8080/tsdb/augmented_select): selects (queries) time series data, and runs a stored procedure on the results of the query
+
+  parameters: `md` (select criteria; optional), `proc` (stored procedure name), `arg` (procedure arguments; optional), `target` (fields to display procedure results), `additional` (order by, limit; optional)
+
+- [http://127.0.0.1:8080/tsdb/vp_similarity_search](http://127.0.0.1:8080/tsdb/vp_similarity_search): vantage point similarity search
+
+  parameters: `query` (comparison timeseries), `top` (number of similar time series to return; optional)
+
+- [http://127.0.0.1:8080/tsdb/isax_similarity_search](http://127.0.0.1:8080/tsdb/isax_similarity_search): iSAX tree similarity search
+
+  parameters: `query` (comparison timeseries)
+
+- [http://127.0.0.1:8080/tsdb/isax_tree](http://127.0.0.1:8080/tsdb/isax_tree): text representation of iSAX tree
+
+  parameters: None
 
 
 
@@ -103,11 +166,13 @@ We implemented a modified version of the iSAX tree using a true n-ary tree struc
 
 ### Installation
 
-The package can be installed by running `python setup.py install` from the root folder.
+The package can be downloaded by running `git clone git@github.com:Mynti207/cs207project.git` from the terminal.
+
+it can then be installed by running `python setup.py install` from the root folder.
 
 Installation will make the following packages available: `procs`, `pype`, `timeseries`, `tsdb` and `webserver`.
 
-**Note**: Python 3.5 is required for this package.
+**Note**: Python 3.5 is required to use this package.
 
 
 
