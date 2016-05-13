@@ -22,8 +22,8 @@ schema = {
 
 ########################################
 #
-# NOTE: this file initializes the database server. This needs to be run
-# before any other database commands.
+# NOTE: this file initializes the persistent database server. This needs to
+# be run before any other database commands.
 #
 # For basic client functionality, you will also need to initialize a
 # TSDBClient object.

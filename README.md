@@ -27,6 +27,8 @@ This package implements a persistent time series database. Our sample use case i
 
 ### Persistence Architecture
 
+
+
 **Heaps**
 
 The timeseries and the metadata are stored in heap files. When loading or creating a database, the heap files are opened and every operation occurs in the heap. The data are formatted with the python `struct` library and saved in the two following binary files.
@@ -40,6 +42,8 @@ All the timeseries stored need to have the same length (this parameter is set wh
 For each timeseries that is inserted, all the fields of the schema are initialized to their default values and saved into the heap. The size of each `struct` is directly computed from the schema and is common to each time series' metadata. In case of deletion/insertion into the schema, the heap file is reset with the new `struct` for all the metadata. This design decision causes heavy computation, but it rarely occurs (only upon insertion/deletion of vantage points) and allows a memory optimized heap file to be maintained. The offset of each element is stored in the `PrimaryIndex` associated with the corresponding time series' primary key.
 
 
+
+
 **Indices**
 
 A primary index is used by default on the primary key (which is a string type in the current implementation) and stores the offsets for the heap files. Additional indexes can be set by the user on schema fields. This field can take 3 different values: `1` for a Binary Tree index in case of high cardinality, `2` for a BitMap index in case of low cardinality and `None` if no index is required.
@@ -50,45 +54,34 @@ The following indexes are saved on disk with pickle and inherit from the same `I
 {'pk': ('offset_in_TSHeap', 'offset_in_MetaHeap')}
 ```
 
-- `BinaryTreeIndex`:
-  uses the Python `bintrees` library (https://pypi.python.org/pypi/bintrees/2.0.2).
+- `BinTreeIndex`: uses the Python `bintrees` library (https://pypi.python.org/pypi/bintrees/2.0.2).
 
-- `BitMapIndex`:
-  uses a dictionary with possible values as keys and bitmap vectors over the timeseries as values.
+- `BitMapIndex`: uses a dictionary with possible values as keys and bitmap vectors over the timeseries as values.
 
   e.g. if `pk1` and `pk2` are `1`, `pk3` is `2`, and `pk4` is `3`, then the index will be ``{1: '1100', 2: '0010', 3: '0001'}``
 
-- `TriggerIndex`: uses a dictionary with possible trigger actions as keys and a list of tuple as values, where each tuple represents the parameters of a trigger associated with the given database action.
+
+
 
 **Files saved on disk**
 
 All the following files are saved in the local directory `data_dir` under the sub-directory `db_name`, which is an attribute of the PersistentDB object:
 
-- `TSHeap`
-  `heap_ts` stores the raw timeseries sequentially in a binary file, with `ts_length` stored at the beginning of the file.
+- `heap_ts.met`: stores the raw timeseries sequentially in a binary file, with `ts_length` stored at the beginning of the file.
+- `heap_meta.met`: stores all the metadata fields in a binary file.
+- `pk.idx`: stores the `PrimaryIndex`.
+- `index_{'field'}.idx`: stores `BinTreeIndex` and `BitMapIndex` objects. In the latter case, an additional file `index_{'field'}_pks.idx` is also saved, which defines the primary key offsets for conversion to/from the bitmap representation.
+- `triggers.idx`: Stores database triggers as a dictionary with possible trigger actions as keys and a list of tuple as values, where each tuple represents the parameters of a trigger associated with the given database action.`
+- `schema.idx`: Stores the database schema, allowing the user to make and store changes to the fields.
 
-- `MetaHeap`
-  `heap_meta` stores all the metadata fields in a binary file.
 
-- `PrimaryIndex`
-  `pk.idx`
-
-- `BinaryTreeIndex`
-  `index_{'field'}.idx`
-
-- `BitMapIndex`
-  `index_{'field'}.idx` (bitmap encoding) and `index_{'field'}_pks.idx` (for conversion to/from bitmap)
-
-- `TriggerIndex`
-
-  `triggers.idx`
 
 **Atomic transactions**
 
-**TODO**
+A transaction is guaranteed atomics with a logging system. The primary index uses a log which is identical to its dictionary index except for one key (to keep track of synchronization on disk). The writes first occur in the log on memory, then in the log on disk and then only in the index in memory and later on disk by batch (parameter set for as a persistentDB attributes).
+As a result if the system crashes during an insertion when it recovers, the log may differ from the index saved so we can use it to recover the primary index. And we prevent the system from the loss of an index stored only on memory.
 
-
-
+The log is also used for the triggers associated to a persistentDB object as we can't restore them from the Heaps, the secondary indexes are stored on disk and committed at will. It's possible to build them from scratch from both the heaps and the primary keys. So when reloading a db, we load the secondary index files from disk and update them if needed. This may add some overload at initialization in case of previous failure but reduces both the disk storage and the number of logs to keep track of.
 
 ### Additional Feature: iSAX Similarity Searches
 
@@ -120,7 +113,7 @@ Installation will make the following packages available: `procs`, `pype`, `times
 
 
 ### Running the Server
-The database server can be loaded by running `python go_server_persistent.py` (with the appropriate arguments), followed by `python go_webserver.py`. It is good practice to pause for a few seconds after each of those commands, to ensure that the server/webserver has loaded fully. Please refer to our documentation for examples and more detailed instructions.
+The database server can be loaded by running `python go_server_persistent.py` (with the appropriate arguments), followed by `python go_webserver.py`. It is good practice to pause for a few seconds after each of those commands, to ensure that the server/webserver has loaded fully. Terminating `go_server_persistent.py` will result in the database being committed to disk. Please refer to our documentation for examples and more detailed instructions.
 
 For example, `python go_server_persistent.py --ts_length 244 --db_name 'stock_prices'` followed by `python go_webserver.py` will load our database of daily stock price data, which includes a year of daily price data for 379 S&P 500 stocks (source: [www.stockwiz.com](http://www.stockwiz.com)).
 
@@ -151,6 +144,7 @@ Please refer to our database function demonstration below for full details on th
 * [Database function demonstration](docs/demo.ipynb)
 * [Database persistence demonstration](docs/persistence_demo.ipynb)
 * Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
+* [Presentation](docs/presentation.ipynb)
 
 
 

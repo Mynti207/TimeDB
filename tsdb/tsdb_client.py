@@ -419,9 +419,8 @@ class TSDBClient(object):
         msg_serialized = serialize(msg)
 
         # open connection with the server
-        reader, writer = await asyncio.open_connection(host='127.0.0.1',
-                                                       port=self.port,
-                                                       loop=loop)
+        reader, writer = await asyncio.open_connection(
+            host='127.0.0.1', port=self.port, loop=loop)
 
         # write the message
         writer.write(msg_serialized)

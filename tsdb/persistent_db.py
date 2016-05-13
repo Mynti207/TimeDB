@@ -34,7 +34,7 @@ class PersistentDB:
             'offset_in_MetaHeap')}
         - BinaryTreeIndex/BitMap index for other fields in the schema labelled
             with an index. Store as key the field name and as value
-            pk or pk bitmap.
+            pk set or pk bitmap.
 
     Files on disk: [All the files are saved in the directory 'data_dir',
         under the sub-directory 'db_name']
@@ -53,7 +53,11 @@ class PersistentDB:
         - BitMap index:
             index_{'field'}.idx (bitmap encoding)
             index_{'field'}_pks.idx (for conversion to/from bitmap)
-
+        - TriggerIndex for server-side trigger operations. Stored as dictionary
+            of lists.
+            triggers.idx
+        - schema (dictionary): to allow the user to make changes to the schema
+            schema.idx
     NB:
         - For the deletion, we update the meta field 'deleted' in the meta heap
             but we then remove the pk from the indexes, both primary index and
@@ -62,8 +66,9 @@ class PersistentDB:
 
     TODO:
         - modify the way to store on disk to use a log and commit by batch
-            instead of element by element. Changes to do in indexes.py, could use
-            a temporary log on memory keeping track of the last uncommited changes.
+            instead of element by element. Changes to do in indexes.py, could
+            use a temporary log on memory keeping track of the last uncommited
+            changes.
         - implement atomic transactions, with appropriate exception handling
             and rollback on fail
 
