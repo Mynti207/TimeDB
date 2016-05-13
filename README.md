@@ -11,19 +11,19 @@ Persistent Time Series Database
 
 **Note:** Unit tests are carried out by loading the server and webserver as sub-processes, which are not reflected in the coverage statistics. We estimate that our unit tests achieve at least 90% coverage when taking into consideration code that is run via sub-processes.
 
-
-
+Additional References
+-----------
+* [Database function demonstration](docs/demo.ipynb)
+* [Database persistence demonstration](docs/persistence_demo.ipynb)
+* Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
+* [Presentation](docs/presentation.ipynb)
 
 Description
 -----------
 
 This package implements a persistent time series database. Our sample use case involves two types of similarity searches on daily stock market data.
 
-
-
 ![Database structure diagram](docs/img/db_structure.png)
-
-
 
 ### Persistence Architecture
 
@@ -38,7 +38,6 @@ All the timeseries stored need to have the same length (this parameter is set wh
 - `MetaHeap` to store the metadata:
 
 For each timeseries that is inserted, all the fields of the schema are initialized to their default values and saved into the heap. The size of each `struct` is directly computed from the schema and is common to each time series' metadata. In case of deletion/insertion into the schema, the heap file is reset with the new `struct` for all the metadata. This design decision causes heavy computation, but it rarely occurs (only upon insertion/deletion of vantage points) and allows a memory optimized heap file to be maintained. The offset of each element is stored in the `PrimaryIndex` associated with the corresponding time series' primary key.
-
 
 **Indices**
 
@@ -56,9 +55,6 @@ The following indexes are saved on disk with pickle and inherit from the same `I
 
   e.g. if `pk1` and `pk2` are `1`, `pk3` is `2`, and `pk4` is `3`, then the index will be ``{1: '1100', 2: '0010', 3: '0001'}``
 
-
-
-
 **Files saved on disk**
 
 All the following files are saved in the local directory `data_dir` under the sub-directory `db_name`, which is an attribute of the PersistentDB object:
@@ -70,8 +66,6 @@ All the following files are saved in the local directory `data_dir` under the su
 - `triggers.idx`: Stores database triggers as a dictionary with possible trigger actions as keys and a list of tuple as values, where each tuple represents the parameters of a trigger associated with the given database action.`
 - `schema.idx`: Stores the database schema, allowing the user to make and store changes to the fields.
 
-
-
 **Atomic transactions**
 
 Transactions are guaranteed to be atomic by using a logging system. The `PrimaryKey` index uses a log that is identical to its dictionary index, except for an additional key that keeps track of synchronization on disk. Writes first occur in the log in memory, then in the log on disk, and only then in the index in memory and later on disk (based on a frequency parameter that is set as a `PersistentDB` attribute).
@@ -82,8 +76,6 @@ The log is also used for the triggers that are associated with the `PersistentDB
 
 The secondary indexes are stored on disk and are committed at will. These can be rebuilt from scratch using the heaps and the primary keys, so when reloading a database we load the secondary index files from disk and update them if necessary. This may add some overload at initialization in case of previous failure, but it reduces both the disk storage and the number of logs that must be tracked. In addition, the full recovery process should only be necessary on an infrequent basis.
 
-
-
 ### Additional Feature: iSAX Similarity Searches
 
 A time series of fixed length can be reduced in dimensionality using a SAX encoding. The collective encodings for a time series can be used to index multiple time series, which can then be represented by an iSAX tree (see, e.g. [http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf](http://www.cs.ucr.edu/~eamonn/iSAX_2.0.pdf)). This tree structure effectively clusters "similar" time series according to some distance measure, such as
@@ -91,13 +83,11 @@ Euclidean distance.
 
 We implemented a modified version of the iSAX tree using a true n-ary tree structure (i.e. n splits are permitted at all internal nodes rather than the binary splits of a typical iSAX tree), thus alleviating certain balancing concerns associated with the original iSAX tree model. Database functionality that utilizes the iSAX tree structure includes returning a time series that is similar to an input time series, as well as outputting a hierarchical representation of the contents of the iSAX tree that illustrates the clustering of similar time series as indexed by the tree.
 
-
-
 ### REST API
 
 The REST API allows the database client to be accessed through http requests, once the server and webserver are online. We use both `GET` and `POST` requests, transferring data in `JSON` format through the wire. The API is accessible on a web app that was build with the `aiohttp` library and that uses an asynchronous handler to process the requests
 
-We recommend accessing the API through our user-friendly web interface (see demos below), rather than by manually building http requests. This allows users to communicate with the REST API through easy-to-use and robust Python scripts.
+We recommend accessing the API through our user-friendly web interface (see demos above), rather than by manually building http requests. This allows users to communicate with the REST API through easy-to-use and robust Python scripts.
 
 Alternatively, the following paths can be used for direct access.
 
@@ -131,8 +121,6 @@ Alternatively, the following paths can be used for direct access.
 
   parameters: `pk` (primary key)
 
-
-
 **GET**
 
 - [http://127.0.0.1:8080/tsdb](http://127.0.0.1:8080/tsdb): displays a presentation of the REST API
@@ -159,9 +147,6 @@ Alternatively, the following paths can be used for direct access.
 
   parameters: None
 
-
-
-
 ## Technical Details
 
 ### Installation
@@ -174,17 +159,12 @@ Installation will make the following packages available: `procs`, `pype`, `times
 
 **Note**: Python 3.5 is required to use this package.
 
-
-
-
 ### Running the Server
 The database server can be loaded by running `python go_server_persistent.py` (with the appropriate arguments), followed by `python go_webserver.py`. It is good practice to pause for a few seconds after each of those commands, to ensure that the server/webserver has loaded fully. Terminating `go_server_persistent.py` will result in the database being committed to disk. Please refer to our documentation for examples and more detailed instructions.
 
 For example, `python go_server_persistent.py --ts_length 244 --db_name 'stock_prices'` followed by `python go_webserver.py` will load our database of daily stock price data, which includes a year of daily price data for 379 S&P 500 stocks (source: [www.stockwiz.com](http://www.stockwiz.com)).
 
 We recommend using our web interface to interact with the REST API. Available functions, each of which represents a database operation, are listed below. Our database function demonstration provides more detail on how to load and use the web interface to interact with the REST API.
-
-
 
 ### Functions
 * `insert_ts`: Insert time series data. May be followed by running a pre-defined function (trigger), if previously specified.
@@ -200,20 +180,7 @@ We recommend using our web interface to interact with the REST API. Available fu
 * `isax_similarity_search`: Run an iSAX tree-based similarity search, to find the closest (most similar) time series in the database. This is a faster search technique, but it only returns an approximate answer and may not always find a match.
 * `isax_tree`: Visualize the iSAX tree.
 
-Please refer to our database function demonstration below for full details on the function signatures and usage.
-
-
-
-
-### Examples
-* [Database function demonstration](docs/demo.ipynb)
-* [Database persistence demonstration](docs/persistence_demo.ipynb)
-* Stock market examples: [daily stock prices](docs/stock_example_prices.ipynb) | [daily stock returns](docs/stock_example_returns.ipynb)
-* [Presentation](docs/presentation.ipynb)
-
-
-
-
+Please refer to our database function demonstration above for full details on the function signatures and usage.
 
 Developers
 ----------
